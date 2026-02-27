@@ -3,6 +3,7 @@ import { LandingFeatures } from "@/components/landing/LandingFeatures";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
 import { Separator } from "@/components/ui/separator";
+import { LoginButton } from "@/features/auth/ui/LoginButton";
 
 export default function Home() {
   return (
@@ -11,7 +12,7 @@ export default function Home() {
 
       <main className="relative z-10 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <LandingTopBar />
-        <LandingHero />
+        <LandingHero loginButton={<LoginButton />} />
         <LandingDemoCard />
         <LandingFeatures />
 
