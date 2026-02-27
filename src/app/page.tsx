@@ -1,64 +1,31 @@
-import Image from "next/image";
+import { LandingDemoCard } from "@/components/landing/LandingDemoCard";
+import { LandingFeatures } from "@/components/landing/LandingFeatures";
+import { LandingHero } from "@/components/landing/LandingHero";
+import { LandingTopBar } from "@/components/landing/LandingTopBar";
+import { Separator } from "@/components/ui/separator";
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(90%_50%_at_50%_0%,rgba(88,101,242,0.14),transparent_70%),linear-gradient(180deg,#f4f6fb_0%,#e9edf5_100%)] text-foreground dark:bg-[radial-gradient(90%_50%_at_50%_0%,rgba(88,101,242,0.2),transparent_70%),linear-gradient(180deg,#11141d_0%,#0a0d15_100%)]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_12%_10%,rgba(255,255,255,0.3),transparent_28%),radial-gradient(circle_at_85%_20%,rgba(88,101,242,0.18),transparent_32%)] dark:bg-[radial-gradient(circle_at_18%_14%,rgba(255,255,255,0.07),transparent_28%),radial-gradient(circle_at_82%_22%,rgba(88,101,242,0.26),transparent_36%)]" />
+
+      <main className="relative z-10 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
+        <LandingTopBar />
+        <LandingHero />
+        <LandingDemoCard />
+        <LandingFeatures />
+
+        <Separator className="mt-10 bg-white/40 dark:bg-white/10" />
+
+        <footer className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <p>No bots. No logs. Just the session.</p>
           <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="#"
+            className="underline-offset-4 transition-colors hover:text-foreground hover:underline"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
+            GitHub (soon)
           </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+        </footer>
       </main>
     </div>
   );
