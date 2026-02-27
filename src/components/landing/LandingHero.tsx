@@ -1,4 +1,5 @@
 import { Info } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -7,7 +8,11 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export function LandingHero() {
+type LandingHeroProps = {
+  loginButton: ReactNode;
+};
+
+export function LandingHero({ loginButton }: LandingHeroProps) {
   return (
     <section className="mt-10 space-y-5 sm:mt-14 sm:space-y-6">
       <div className="space-y-3">
@@ -22,22 +27,19 @@ export function LandingHero() {
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
-          <Button disabled className="w-full sm:w-auto">
-            Continue with Discord
-          </Button>
+          {loginButton}
           <Tooltip>
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-label="Discord auth placeholder info"
+                aria-label="Discord auth info"
                 className="inline-flex size-9 items-center justify-center rounded-md border border-white/20 bg-white/20 text-muted-foreground backdrop-blur-md transition-colors hover:text-foreground dark:border-white/10 dark:bg-white/10"
               >
                 <Info className="size-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent side="top" className="max-w-xs text-center">
-              In the next step we&apos;ll connect Discord OAuth. For now this
-              is a UI placeholder.
+              Discord login is required to create or join reading sessions.
             </TooltipContent>
           </Tooltip>
         </div>
