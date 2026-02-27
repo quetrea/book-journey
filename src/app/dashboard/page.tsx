@@ -2,20 +2,18 @@ import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getAppSession } from "@/features/auth/server/session";
-import { MySessionsList } from "@/features/dashboard/ui/MySessionsList";
 import { ParticlesBackground } from "@/features/dashboard/ui/ParticlesBackground";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
+import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 
 export default async function DashboardPage() {
   const session = await getAppSession();
@@ -38,8 +36,19 @@ export default async function DashboardPage() {
   }
 
   const userName = session.user.name ?? "reader";
-  const userId = session.user.id ?? "unknown";
+  const discordId = session.user.id;
   const initials = userName.slice(0, 1).toUpperCase();
+
+  if (!discordId) {
+    return (
+      <main className="relative min-h-screen overflow-hidden px-4 py-10">
+        <ParticlesBackground />
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl items-center justify-center rounded-3xl border border-white/[0.45] bg-white/[0.58] p-6 text-sm text-muted-foreground shadow-[0_30px_90px_-35px_rgba(79,70,229,0.55)] backdrop-blur-xl dark:border-white/[0.15] dark:bg-[#0d1222]/[0.58] dark:shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)]">
+          Missing Discord identity in session. Please sign out and sign in again.
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -77,34 +86,11 @@ export default async function DashboardPage() {
           <Separator className="my-5 bg-white/55 dark:bg-white/10" />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
-              <CardHeader>
-                <CardTitle>Create Session</CardTitle>
-                <CardDescription>
-                  Start a live room for your reading group.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Host controls and queue setup are coming in the next milestone.
-                </p>
-              </CardContent>
-              <CardFooter>
-                <Button disabled className="w-full sm:w-auto">
-                  Coming next
-                </Button>
-              </CardFooter>
-            </Card>
-
-            <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
-              <CardHeader>
-                <CardTitle>My Sessions</CardTitle>
-                <CardDescription>Your hosted and joined rooms.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <MySessionsList sessions={[]} />
-              </CardContent>
-            </Card>
+            <SessionsDashboardSection
+              discordId={discordId}
+              name={userName}
+              image={session.user.image}
+            />
 
             <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md md:col-span-2 dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
               <CardHeader>
@@ -118,7 +104,7 @@ export default async function DashboardPage() {
                 </ul>
               </CardContent>
               <CardFooter className="text-xs text-muted-foreground">
-                Discord ID: {userId}
+                Discord ID: {discordId}
               </CardFooter>
             </Card>
           </div>
