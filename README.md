@@ -18,6 +18,15 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
+## Session Security Setup
+
+Session create/list/end routes are protected by a shared server key.
+
+1. Set `SESSIONS_SERVER_KEY` in Next.js environment variables.
+2. Set the same `SESSIONS_SERVER_KEY` in Convex deployment environment variables.
+
+If the values do not match, session API operations are rejected.
+
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
 ## Learn More

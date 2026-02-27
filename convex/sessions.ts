@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 function normalizeOptional(value: string | undefined) {
@@ -6,35 +6,77 @@ function normalizeOptional(value: string | undefined) {
   return trimmed ? trimmed : undefined;
 }
 
-export const createSession = mutation({
+function normalizeServerKey(value: string | undefined) {
+  if (!value) {
+    return "";
+  }
+
+  const trimmed = value.trim();
+
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1).trim();
+  }
+
+  return trimmed;
+}
+
+function assertServerKey(serverKey: string) {
+  const expectedKey = normalizeServerKey(process.env.SESSIONS_SERVER_KEY);
+  const providedKey = normalizeServerKey(serverKey);
+
+  if (!expectedKey) {
+    throw new Error("Server key not configured");
+  }
+
+  if (providedKey !== expectedKey) {
+    throw new Error("Forbidden");
+  }
+}
+
+async function getUserByDiscordIdOrThrow(
+  ctx: MutationCtx | QueryCtx,
+  discordId: string,
+) {
+  const user = await ctx.db
+    .query("users")
+    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
+    .unique();
+
+  if (!user) {
+    throw new Error("User not found. Refresh the dashboard and try again.");
+  }
+
+  return user;
+}
+
+export const createSessionServer = mutation({
   args: {
-    userId: v.id("users"),
+    serverKey: v.string(),
+    discordId: v.string(),
     bookTitle: v.string(),
     authorName: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // TODO: Implement server-verified identity via Convex Auth or Next.js server
-    // proxy. For now we rely on userId obtained from upsertCurrentUser.
+    assertServerKey(args.serverKey);
     const bookTitle = args.bookTitle.trim();
 
     if (!bookTitle) {
       throw new Error("Book title is required.");
     }
 
-    const user = await ctx.db.get(args.userId);
-
-    if (!user) {
-      throw new Error("User not found. Refresh the dashboard and try again.");
-    }
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
     const sessionId = await ctx.db.insert("sessions", {
       bookTitle,
       authorName: normalizeOptional(args.authorName),
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
-      createdBy: args.userId,
+      createdBy: user._id,
       createdAt: Date.now(),
       status: "active",
     });
@@ -43,36 +85,32 @@ export const createSession = mutation({
   },
 });
 
-export const listMySessions = query({
+export const listMySessionsServer = query({
   args: {
-    userId: v.id("users"),
+    serverKey: v.string(),
+    discordId: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-
-    if (!user) {
-      return [];
-    }
+    assertServerKey(args.serverKey);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
     return ctx.db
       .query("sessions")
-      .withIndex("by_createdBy_createdAt", (q) => q.eq("createdBy", args.userId))
+      .withIndex("by_createdBy_createdAt", (q) => q.eq("createdBy", user._id))
       .order("desc")
       .collect();
   },
 });
 
-export const endSession = mutation({
+export const endSessionServer = mutation({
   args: {
-    userId: v.id("users"),
+    serverKey: v.string(),
+    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db.get(args.userId);
-
-    if (!user) {
-      throw new Error("User not found.");
-    }
+    assertServerKey(args.serverKey);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
     const session = await ctx.db.get(args.sessionId);
 
@@ -80,7 +118,7 @@ export const endSession = mutation({
       throw new Error("Session not found.");
     }
 
-    if (session.createdBy !== args.userId) {
+    if (session.createdBy !== user._id) {
       throw new Error("You can only end your own session.");
     }
 
@@ -94,5 +132,27 @@ export const endSession = mutation({
     });
 
     return args.sessionId;
+  },
+});
+
+// Deprecated insecure endpoints kept only to fail closed if called directly.
+export const createSession = mutation({
+  args: {},
+  handler: async () => {
+    throw new Error("Deprecated insecure endpoint. Use createSessionServer.");
+  },
+});
+
+export const listMySessions = query({
+  args: {},
+  handler: async () => {
+    throw new Error("Deprecated insecure endpoint. Use listMySessionsServer.");
+  },
+});
+
+export const endSession = mutation({
+  args: {},
+  handler: async () => {
+    throw new Error("Deprecated insecure endpoint. Use endSessionServer.");
   },
 });

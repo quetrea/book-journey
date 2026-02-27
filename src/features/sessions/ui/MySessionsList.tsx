@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "convex/react";
 import { Clock3 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { api } from "../../../../convex/_generated/api";
-import type { SessionDoc, UserId } from "../types";
+import type { SessionListItem } from "../types";
 
 type MySessionsListProps = {
-  userId: UserId | null;
+  isReady: boolean;
+  refreshKey: number;
 };
 
 function formatDateLabel(timestamp: number) {
@@ -42,7 +41,7 @@ function formatElapsed(ms: number) {
   return `${minutes}m`;
 }
 
-function StatusBadge({ status }: { status: SessionDoc["status"] }) {
+function StatusBadge({ status }: { status: SessionListItem["status"] }) {
   if (status === "active") {
     return (
       <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
@@ -58,12 +57,69 @@ function StatusBadge({ status }: { status: SessionDoc["status"] }) {
   );
 }
 
-export function MySessionsList({ userId }: MySessionsListProps) {
+export function MySessionsList({ isReady, refreshKey }: MySessionsListProps) {
   const [now, setNow] = useState(() => Date.now());
-  const sessions = useQuery(
-    api.sessions.listMySessions,
-    userId ? { userId } : "skip",
-  );
+  const [sessions, setSessions] = useState<SessionListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isReady) {
+      setSessions([]);
+      setErrorMessage(null);
+      setIsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadSessions() {
+      try {
+        setIsLoading(true);
+        setErrorMessage(null);
+
+        const response = await fetch("/api/sessions/list", {
+          cache: "no-store",
+        });
+        const body = await response.json().catch(() => null);
+
+        if (!response.ok) {
+          const message =
+            typeof body?.error === "string" ? body.error : "Failed to load sessions.";
+          throw new Error(message);
+        }
+
+        const loadedSessions = Array.isArray(body?.sessions) ? body.sessions : [];
+
+        if (!cancelled) {
+          setSessions(loadedSessions as SessionListItem[]);
+        }
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        const message =
+          error instanceof Error ? error.message : "Failed to load sessions.";
+        setErrorMessage(message);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadSessions();
+
+    const intervalId = window.setInterval(() => {
+      void loadSessions();
+    }, 10_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [isReady, refreshKey]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -77,12 +133,16 @@ export function MySessionsList({ userId }: MySessionsListProps) {
 
   const normalizedSessions = useMemo(() => sessions ?? [], [sessions]);
 
-  if (!userId) {
+  if (!isReady) {
     return <p className="text-sm text-muted-foreground">Preparing account...</p>;
   }
 
-  if (sessions === undefined) {
+  if (isLoading) {
     return <p className="text-sm text-muted-foreground">Loading sessions...</p>;
+  }
+
+  if (errorMessage) {
+    return <p className="text-sm text-red-500">{errorMessage}</p>;
   }
 
   if (normalizedSessions.length === 0) {

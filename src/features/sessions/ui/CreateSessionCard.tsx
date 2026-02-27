@@ -1,17 +1,15 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { useMutation } from "convex/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { api } from "../../../../convex/_generated/api";
-import type { UserId } from "../types";
 
 type CreateSessionCardProps = {
-  userId: UserId | null;
+  isReady: boolean;
+  onCreated: () => void;
 };
 
 function normalizeOptional(value: string) {
@@ -19,9 +17,7 @@ function normalizeOptional(value: string) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function CreateSessionCard({ userId }: CreateSessionCardProps) {
-  const createSession = useMutation(api.sessions.createSession);
-
+export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps) {
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [title, setTitle] = useState("");
@@ -31,8 +27,8 @@ export function CreateSessionCard({ userId }: CreateSessionCardProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isDisabled = useMemo(
-    () => !userId || isSubmitting || bookTitle.trim().length === 0,
-    [bookTitle, userId, isSubmitting],
+    () => !isReady || isSubmitting || bookTitle.trim().length === 0,
+    [bookTitle, isReady, isSubmitting],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -48,7 +44,7 @@ export function CreateSessionCard({ userId }: CreateSessionCardProps) {
       return;
     }
 
-    if (!userId) {
+    if (!isReady) {
       setErrorMessage("Preparing account...");
       return;
     }
@@ -56,19 +52,34 @@ export function CreateSessionCard({ userId }: CreateSessionCardProps) {
     try {
       setIsSubmitting(true);
 
-      await createSession({
-        userId,
-        bookTitle: normalizedBookTitle,
-        authorName: normalizeOptional(authorName),
-        title: normalizeOptional(title),
-        synopsis: normalizeOptional(synopsis),
+      const response = await fetch("/api/sessions/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bookTitle: normalizedBookTitle,
+          authorName: normalizeOptional(authorName),
+          title: normalizeOptional(title),
+          synopsis: normalizeOptional(synopsis),
+        }),
       });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const message =
+          typeof errorBody?.error === "string"
+            ? errorBody.error
+            : "Failed to create session.";
+        throw new Error(message);
+      }
 
       setBookTitle("");
       setAuthorName("");
       setTitle("");
       setSynopsis("");
       setSuccessMessage("Session created.");
+      onCreated();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
       setErrorMessage(message);
@@ -115,7 +126,7 @@ export function CreateSessionCard({ userId }: CreateSessionCardProps) {
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
           {successMessage ? <p className="text-xs text-emerald-600">{successMessage}</p> : null}
 
-          {!userId ? (
+          {!isReady ? (
             <p className="text-xs text-muted-foreground">Preparing account...</p>
           ) : null}
 
