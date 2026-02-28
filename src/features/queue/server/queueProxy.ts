@@ -1,4 +1,5 @@
 import { ConvexHttpClient } from "convex/browser";
+import { makeFunctionReference } from "convex/server";
 
 import type { QueueItem } from "@/features/queue/types";
 import { api } from "../../../../convex/_generated/api";
@@ -90,5 +91,21 @@ export async function advanceQueueForDiscord(discordId: string, sessionId: strin
     serverKey,
     discordId,
     sessionId: sessionId as Id<"sessions">,
+  });
+}
+
+export async function addParticipantToQueueForDiscord(
+  discordId: string,
+  sessionId: string,
+  targetUserId: string,
+) {
+  const { convexUrl, serverKey } = getServerConfig();
+  const client = createClient(convexUrl);
+
+  return client.mutation(makeFunctionReference<"mutation">("queue:addUserToQueueServer"), {
+    serverKey,
+    discordId,
+    sessionId: sessionId as Id<"sessions">,
+    targetUserId: targetUserId as Id<"users">,
   });
 }

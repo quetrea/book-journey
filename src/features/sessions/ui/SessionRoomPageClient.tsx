@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpenText, UsersRound } from "lucide-react";
 
 import {
@@ -76,6 +76,17 @@ export function SessionRoomPageClient({
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
   const [endSessionErrorMessage, setEndSessionErrorMessage] = useState<
+    string | null
+  >(null);
+  const [selectedParticipantUserId, setSelectedParticipantUserId] =
+    useState("");
+  const [isAddingParticipantToQueue, setIsAddingParticipantToQueue] =
+    useState(false);
+  const [addParticipantToQueueError, setAddParticipantToQueueError] = useState<
+    string | null
+  >(null);
+  const [isLeavingSession, setIsLeavingSession] = useState(false);
+  const [leaveSessionErrorMessage, setLeaveSessionErrorMessage] = useState<
     string | null
   >(null);
 
@@ -248,7 +259,7 @@ export function SessionRoomPageClient({
     const reducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
-    const intervalMs = reducedMotion ? 10_000 : 7_000;
+    const intervalMs = reducedMotion ? 8_000 : 6_000;
 
     const intervalId = window.setInterval(() => {
       void refreshSession();
@@ -318,6 +329,34 @@ export function SessionRoomPageClient({
     }
   }
 
+  async function handleLeaveSession() {
+    setIsLeavingSession(true);
+    setLeaveSessionErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/leave`, {
+        method: "POST",
+      });
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          typeof body?.error === "string"
+            ? body.error
+            : "Failed to leave session.";
+        throw new Error(message);
+      }
+
+      router.replace("/dashboard");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Failed to leave session.";
+      setLeaveSessionErrorMessage(message);
+    } finally {
+      setIsLeavingSession(false);
+    }
+  }
+
   async function handlePasscodeVerify() {
     if (!passcodeValue.trim()) {
       setPasscodeErrorMessage("Passcode is required.");
@@ -366,6 +405,47 @@ export function SessionRoomPageClient({
     }
   }
 
+  async function handleAddParticipantToQueue() {
+    if (!selectedParticipantUserId) {
+      setAddParticipantToQueueError("Select a participant first.");
+      return;
+    }
+
+    setIsAddingParticipantToQueue(true);
+    setAddParticipantToQueueError(null);
+
+    try {
+      const response = await fetch(`/api/sessions/${sessionId}/queue/add-user`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          targetUserId: selectedParticipantUserId,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const message =
+          typeof body?.error === "string"
+            ? body.error
+            : "Failed to add participant to queue.";
+        throw new Error(message);
+      }
+
+      await handleQueueChanged();
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to add participant to queue.";
+      setAddParticipantToQueueError(message);
+    } finally {
+      setIsAddingParticipantToQueue(false);
+    }
+  }
+
   const viewerUserId = sessionDetails?.viewerUserId;
   const viewerQueueItem = viewerUserId
     ? queue.find((item) => item.userId === viewerUserId)
@@ -385,6 +465,27 @@ export function SessionRoomPageClient({
       sessionDetails.isHost ||
       isPasscodeVerified)
   );
+  const addableParticipants = useMemo(
+    () =>
+      participants.filter(
+        (participant) =>
+          !queue.some((queueItem) => queueItem.userId === participant.userId)
+      ),
+    [participants, queue]
+  );
+
+  useEffect(() => {
+    if (
+      selectedParticipantUserId &&
+      addableParticipants.some(
+        (participant) => participant.userId === selectedParticipantUserId
+      )
+    ) {
+      return;
+    }
+
+    setSelectedParticipantUserId(addableParticipants[0]?.userId ?? "");
+  }, [addableParticipants, selectedParticipantUserId]);
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -578,6 +679,77 @@ export function SessionRoomPageClient({
                           isHost={sessionDetails.isHost}
                           onChanged={handleQueueChanged}
                         />
+                      </div>
+                    ) : null}
+
+                    {sessionDetails.isHost && canUseQueueControls ? (
+                      <div className="space-y-2 rounded-xl border border-white/[0.4] bg-white/[0.6] p-3 dark:border-white/[0.14] dark:bg-white/[0.06]">
+                        <p className="text-xs font-medium text-foreground">
+                          Host: add participant to queue
+                        </p>
+                        {addableParticipants.length > 0 ? (
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                            <select
+                              value={selectedParticipantUserId}
+                              onChange={(event) =>
+                                setSelectedParticipantUserId(event.target.value)
+                              }
+                              className="h-9 flex-1 rounded-md border border-white/45 bg-white/75 px-2 text-sm dark:border-white/14 dark:bg-white/10"
+                            >
+                              {addableParticipants.map((participant) => (
+                                <option
+                                  key={participant.userId}
+                                  value={participant.userId}
+                                >
+                                  {participant.name}
+                                  {participant.role === "host" ? " (Host)" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                void handleAddParticipantToQueue();
+                              }}
+                              disabled={isAddingParticipantToQueue}
+                              className="w-full sm:w-auto"
+                            >
+                              {isAddingParticipantToQueue
+                                ? "Adding..."
+                                : "Add to queue"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground">
+                            Every participant is already in queue.
+                          </p>
+                        )}
+                        {addParticipantToQueueError ? (
+                          <p className="text-xs text-red-500">
+                            {addParticipantToQueueError}
+                          </p>
+                        ) : null}
+                      </div>
+                    ) : null}
+
+                    {!sessionDetails.isHost && isCurrentUserParticipant ? (
+                      <div className="space-y-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            void handleLeaveSession();
+                          }}
+                          disabled={isLeavingSession}
+                          className="w-full sm:w-auto"
+                        >
+                          {isLeavingSession ? "Leaving..." : "Leave session"}
+                        </Button>
+                        {leaveSessionErrorMessage ? (
+                          <p className="text-xs text-red-500">
+                            {leaveSessionErrorMessage}
+                          </p>
+                        ) : null}
                       </div>
                     ) : null}
 

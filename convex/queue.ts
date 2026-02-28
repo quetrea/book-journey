@@ -138,7 +138,19 @@ async function clearExtraReaders(
   const queue = await getQueueItemsByPosition(ctx, sessionId);
   const readingItems = queue.filter((item) => item.status === "reading");
 
-  if (readingItems.length <= 1) {
+  if (readingItems.length === 0) {
+    const nextWaiting = queue.find((item) => item.status === "waiting");
+
+    if (nextWaiting) {
+      await ctx.db.patch(nextWaiting._id, {
+        status: "reading",
+      });
+    }
+
+    return;
+  }
+
+  if (readingItems.length === 1) {
     return;
   }
 
@@ -156,7 +168,7 @@ async function normalizeQueuePositions(
   const queue = await getQueueItemsByPosition(ctx, sessionId);
 
   for (let index = 0; index < queue.length; index += 1) {
-    const expectedPosition = index + 1;
+    const expectedPosition = index;
 
     if (queue[index].position !== expectedPosition) {
       await ctx.db.patch(queue[index]._id, {
@@ -178,6 +190,7 @@ export const joinQueueServer = mutation({
     assertSessionActive(session);
     const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     await getParticipantBySessionAndUserOrThrow(ctx, args.sessionId, user._id);
+    await normalizeQueuePositions(ctx, args.sessionId);
 
     const existing = await ctx.db
       .query("queueItems")
@@ -198,7 +211,7 @@ export const joinQueueServer = mutation({
     const insertedId = await ctx.db.insert("queueItems", {
       sessionId: args.sessionId,
       userId: user._id,
-      position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 1,
+      position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
       status: hasActiveReaderOrWaiting ? "waiting" : "reading",
       joinedAt: Date.now(),
     });
@@ -208,6 +221,8 @@ export const joinQueueServer = mutation({
     if (!inserted) {
       throw new Error("Failed to create queue entry.");
     }
+
+    await clearExtraReaders(ctx, args.sessionId);
 
     return inserted;
   },
@@ -282,6 +297,7 @@ export const skipMyTurnServer = mutation({
     });
 
     await setNextReader(ctx, args.sessionId, existing.position);
+    await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
 
     return existing._id;
@@ -315,6 +331,7 @@ export const advanceQueueServer = mutation({
 
     if (!currentReader) {
       const nextReader = await setNextReader(ctx, args.sessionId);
+      await normalizeQueuePositions(ctx, args.sessionId);
       await clearExtraReaders(ctx, args.sessionId);
       return nextReader;
     }
@@ -328,9 +345,81 @@ export const advanceQueueServer = mutation({
       args.sessionId,
       currentReader.position,
     );
+    await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
 
     return nextReaderId;
+  },
+});
+
+export const addUserToQueueServer = mutation({
+  args: {
+    serverKey: v.string(),
+    discordId: v.string(),
+    sessionId: v.id("sessions"),
+    targetUserId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    assertServerKey(args.serverKey);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    assertSessionActive(session);
+
+    const actor = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const actorParticipant = await getParticipantBySessionAndUserOrThrow(
+      ctx,
+      args.sessionId,
+      actor._id,
+    );
+
+    if (actorParticipant.role !== "host") {
+      throw new Error("Only host can add participants to queue.");
+    }
+
+    const targetParticipant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      args.targetUserId,
+    );
+
+    if (!targetParticipant) {
+      throw new Error("Target user is not a participant.");
+    }
+
+    await normalizeQueuePositions(ctx, args.sessionId);
+
+    const existing = await ctx.db
+      .query("queueItems")
+      .withIndex("by_sessionId_userId", (q) =>
+        q.eq("sessionId", args.sessionId).eq("userId", args.targetUserId),
+      )
+      .unique();
+
+    if (existing) {
+      return existing;
+    }
+
+    const queue = await getQueueItemsByPosition(ctx, args.sessionId);
+    const hasActiveReaderOrWaiting = queue.some(
+      (item) => item.status === "reading" || item.status === "waiting",
+    );
+
+    const insertedId = await ctx.db.insert("queueItems", {
+      sessionId: args.sessionId,
+      userId: args.targetUserId,
+      position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
+      status: hasActiveReaderOrWaiting ? "waiting" : "reading",
+      joinedAt: Date.now(),
+    });
+
+    const inserted = await ctx.db.get(insertedId);
+
+    if (!inserted) {
+      throw new Error("Failed to create queue entry.");
+    }
+
+    await clearExtraReaders(ctx, args.sessionId);
+
+    return inserted;
   },
 });
 

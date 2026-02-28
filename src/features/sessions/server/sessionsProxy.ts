@@ -1,4 +1,5 @@
 import { ConvexHttpClient } from "convex/browser";
+import { makeFunctionReference } from "convex/server";
 
 import { getAppSession } from "@/features/auth/server/session";
 import type { SessionDetailsPayload } from "@/features/sessions/types";
@@ -101,6 +102,18 @@ export function normalizeError(error: unknown) {
 
   if (message === "Only current reader can skip turn.") {
     return { status: 403, message };
+  }
+
+  if (message === "Only host can add participants to queue.") {
+    return { status: 403, message };
+  }
+
+  if (message === "Target user is not a participant.") {
+    return { status: 404, message };
+  }
+
+  if (message === "Host cannot leave an active session.") {
+    return { status: 409, message };
   }
 
   if (message === "Join session first.") {
@@ -222,5 +235,16 @@ export async function verifySessionPasscodeForDiscord(
     discordId,
     sessionId: sessionId as Id<"sessions">,
     passcode,
+  });
+}
+
+export async function leaveSessionForDiscord(discordId: string, sessionId: string) {
+  const { convexUrl, serverKey } = getServerConfig();
+  const client = createClient(convexUrl);
+
+  return client.mutation(makeFunctionReference<"mutation">("sessions:leaveSessionServer"), {
+    serverKey,
+    discordId,
+    sessionId: sessionId as Id<"sessions">,
   });
 }

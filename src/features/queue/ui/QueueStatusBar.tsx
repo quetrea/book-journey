@@ -18,6 +18,7 @@ export function QueueStatusBar({
   const viewerQueueItem = viewerUserId
     ? queue.find((item) => item.userId === viewerUserId)
     : undefined;
+  const totalInQueue = queue.filter((item) => item.status !== "done").length;
 
   return (
     <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
@@ -30,6 +31,11 @@ export function QueueStatusBar({
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
+          <span>
+            Total:
+            {" "}
+            {totalInQueue}
+          </span>
           <span>
             You:
             {" "}

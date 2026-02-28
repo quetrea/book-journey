@@ -101,7 +101,7 @@ export function QueueList({ queue, isLoading, errorMessage }: QueueListProps) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-muted-foreground">No readers in queue yet.</p>
+          <p className="text-sm text-muted-foreground">No one in queue yet.</p>
         </CardContent>
       </Card>
     );

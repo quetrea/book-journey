@@ -119,6 +119,93 @@ async function getParticipantBySessionAndUser(
     .unique();
 }
 
+async function getQueueItemBySessionAndUser(
+  ctx: MutationCtx | QueryCtx,
+  sessionId: Id<"sessions">,
+  userId: Id<"users">,
+) {
+  return ctx.db
+    .query("queueItems")
+    .withIndex("by_sessionId_userId", (q) =>
+      q.eq("sessionId", sessionId).eq("userId", userId),
+    )
+    .unique();
+}
+
+async function getQueueItemsByPosition(
+  ctx: MutationCtx | QueryCtx,
+  sessionId: Id<"sessions">,
+) {
+  return ctx.db
+    .query("queueItems")
+    .withIndex("by_sessionId_position", (q) => q.eq("sessionId", sessionId))
+    .order("asc")
+    .collect();
+}
+
+async function normalizeQueuePositions(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+) {
+  const queue = await getQueueItemsByPosition(ctx, sessionId);
+
+  for (let index = 0; index < queue.length; index += 1) {
+    if (queue[index].position !== index) {
+      await ctx.db.patch(queue[index]._id, {
+        position: index,
+      });
+    }
+  }
+}
+
+async function ensureSingleReader(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+) {
+  const queue = await getQueueItemsByPosition(ctx, sessionId);
+  const readers = queue.filter((item) => item.status === "reading");
+
+  if (readers.length === 0) {
+    const nextWaiting = queue.find((item) => item.status === "waiting");
+
+    if (nextWaiting) {
+      await ctx.db.patch(nextWaiting._id, {
+        status: "reading",
+      });
+    }
+
+    return;
+  }
+
+  if (readers.length === 1) {
+    return;
+  }
+
+  for (let index = 1; index < readers.length; index += 1) {
+    await ctx.db.patch(readers[index]._id, {
+      status: "waiting",
+    });
+  }
+}
+
+async function removeUserFromQueueForSession(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+  userId: Id<"users">,
+) {
+  const queueItem = await getQueueItemBySessionAndUser(ctx, sessionId, userId);
+
+  if (!queueItem) {
+    return null;
+  }
+
+  await ctx.db.delete(queueItem._id);
+  await normalizeQueuePositions(ctx, sessionId);
+  await ensureSingleReader(ctx, sessionId);
+
+  return queueItem._id;
+}
+
 function sanitizeSession(session: {
   _id: Id<"sessions">;
   _creationTime: number;
@@ -231,7 +318,48 @@ export const endSessionServer = mutation({
       endedAt: Date.now(),
     });
 
+    const queue = await getQueueItemsByPosition(ctx, args.sessionId);
+
+    await Promise.all(
+      queue.map((item) =>
+        ctx.db.patch(item._id, {
+          status: "done",
+        }),
+      ),
+    );
+
     return args.sessionId;
+  },
+});
+
+export const leaveSessionServer = mutation({
+  args: {
+    serverKey: v.string(),
+    discordId: v.string(),
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    assertServerKey(args.serverKey);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    const participant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      user._id,
+    );
+
+    if (!participant) {
+      return null;
+    }
+
+    if (participant.role === "host" && session.status === "active") {
+      throw new Error("Host cannot leave an active session.");
+    }
+
+    await ctx.db.delete(participant._id);
+    await removeUserFromQueueForSession(ctx, args.sessionId, user._id);
+
+    return participant._id;
   },
 });
 
@@ -480,3 +608,6 @@ export const endSession = mutation({
     throw new Error("Deprecated insecure endpoint. Use endSessionServer.");
   },
 });
+
+// TODO(retention): When implementing auto-delete cleanup for sessions older than 7 days,
+// also delete related participants and queueItems in the same cleanup flow.
