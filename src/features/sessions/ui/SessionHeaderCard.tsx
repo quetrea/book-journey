@@ -92,7 +92,7 @@ export function SessionHeaderCard({
   }
 
   return (
-    <Card className="relative overflow-hidden border-white/[0.45] bg-white/[0.68] shadow-[0_22px_54px_-30px_rgba(67,56,202,0.78)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_24px_54px_-30px_rgba(79,70,229,0.78)]">
+    <Card className="relative overflow-hidden border-white/45 bg-white/68 shadow-[0_22px_54px_-30px_rgba(67,56,202,0.78)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_24px_54px_-30px_rgba(79,70,229,0.78)]">
       <CardHeader className="relative gap-4 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">

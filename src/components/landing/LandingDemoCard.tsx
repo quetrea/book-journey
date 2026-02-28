@@ -53,7 +53,7 @@ export function LandingDemoCard() {
             >
               App
             </Badge>
-            <CardTitle className="max-w-[15.5rem] truncate text-base tracking-tight sm:max-w-none sm:text-lg">
+            <CardTitle className="max-w-62 truncate text-base tracking-tight sm:max-w-none sm:text-lg">
               Book Club Session
             </CardTitle>
           </div>
@@ -174,7 +174,9 @@ export function LandingDemoCard() {
                   {item.handle}
                 </span>
                 {item.isYou ? (
-                  <span className="text-[11px] text-muted-foreground">(you)</span>
+                  <span className="text-[11px] text-muted-foreground">
+                    (you)
+                  </span>
                 ) : null}
               </li>
             ))}

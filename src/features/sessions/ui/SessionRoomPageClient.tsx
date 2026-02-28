@@ -262,9 +262,20 @@ export function SessionRoomPageClient({
     const intervalMs = reducedMotion ? 8_000 : 6_000;
 
     const intervalId = window.setInterval(() => {
-      void refreshSession();
-      void refreshParticipants(false);
-      void refreshQueue(false);
+      void (async () => {
+        const pollResults = await Promise.allSettled([
+          refreshSession(),
+          refreshParticipants(false),
+          refreshQueue(false),
+        ]);
+        const hasFailure = pollResults.some(
+          (result) => result.status === "rejected"
+        );
+
+        if (hasFailure) {
+          return;
+        }
+      })();
     }, intervalMs);
 
     return () => {
@@ -493,7 +504,7 @@ export function SessionRoomPageClient({
       <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-5 animate-in fade-in slide-in-from-top-1 duration-500">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/[0.45] bg-white/[0.62] p-2 shadow-[0_18px_48px_-30px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_48px_-30px_rgba(79,70,229,0.75)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/45 bg-white/62 p-2 shadow-[0_18px_48px_-30px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_48px_-30px_rgba(79,70,229,0.75)]">
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -553,7 +564,7 @@ export function SessionRoomPageClient({
         </div>
 
         {isInitialLoading ? (
-          <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+          <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
             <CardHeader className="pb-2">
               <CardTitle>Loading session room...</CardTitle>
             </CardHeader>
@@ -566,7 +577,7 @@ export function SessionRoomPageClient({
         ) : null}
 
         {!isInitialLoading && notFound ? (
-          <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+          <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
             <CardHeader>
               <CardTitle>Session not found</CardTitle>
             </CardHeader>
@@ -579,7 +590,7 @@ export function SessionRoomPageClient({
         ) : null}
 
         {!isInitialLoading && !notFound && sessionErrorMessage ? (
-          <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+          <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
             <CardHeader>
               <CardTitle>Could not load session</CardTitle>
             </CardHeader>
@@ -608,7 +619,7 @@ export function SessionRoomPageClient({
                   />
                 </div>
 
-                <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-500 dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+                <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-500 dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
                   <CardHeader className="pb-3">
                     <CardTitle className="inline-flex items-center gap-2 text-base">
                       <BookOpenText className="size-4 text-indigo-500" />
@@ -627,7 +638,7 @@ export function SessionRoomPageClient({
                     />
 
                     {showPasscodePrompt ? (
-                      <div className="space-y-3 rounded-xl border border-white/[0.4] bg-white/[0.6] p-3 dark:border-white/[0.14] dark:bg-white/[0.06]">
+                      <div className="space-y-3 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
                         <p className="text-sm font-medium text-foreground">
                           Session Passcode
                         </p>
@@ -683,7 +694,7 @@ export function SessionRoomPageClient({
                     ) : null}
 
                     {sessionDetails.isHost && canUseQueueControls ? (
-                      <div className="space-y-2 rounded-xl border border-white/[0.4] bg-white/[0.6] p-3 dark:border-white/[0.14] dark:bg-white/[0.06]">
+                      <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
                         <p className="text-xs font-medium text-foreground">
                           Host: add participant to queue
                         </p>
