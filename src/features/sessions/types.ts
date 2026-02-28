@@ -10,3 +10,9 @@ export type SessionListItem = {
   status: "active" | "ended";
   endedAt?: number;
 };
+
+export type SessionDetailsPayload = {
+  session: SessionListItem;
+  hostName?: string;
+  hostImage?: string;
+};

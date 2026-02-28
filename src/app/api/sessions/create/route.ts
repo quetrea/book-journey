@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import {
   createSessionForDiscord,
+  ensureHostParticipantOnCreateForDiscord,
   getAuthenticatedDiscordId,
   normalizeError,
 } from "@/features/sessions/server/sessionsProxy";
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       title,
       synopsis,
     });
+    await ensureHostParticipantOnCreateForDiscord(auth.discordId, sessionId);
 
     return NextResponse.json({ sessionId });
   } catch (error) {

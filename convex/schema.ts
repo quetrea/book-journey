@@ -19,4 +19,13 @@ export default defineSchema({
     status: v.union(v.literal("active"), v.literal("ended")),
     endedAt: v.optional(v.number()),
   }).index("by_createdBy_createdAt", ["createdBy", "createdAt"]),
+
+  participants: defineTable({
+    sessionId: v.id("sessions"),
+    userId: v.id("users"),
+    role: v.union(v.literal("host"), v.literal("reader")),
+    joinedAt: v.number(),
+  })
+    .index("by_sessionId", ["sessionId"])
+    .index("by_sessionId_userId", ["sessionId", "userId"]),
 });
