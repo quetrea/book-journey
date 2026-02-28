@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import {
   getAuthenticatedDiscordId,
   normalizeError,
   verifySessionPasscodeForDiscord,
 } from "@/features/sessions/server/sessionsProxy";
+import {
+  clearPasscodeGrantCookie,
+  createPasscodeGrantToken,
+  setPasscodeGrantCookie,
+} from "@/features/sessions/server/sessionPasscodeGrant";
 
 export const runtime = "nodejs";
 
@@ -12,7 +17,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function POST(request: Request, context: RouteContext) {
+export async function POST(request: NextRequest, context: RouteContext) {
   const auth = await getAuthenticatedDiscordId();
 
   if (!auth.ok) {
@@ -39,7 +44,19 @@ export async function POST(request: Request, context: RouteContext) {
       sessionId,
       passcode,
     );
-    return NextResponse.json(result);
+    const response = NextResponse.json(result);
+
+    if (result.verified && result.isPasscodeProtected) {
+      const grantToken = createPasscodeGrantToken({
+        sessionId,
+        discordId: auth.discordId,
+      });
+      setPasscodeGrantCookie(response, sessionId, grantToken);
+    } else {
+      clearPasscodeGrantCookie(response, sessionId);
+    }
+
+    return response;
   } catch (error) {
     const normalized = normalizeError(error);
     return NextResponse.json({ error: normalized.message }, { status: normalized.status });
