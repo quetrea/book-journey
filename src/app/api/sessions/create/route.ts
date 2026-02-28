@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const authorName = typeof body?.authorName === "string" ? body.authorName : undefined;
   const title = typeof body?.title === "string" ? body.title : undefined;
   const synopsis = typeof body?.synopsis === "string" ? body.synopsis : undefined;
+  const hostPasscode = typeof body?.hostPasscode === "string" ? body.hostPasscode : undefined;
 
   if (!bookTitle.trim()) {
     return NextResponse.json({ error: "Book title is required." }, { status: 400 });
@@ -33,6 +34,7 @@ export async function POST(request: Request) {
       authorName,
       title,
       synopsis,
+      hostPasscode,
     });
     await ensureHostParticipantOnCreateForDiscord(auth.discordId, sessionId);
 

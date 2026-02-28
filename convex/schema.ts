@@ -14,6 +14,7 @@ export default defineSchema({
     authorName: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
+    hostPasscode: v.optional(v.string()),
     createdBy: v.id("users"),
     createdAt: v.number(),
     status: v.union(v.literal("active"), v.literal("ended")),
@@ -27,5 +28,15 @@ export default defineSchema({
     joinedAt: v.number(),
   })
     .index("by_sessionId", ["sessionId"])
+    .index("by_sessionId_userId", ["sessionId", "userId"]),
+
+  queueItems: defineTable({
+    sessionId: v.id("sessions"),
+    userId: v.id("users"),
+    position: v.number(),
+    status: v.union(v.literal("waiting"), v.literal("reading"), v.literal("done")),
+    joinedAt: v.number(),
+  })
+    .index("by_sessionId_position", ["sessionId", "position"])
     .index("by_sessionId_userId", ["sessionId", "userId"]),
 });

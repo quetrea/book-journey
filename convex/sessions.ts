@@ -8,6 +8,26 @@ function normalizeOptional(value: string | undefined) {
   return trimmed ? trimmed : undefined;
 }
 
+function normalizePasscode(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed && trimmed.length > 0 ? trimmed : undefined;
+}
+
+function hashPasscode(passcode: string) {
+  let hash = 5381;
+
+  for (let index = 0; index < passcode.length; index += 1) {
+    hash = ((hash << 5) + hash) ^ passcode.charCodeAt(index);
+  }
+
+  const unsigned = hash >>> 0;
+  return `v1_${unsigned.toString(16)}`;
+}
+
+function verifyPasscodeHash(passcode: string, hash: string) {
+  return hashPasscode(passcode) === hash;
+}
+
 function normalizeServerKey(value: string | undefined) {
   if (!value) {
     return "";
@@ -56,6 +76,16 @@ async function getUserByDiscordIdOrThrow(
   return user;
 }
 
+async function getUserByDiscordId(
+  ctx: MutationCtx | QueryCtx,
+  discordId: string,
+) {
+  return ctx.db
+    .query("users")
+    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
+    .unique();
+}
+
 async function getSessionById(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
@@ -76,6 +106,24 @@ async function getSessionByIdOrThrow(
   return session;
 }
 
+function sanitizeSession(session: {
+  _id: Id<"sessions">;
+  _creationTime: number;
+  bookTitle: string;
+  authorName?: string;
+  title?: string;
+  synopsis?: string;
+  createdBy: Id<"users">;
+  createdAt: number;
+  status: "active" | "ended";
+  endedAt?: number;
+  hostPasscode?: string;
+}) {
+  const safeSession = { ...session };
+  delete safeSession.hostPasscode;
+  return safeSession;
+}
+
 export const createSessionServer = mutation({
   args: {
     serverKey: v.string(),
@@ -84,6 +132,7 @@ export const createSessionServer = mutation({
     authorName: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
+    hostPasscode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     assertServerKey(args.serverKey);
@@ -94,12 +143,14 @@ export const createSessionServer = mutation({
     }
 
     const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const hostPasscode = normalizePasscode(args.hostPasscode);
 
     const sessionId = await ctx.db.insert("sessions", {
       bookTitle,
       authorName: normalizeOptional(args.authorName),
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
+      hostPasscode: hostPasscode ? hashPasscode(hostPasscode) : undefined,
       createdBy: user._id,
       createdAt: Date.now(),
       status: "active",
@@ -118,11 +169,13 @@ export const listMySessionsServer = query({
     assertServerKey(args.serverKey);
     const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
-    return ctx.db
+    const sessions = await ctx.db
       .query("sessions")
       .withIndex("by_createdBy_createdAt", (q) => q.eq("createdBy", user._id))
       .order("desc")
       .collect();
+
+    return sessions.map((session) => sanitizeSession(session));
   },
 });
 
@@ -157,6 +210,7 @@ export const endSessionServer = mutation({
 export const getSessionByIdServer = query({
   args: {
     serverKey: v.string(),
+    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
@@ -169,11 +223,16 @@ export const getSessionByIdServer = query({
     }
 
     const host = await ctx.db.get(session.createdBy);
+    const viewer = await getUserByDiscordId(ctx, args.discordId);
+    const isHost = Boolean(viewer && viewer._id === session.createdBy);
 
     return {
-      session,
+      session: sanitizeSession(session),
       hostName: host?.name,
       hostImage: host?.image,
+      viewerUserId: viewer?._id,
+      isHost,
+      isPasscodeProtected: Boolean(session.hostPasscode),
     };
   },
 });
@@ -335,6 +394,37 @@ export const isParticipantServer = query({
       .unique();
 
     return Boolean(participant);
+  },
+});
+
+export const verifySessionPasscodeServer = query({
+  args: {
+    serverKey: v.string(),
+    discordId: v.string(),
+    sessionId: v.id("sessions"),
+    passcode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    assertServerKey(args.serverKey);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    const viewer = await getUserByDiscordId(ctx, args.discordId);
+    const isHost = Boolean(viewer && viewer._id === session.createdBy);
+
+    if (!session.hostPasscode || isHost) {
+      return {
+        verified: true,
+        isHost,
+        isPasscodeProtected: Boolean(session.hostPasscode),
+      };
+    }
+
+    const verified = verifyPasscodeHash(args.passcode.trim(), session.hostPasscode);
+
+    return {
+      verified,
+      isHost,
+      isPasscodeProtected: true,
+    };
   },
 });
 

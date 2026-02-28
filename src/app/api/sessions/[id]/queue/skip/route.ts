@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { upsertParticipantProfileForDiscord } from "@/features/participants/server/participantsProxy";
+import { skipMyTurnForDiscord } from "@/features/queue/server/queueProxy";
 import {
-  getAuthenticatedDiscordId,
-  getSessionByIdForAccess,
+  getAuthenticatedDiscordProfile,
   normalizeError,
 } from "@/features/sessions/server/sessionsProxy";
 
@@ -12,8 +13,8 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
-  const auth = await getAuthenticatedDiscordId();
+export async function POST(_request: Request, context: RouteContext) {
+  const auth = await getAuthenticatedDiscordProfile();
 
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -27,13 +28,13 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
-    const details = await getSessionByIdForAccess(auth.discordId, sessionId);
-
-    if (!details) {
-      return NextResponse.json({ error: "Session not found." }, { status: 404 });
-    }
-
-    return NextResponse.json(details);
+    await upsertParticipantProfileForDiscord({
+      discordId: auth.discordId,
+      name: auth.name,
+      image: auth.image,
+    });
+    await skipMyTurnForDiscord(auth.discordId, sessionId);
+    return NextResponse.json({ success: true });
   } catch (error) {
     const normalized = normalizeError(error);
     return NextResponse.json({ error: normalized.message }, { status: normalized.status });

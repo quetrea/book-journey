@@ -24,6 +24,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   const [authorName, setAuthorName] = useState("");
   const [title, setTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
+  const [hostPasscode, setHostPasscode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -64,6 +65,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
           authorName: normalizeOptional(authorName),
           title: normalizeOptional(title),
           synopsis: normalizeOptional(synopsis),
+          hostPasscode: normalizeOptional(hostPasscode),
         }),
       });
       const body = await response.json().catch(() => null);
@@ -91,6 +93,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
       setAuthorName("");
       setTitle("");
       setSynopsis("");
+      setHostPasscode("");
       setSuccessMessage("Session created.");
       onCreated();
       router.push(`/s/${createdSessionId}`);
@@ -136,6 +139,12 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
               rows={3}
             />
           </div>
+          <Input
+            value={hostPasscode}
+            onChange={(event) => setHostPasscode(event.target.value)}
+            placeholder="Host passcode (optional)"
+            type="password"
+          />
 
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
           {successMessage ? <p className="text-xs text-emerald-600">{successMessage}</p> : null}
