@@ -30,10 +30,12 @@ export const authOptions: NextAuthOptions = {
 
       if (user?.id) {
         token.id = user.id;
+        token.discordId = user.id;
       }
 
       if (discordProfile?.id) {
         token.id = discordProfile.id;
+        token.discordId = discordProfile.id;
       }
 
       const preferredName =
@@ -56,6 +58,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id ?? token.sub ?? "";
+        session.user.discordId = token.discordId ?? token.id ?? token.sub ?? "";
         session.user.name = token.discordName ?? token.name ?? session.user.name;
         session.user.image =
           (typeof token.picture === "string" ? token.picture : null) ??
