@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Clock3 } from "lucide-react";
 
@@ -162,63 +163,59 @@ export function MySessionsList({ isReady, refreshKey }: MySessionsListProps) {
         const elapsed = formatElapsed(finishedAt - session.createdAt);
 
         return (
-          <Card
-            key={session._id}
-            className="relative gap-0 overflow-hidden border-white/[0.34] bg-white/[0.53] px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(79,70,229,0.6)] backdrop-blur-md dark:border-white/[0.12] dark:bg-white/[0.06]"
-          >
-            <span
-              className={`pointer-events-none absolute left-0 top-0 h-full w-[2px] ${
-                session.status === "active"
-                  ? "bg-gradient-to-b from-emerald-400/95 via-emerald-300/80 to-transparent"
-                  : "bg-gradient-to-b from-slate-300/80 to-transparent dark:from-slate-400/45"
-              }`}
-            />
+          <Link key={session._id} href={`/s/${session._id}`} className="block">
+            <Card className="relative gap-0 overflow-hidden border-white/[0.34] bg-white/[0.53] px-3.5 py-3 shadow-[0_10px_24px_-18px_rgba(79,70,229,0.6)] backdrop-blur-md transition-colors hover:bg-white/[0.62] dark:border-white/[0.12] dark:bg-white/[0.06] dark:hover:bg-white/[0.1]">
+              <span
+                className={`pointer-events-none absolute left-0 top-0 h-full w-[2px] ${
+                  session.status === "active"
+                    ? "bg-gradient-to-b from-emerald-400/95 via-emerald-300/80 to-transparent"
+                    : "bg-gradient-to-b from-slate-300/80 to-transparent dark:from-slate-400/45"
+                }`}
+              />
 
-            <CardContent className="p-0">
-              <div className="grid gap-2.5 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] md:items-center">
-                <div className="min-w-0">
-                  <p className="line-clamp-1 text-sm font-semibold text-foreground md:text-[15px]">
-                    {session.bookTitle}
-                  </p>
-                  <p className="line-clamp-1 text-xs text-muted-foreground/95">
-                    {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-                  </p>
-                  {session.synopsis ? (
-                    <p className="line-clamp-1 text-xs text-muted-foreground/85">
-                      {session.synopsis}
+              <CardContent className="p-0">
+                <div className="grid gap-2.5 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_auto] md:items-center">
+                  <div className="min-w-0">
+                    <p className="line-clamp-1 text-sm font-semibold text-foreground md:text-[15px]">
+                      {session.bookTitle}
                     </p>
-                  ) : null}
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  <StatusBadge status={session.status} />
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2 py-1 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                    <Clock3 className="size-3.5" />
-                    {elapsed}
-                  </span>
-                </div>
-
-                <div className="text-right text-xs text-muted-foreground">
-                  <p>{formatDateLabel(session.createdAt)}</p>
-                  {session.synopsis ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          type="button"
-                          className="mt-1 hidden text-[11px] underline underline-offset-2 hover:text-foreground md:inline-block"
-                        >
-                          View
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="left" sideOffset={8} className="max-w-xs">
+                    <p className="line-clamp-1 text-xs text-muted-foreground/95">
+                      {session.authorName ? `by ${session.authorName}` : "Author unknown"}
+                    </p>
+                    {session.synopsis ? (
+                      <p className="line-clamp-1 text-xs text-muted-foreground/85">
                         {session.synopsis}
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : null}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge status={session.status} />
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2 py-1 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                      <Clock3 className="size-3.5" />
+                      {elapsed}
+                    </span>
+                  </div>
+
+                  <div className="text-right text-xs text-muted-foreground">
+                    <p>{formatDateLabel(session.createdAt)}</p>
+                    {session.synopsis ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="mt-1 hidden text-[11px] underline underline-offset-2 hover:text-foreground md:inline-block">
+                            View
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" sideOffset={8} className="max-w-xs">
+                          {session.synopsis}
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </Link>
         );
       })}
     </div>

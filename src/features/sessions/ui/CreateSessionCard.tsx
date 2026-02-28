@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ function normalizeOptional(value: string) {
 }
 
 export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps) {
+  const router = useRouter();
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [title, setTitle] = useState("");
@@ -64,14 +66,25 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
           synopsis: normalizeOptional(synopsis),
         }),
       });
+      const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
         const message =
-          typeof errorBody?.error === "string"
-            ? errorBody.error
+          typeof body?.error === "string"
+            ? body.error
             : "Failed to create session.";
         throw new Error(message);
+      }
+
+      const createdSessionId =
+        typeof body?.sessionId === "string"
+          ? body.sessionId
+          : typeof body?.session?._id === "string"
+            ? body.session._id
+            : null;
+
+      if (!createdSessionId) {
+        throw new Error("Session created but no sessionId was returned.");
       }
 
       setBookTitle("");
@@ -80,6 +93,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
       setSynopsis("");
       setSuccessMessage("Session created.");
       onCreated();
+      router.push(`/s/${createdSessionId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
       setErrorMessage(message);
