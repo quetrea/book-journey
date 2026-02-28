@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as queue from "../queue.js";
 import type * as sessions from "../sessions.js";
 import type * as users from "../users.js";
 
@@ -18,6 +19,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  queue: typeof queue;
   sessions: typeof sessions;
   users: typeof users;
 }>;

@@ -9,10 +9,15 @@ export type SessionListItem = {
   createdAt: number;
   status: "active" | "ended";
   endedAt?: number;
+  hostName?: string;
+  hostImage?: string;
 };
 
 export type SessionDetailsPayload = {
   session: SessionListItem;
   hostName?: string;
   hostImage?: string;
+  viewerUserId?: string;
+  isHost: boolean;
+  isPasscodeProtected: boolean;
 };

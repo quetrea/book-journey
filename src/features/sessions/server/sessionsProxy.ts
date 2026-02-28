@@ -23,6 +23,7 @@ type CreateSessionPayload = {
   authorName?: string;
   title?: string;
   synopsis?: string;
+  hostPasscode?: string;
 };
 
 function normalizeServerKey(value: string | undefined) {
@@ -86,8 +87,32 @@ export function normalizeError(error: unknown) {
     return { status: 403, message };
   }
 
+  if (message === "Only host can end session.") {
+    return { status: 403, message };
+  }
+
   if (message === "Only the session creator can be host.") {
     return { status: 403, message };
+  }
+
+  if (message === "Only host can advance queue.") {
+    return { status: 403, message };
+  }
+
+  if (message === "Only current reader can skip turn.") {
+    return { status: 403, message };
+  }
+
+  if (message === "Join session first.") {
+    return { status: 403, message };
+  }
+
+  if (message === "Queue entry not found.") {
+    return { status: 404, message };
+  }
+
+  if (message === "Session has ended.") {
+    return { status: 409, message };
   }
 
   return { status: 500, message };
@@ -173,12 +198,29 @@ export async function ensureHostParticipantOnCreateForDiscord(
   });
 }
 
-export async function getSessionByIdForAccess(sessionId: string) {
+export async function getSessionByIdForAccess(discordId: string, sessionId: string) {
   const { convexUrl, serverKey } = getServerConfig();
   const client = createClient(convexUrl);
 
   return client.query(api.sessions.getSessionByIdServer, {
     serverKey,
+    discordId,
     sessionId: sessionId as Id<"sessions">,
   }) as Promise<SessionDetailsPayload | null>;
+}
+
+export async function verifySessionPasscodeForDiscord(
+  discordId: string,
+  sessionId: string,
+  passcode: string,
+) {
+  const { convexUrl, serverKey } = getServerConfig();
+  const client = createClient(convexUrl);
+
+  return client.query(api.sessions.verifySessionPasscodeServer, {
+    serverKey,
+    discordId,
+    sessionId: sessionId as Id<"sessions">,
+    passcode,
+  });
 }

@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
 
-import {
-  getAuthenticatedDiscordId,
-  getSessionByIdForAccess,
-  normalizeError,
-} from "@/features/sessions/server/sessionsProxy";
+import { getQueueForSession } from "@/features/queue/server/queueProxy";
+import { getAuthenticatedDiscordId, normalizeError } from "@/features/sessions/server/sessionsProxy";
 
 export const runtime = "nodejs";
 
@@ -27,13 +24,8 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
-    const details = await getSessionByIdForAccess(auth.discordId, sessionId);
-
-    if (!details) {
-      return NextResponse.json({ error: "Session not found." }, { status: 404 });
-    }
-
-    return NextResponse.json(details);
+    const queue = await getQueueForSession(sessionId);
+    return NextResponse.json({ queue });
   } catch (error) {
     const normalized = normalizeError(error);
     return NextResponse.json({ error: normalized.message }, { status: normalized.status });

@@ -4,11 +4,20 @@ import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-type CreateSessionCardProps = {
+type CreateSessionModalProps = {
   isReady: boolean;
   onCreated: () => void;
 };
@@ -18,8 +27,9 @@ function normalizeOptional(value: string) {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps) {
+export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalProps) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [title, setTitle] = useState("");
@@ -27,7 +37,6 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   const [hostPasscode, setHostPasscode] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const isDisabled = useMemo(
     () => !isReady || isSubmitting || bookTitle.trim().length === 0,
@@ -36,9 +45,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     setErrorMessage(null);
-    setSuccessMessage(null);
 
     const normalizedBookTitle = bookTitle.trim();
 
@@ -72,9 +79,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
 
       if (!response.ok) {
         const message =
-          typeof body?.error === "string"
-            ? body.error
-            : "Failed to create session.";
+          typeof body?.error === "string" ? body.error : "Failed to create session.";
         throw new Error(message);
       }
 
@@ -89,12 +94,12 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
         throw new Error("Session created but no sessionId was returned.");
       }
 
+      setOpen(false);
       setBookTitle("");
       setAuthorName("");
       setTitle("");
       setSynopsis("");
       setHostPasscode("");
-      setSuccessMessage("Session created.");
       onCreated();
       router.push(`/s/${createdSessionId}`);
     } catch (error) {
@@ -106,13 +111,22 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   }
 
   return (
-    <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
-      <CardHeader>
-        <CardTitle>Create Session</CardTitle>
-        <CardDescription>Start a live room for your reading group.</CardDescription>
-      </CardHeader>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button
+          type="button"
+          disabled={!isReady}
+          className="w-full sm:w-auto transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-16px_rgba(79,70,229,0.75)]"
+        >
+          Create session
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="border-white/[0.45] bg-white/[0.95] backdrop-blur-md sm:max-w-xl dark:border-white/[0.15] dark:bg-[#0d1222]/[0.95]">
+        <DialogHeader>
+          <DialogTitle>Create session</DialogTitle>
+          <DialogDescription>Start a live room for your reading group.</DialogDescription>
+        </DialogHeader>
 
-      <CardContent>
         <form onSubmit={handleSubmit} className="space-y-3">
           <Input
             value={bookTitle}
@@ -147,21 +161,22 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
           />
 
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
-          {successMessage ? <p className="text-xs text-emerald-600">{successMessage}</p> : null}
-
           {!isReady ? (
             <p className="text-xs text-muted-foreground">Preparing account...</p>
           ) : null}
 
-          <Button type="submit" disabled={isDisabled} className="w-full sm:w-auto">
-            {isSubmitting ? "Creating..." : "Create session"}
-          </Button>
+          <DialogFooter className="pt-1">
+            <DialogClose asChild>
+              <Button type="button" variant="outline" disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="submit" disabled={isDisabled}>
+              {isSubmitting ? "Creating..." : "Create session"}
+            </Button>
+          </DialogFooter>
         </form>
-      </CardContent>
-
-      <CardFooter className="text-xs text-muted-foreground">
-        Sessions update in real time for your account.
-      </CardFooter>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }

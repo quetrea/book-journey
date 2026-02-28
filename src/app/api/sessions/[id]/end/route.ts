@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 
 import {
+  endSessionForDiscord,
   getAuthenticatedDiscordId,
-  getSessionByIdForAccess,
   normalizeError,
 } from "@/features/sessions/server/sessionsProxy";
 
@@ -12,7 +12,7 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function POST(_request: Request, context: RouteContext) {
   const auth = await getAuthenticatedDiscordId();
 
   if (!auth.ok) {
@@ -27,13 +27,8 @@ export async function GET(_request: Request, context: RouteContext) {
   }
 
   try {
-    const details = await getSessionByIdForAccess(auth.discordId, sessionId);
-
-    if (!details) {
-      return NextResponse.json({ error: "Session not found." }, { status: 404 });
-    }
-
-    return NextResponse.json(details);
+    await endSessionForDiscord(auth.discordId, sessionId);
+    return NextResponse.json({ ok: true });
   } catch (error) {
     const normalized = normalizeError(error);
     return NextResponse.json({ error: normalized.message }, { status: normalized.status });
