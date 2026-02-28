@@ -45,25 +45,39 @@ function normalizeApiError(message: unknown) {
   return "Request failed.";
 }
 
-export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps) {
+export function SessionRoomPageClient({
+  sessionId,
+}: SessionRoomPageClientProps) {
   const router = useRouter();
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [sessionDetails, setSessionDetails] = useState<SessionDetailsPayload | null>(null);
-  const [sessionErrorMessage, setSessionErrorMessage] = useState<string | null>(null);
+  const [sessionDetails, setSessionDetails] =
+    useState<SessionDetailsPayload | null>(null);
+  const [sessionErrorMessage, setSessionErrorMessage] = useState<string | null>(
+    null
+  );
   const [participants, setParticipants] = useState<ParticipantListItem[]>([]);
   const [isParticipantsLoading, setIsParticipantsLoading] = useState(true);
-  const [participantsErrorMessage, setParticipantsErrorMessage] = useState<string | null>(null);
-  const [isCurrentUserParticipant, setIsCurrentUserParticipant] = useState(false);
+  const [participantsErrorMessage, setParticipantsErrorMessage] = useState<
+    string | null
+  >(null);
+  const [isCurrentUserParticipant, setIsCurrentUserParticipant] =
+    useState(false);
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [isQueueLoading, setIsQueueLoading] = useState(true);
-  const [queueErrorMessage, setQueueErrorMessage] = useState<string | null>(null);
+  const [queueErrorMessage, setQueueErrorMessage] = useState<string | null>(
+    null
+  );
   const [passcodeValue, setPasscodeValue] = useState("");
-  const [passcodeErrorMessage, setPasscodeErrorMessage] = useState<string | null>(null);
+  const [passcodeErrorMessage, setPasscodeErrorMessage] = useState<
+    string | null
+  >(null);
   const [isVerifyingPasscode, setIsVerifyingPasscode] = useState(false);
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
   const [isEndingSession, setIsEndingSession] = useState(false);
-  const [endSessionErrorMessage, setEndSessionErrorMessage] = useState<string | null>(null);
+  const [endSessionErrorMessage, setEndSessionErrorMessage] = useState<
+    string | null
+  >(null);
 
   const refreshSession = useCallback(async () => {
     const response = await fetch(`/api/sessions/${sessionId}`, {
@@ -98,9 +112,12 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
       }
 
       try {
-        const response = await fetch(`/api/sessions/${sessionId}/participants`, {
-          cache: "no-store",
-        });
+        const response = await fetch(
+          `/api/sessions/${sessionId}/participants`,
+          {
+            cache: "no-store",
+          }
+        );
         const body = await response.json().catch(() => null);
 
         if (response.status === 404) {
@@ -114,7 +131,9 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
           const message =
             response.status === 401
               ? "Please sign in again."
-              : normalizeApiError(body?.error ?? "Failed to load participants.");
+              : normalizeApiError(
+                  body?.error ?? "Failed to load participants."
+                );
           throw new Error(message);
         }
 
@@ -127,7 +146,9 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
         setParticipantsErrorMessage(null);
       } catch (error) {
         const message =
-          error instanceof Error ? error.message : "Failed to load participants.";
+          error instanceof Error
+            ? error.message
+            : "Failed to load participants.";
         setParticipantsErrorMessage(message);
       } finally {
         if (showLoadingState) {
@@ -135,7 +156,7 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
         }
       }
     },
-    [sessionId],
+    [sessionId]
   );
 
   const refreshQueue = useCallback(
@@ -167,7 +188,8 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
         setQueue(Array.isArray(body?.queue) ? (body.queue as QueueItem[]) : []);
         setQueueErrorMessage(null);
       } catch (error) {
-        const message = error instanceof Error ? error.message : "Failed to load queue.";
+        const message =
+          error instanceof Error ? error.message : "Failed to load queue.";
         setQueueErrorMessage(message);
       } finally {
         if (showLoadingState) {
@@ -175,7 +197,7 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
         }
       }
     },
-    [sessionId],
+    [sessionId]
   );
 
   useEffect(() => {
@@ -199,7 +221,8 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
           return;
         }
 
-        const message = error instanceof Error ? error.message : "Failed to load session.";
+        const message =
+          error instanceof Error ? error.message : "Failed to load session.";
         setSessionErrorMessage(message);
       } finally {
         if (!cancelled) {
@@ -222,7 +245,9 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
       return;
     }
 
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    ).matches;
     const intervalMs = reducedMotion ? 10_000 : 7_000;
 
     const intervalId = window.setInterval(() => {
@@ -254,7 +279,11 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
 
   async function handleJoined() {
     setIsCurrentUserParticipant(true);
-    await Promise.all([refreshParticipants(true), refreshSession(), refreshQueue(true)]);
+    await Promise.all([
+      refreshParticipants(true),
+      refreshSession(),
+      refreshQueue(true),
+    ]);
   }
 
   async function handleQueueChanged() {
@@ -272,13 +301,17 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const message = typeof body?.error === "string" ? body.error : "Failed to end session.";
+        const message =
+          typeof body?.error === "string"
+            ? body.error
+            : "Failed to end session.";
         throw new Error(message);
       }
 
       router.replace("/dashboard");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to end session.";
+      const message =
+        error instanceof Error ? error.message : "Failed to end session.";
       setEndSessionErrorMessage(message);
     } finally {
       setIsEndingSession(false);
@@ -295,19 +328,25 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
     setPasscodeErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/passcode/verify`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          passcode: passcodeValue,
-        }),
-      });
+      const response = await fetch(
+        `/api/sessions/${sessionId}/passcode/verify`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            passcode: passcodeValue,
+          }),
+        }
+      );
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        const message = typeof body?.error === "string" ? body.error : "Failed to verify passcode.";
+        const message =
+          typeof body?.error === "string"
+            ? body.error
+            : "Failed to verify passcode.";
         throw new Error(message);
       }
 
@@ -319,7 +358,8 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
       setIsPasscodeVerified(true);
       setPasscodeValue("");
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Failed to verify passcode.";
+      const message =
+        error instanceof Error ? error.message : "Failed to verify passcode.";
       setPasscodeErrorMessage(message);
     } finally {
       setIsVerifyingPasscode(false);
@@ -327,19 +367,23 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
   }
 
   const viewerUserId = sessionDetails?.viewerUserId;
-  const viewerQueueItem = viewerUserId ? queue.find((item) => item.userId === viewerUserId) : undefined;
+  const viewerQueueItem = viewerUserId
+    ? queue.find((item) => item.userId === viewerUserId)
+    : undefined;
   const canSkipTurn = viewerQueueItem?.status === "reading";
   const isSessionEnded = sessionDetails?.session.status === "ended";
   const showPasscodePrompt = Boolean(
-    !isSessionEnded
-      && sessionDetails?.isPasscodeProtected
-      && !sessionDetails?.isHost
-      && !isPasscodeVerified,
+    !isSessionEnded &&
+    sessionDetails?.isPasscodeProtected &&
+    !sessionDetails?.isHost &&
+    !isPasscodeVerified
   );
   const canUseQueueControls = Boolean(
-    sessionDetails
-      && !isSessionEnded
-      && (!sessionDetails.isPasscodeProtected || sessionDetails.isHost || isPasscodeVerified),
+    sessionDetails &&
+    !isSessionEnded &&
+    (!sessionDetails.isPasscodeProtected ||
+      sessionDetails.isHost ||
+      isPasscodeVerified)
   );
 
   return (
@@ -365,7 +409,11 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
               {sessionDetails?.isHost && !isSessionEnded ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button type="button" variant="destructive" disabled={isEndingSession}>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={isEndingSession}
+                    >
                       End session
                     </Button>
                   </AlertDialogTrigger>
@@ -373,11 +421,14 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
                     <AlertDialogHeader>
                       <AlertDialogTitle>End this session?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This will mark the session as ended and block further join/queue actions.
+                        This will mark the session as ended and block further
+                        join/queue actions.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isEndingSession}>Cancel</AlertDialogCancel>
+                      <AlertDialogCancel disabled={isEndingSession}>
+                        Cancel
+                      </AlertDialogCancel>
                       <AlertDialogAction
                         variant="destructive"
                         disabled={isEndingSession}
@@ -394,7 +445,9 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
             </div>
           </div>
           {endSessionErrorMessage ? (
-            <p className="mt-2 text-xs text-red-500">{endSessionErrorMessage}</p>
+            <p className="mt-2 text-xs text-red-500">
+              {endSessionErrorMessage}
+            </p>
           ) : null}
         </div>
 
@@ -438,7 +491,10 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
           </Card>
         ) : null}
 
-        {!isInitialLoading && !notFound && !sessionErrorMessage && sessionDetails ? (
+        {!isInitialLoading &&
+        !notFound &&
+        !sessionErrorMessage &&
+        sessionDetails ? (
           <section className="space-y-4 sm:space-y-5">
             <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.92fr)] xl:items-start">
               <div className="space-y-4">
@@ -471,11 +527,15 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
 
                     {showPasscodePrompt ? (
                       <div className="space-y-3 rounded-xl border border-white/[0.4] bg-white/[0.6] p-3 dark:border-white/[0.14] dark:bg-white/[0.06]">
-                        <p className="text-sm font-medium text-foreground">Session Passcode</p>
+                        <p className="text-sm font-medium text-foreground">
+                          Session Passcode
+                        </p>
                         <Input
                           type="password"
                           value={passcodeValue}
-                          onChange={(event) => setPasscodeValue(event.target.value)}
+                          onChange={(event) =>
+                            setPasscodeValue(event.target.value)
+                          }
                           placeholder="Enter host passcode"
                         />
                         <Button
@@ -485,10 +545,14 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
                           }}
                           disabled={isVerifyingPasscode}
                         >
-                          {isVerifyingPasscode ? "Verifying..." : "Unlock queue controls"}
+                          {isVerifyingPasscode
+                            ? "Verifying..."
+                            : "Unlock queue controls"}
                         </Button>
                         {passcodeErrorMessage ? (
-                          <p className="text-xs text-red-500">{passcodeErrorMessage}</p>
+                          <p className="text-xs text-red-500">
+                            {passcodeErrorMessage}
+                          </p>
                         ) : null}
                       </div>
                     ) : null}
@@ -499,7 +563,9 @@ export function SessionRoomPageClient({ sessionId }: SessionRoomPageClientProps)
                           sessionId={sessionId}
                           isParticipant={isCurrentUserParticipant}
                           isInQueue={Boolean(viewerQueueItem)}
-                          isSessionEnded={sessionDetails.session.status === "ended"}
+                          isSessionEnded={
+                            sessionDetails.session.status === "ended"
+                          }
                           onChanged={handleQueueChanged}
                         />
                         <SkipTurnButton
