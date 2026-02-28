@@ -174,9 +174,9 @@ export const joinQueueServer = mutation({
   },
   handler: async (ctx, args) => {
     assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     await getParticipantBySessionAndUserOrThrow(ctx, args.sessionId, user._id);
 
     const existing = await ctx.db
@@ -221,8 +221,9 @@ export const leaveQueueServer = mutation({
   },
   handler: async (ctx, args) => {
     assertServerKey(args.serverKey);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    assertSessionActive(session);
     const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
-    await getSessionByIdOrThrow(ctx, args.sessionId);
 
     const existing = await ctx.db
       .query("queueItems")
@@ -257,9 +258,9 @@ export const skipMyTurnServer = mutation({
   },
   handler: async (ctx, args) => {
     assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
     const existing = await ctx.db
       .query("queueItems")
@@ -295,9 +296,9 @@ export const advanceQueueServer = mutation({
   },
   handler: async (ctx, args) => {
     assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
+    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
 
     const participant = await getParticipantBySessionAndUserOrThrow(
       ctx,

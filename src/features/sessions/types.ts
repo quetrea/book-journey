@@ -9,6 +9,8 @@ export type SessionListItem = {
   createdAt: number;
   status: "active" | "ended";
   endedAt?: number;
+  hostName?: string;
+  hostImage?: string;
 };
 
 export type SessionDetailsPayload = {

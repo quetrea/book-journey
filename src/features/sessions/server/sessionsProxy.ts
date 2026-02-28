@@ -87,6 +87,10 @@ export function normalizeError(error: unknown) {
     return { status: 403, message };
   }
 
+  if (message === "Only host can end session.") {
+    return { status: 403, message };
+  }
+
   if (message === "Only the session creator can be host.") {
     return { status: 403, message };
   }

@@ -106,6 +106,19 @@ async function getSessionByIdOrThrow(
   return session;
 }
 
+async function getParticipantBySessionAndUser(
+  ctx: MutationCtx | QueryCtx,
+  sessionId: Id<"sessions">,
+  userId: Id<"users">,
+) {
+  return ctx.db
+    .query("participants")
+    .withIndex("by_sessionId_userId", (q) =>
+      q.eq("sessionId", sessionId).eq("userId", userId),
+    )
+    .unique();
+}
+
 function sanitizeSession(session: {
   _id: Id<"sessions">;
   _creationTime: number;
@@ -175,7 +188,17 @@ export const listMySessionsServer = query({
       .order("desc")
       .collect();
 
-    return sessions.map((session) => sanitizeSession(session));
+    return Promise.all(
+      sessions.map(async (session) => {
+        const host = await ctx.db.get(session.createdBy);
+
+        return {
+          ...sanitizeSession(session),
+          hostName: host?.name,
+          hostImage: host?.image,
+        };
+      }),
+    );
   },
 });
 
@@ -189,9 +212,14 @@ export const endSessionServer = mutation({
     assertServerKey(args.serverKey);
     const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    const participant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      user._id,
+    );
 
-    if (session.createdBy !== user._id) {
-      throw new Error("You can only end your own session.");
+    if (!participant || participant.role !== "host") {
+      throw new Error("Only host can end session.");
     }
 
     if (session.status === "ended") {
@@ -224,7 +252,10 @@ export const getSessionByIdServer = query({
 
     const host = await ctx.db.get(session.createdBy);
     const viewer = await getUserByDiscordId(ctx, args.discordId);
-    const isHost = Boolean(viewer && viewer._id === session.createdBy);
+    const viewerParticipant = viewer
+      ? await getParticipantBySessionAndUser(ctx, args.sessionId, viewer._id)
+      : null;
+    const isHost = viewerParticipant?.role === "host";
 
     return {
       session: sanitizeSession(session),
