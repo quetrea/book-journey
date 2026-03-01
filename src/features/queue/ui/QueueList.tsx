@@ -1,3 +1,5 @@
+"use client";
+
 import { CircleCheckBig, CircleDot, Clock3, Radio, UserRoundCheck, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -6,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { QueueItem } from "@/features/queue/types";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 
 type QueueListProps = {
   queue: QueueItem[];
@@ -60,9 +63,13 @@ function QueueStatusBadge({ status }: { status: QueueItem["status"] }) {
 }
 
 export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: QueueListProps) {
+  const { cardShadow } = useThemeGlow();
+
+  const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
+
   if (isLoading) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Radio className="size-4 text-emerald-600" />
@@ -80,7 +87,7 @@ export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: 
 
   if (errorMessage) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Radio className="size-4 text-emerald-600" />
@@ -96,7 +103,7 @@ export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: 
 
   if (queue.length === 0) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Radio className="size-4 text-emerald-600" />
@@ -111,7 +118,7 @@ export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: 
   }
 
   return (
-    <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+    <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
         <CardTitle className="inline-flex items-center gap-2">
           <Radio className="size-4 text-emerald-600" />
@@ -126,7 +133,7 @@ export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: 
             className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 shadow-sm ${
               item.status === "reading"
                 ? "border-emerald-300/60 bg-emerald-50/62 dark:border-emerald-400/35 dark:bg-emerald-500/12"
-                : "border-white/[0.35] bg-white/[0.56] dark:border-white/[0.12] dark:bg-white/[0.06]"
+                : "border-white/35 bg-white/56 dark:border-white/12 dark:bg-white/6"
             }`}
           >
             <div className="flex min-w-0 items-center gap-2.5">

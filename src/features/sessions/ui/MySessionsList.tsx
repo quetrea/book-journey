@@ -168,7 +168,16 @@ export function MySessionsList() {
 
   const [now, setNow] = useState(() => Date.now());
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<SessionsViewMode>("list");
+  const [viewMode, setViewMode] = useState<SessionsViewMode>(() => {
+    if (typeof window === "undefined") return "list";
+    const stored = window.localStorage.getItem("sessions-view-mode");
+    return stored === "list" || stored === "compact" || stored === "grid" ? stored : "list";
+  });
+
+  function handleViewModeChange(mode: SessionsViewMode) {
+    setViewMode(mode);
+    window.localStorage.setItem("sessions-view-mode", mode);
+  }
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -237,21 +246,21 @@ export function MySessionsList() {
             <ViewToggleButton
               mode="list"
               activeMode={viewMode}
-              onSelect={setViewMode}
+              onSelect={handleViewModeChange}
               icon={Rows3}
               label="List"
             />
             <ViewToggleButton
               mode="compact"
               activeMode={viewMode}
-              onSelect={setViewMode}
+              onSelect={handleViewModeChange}
               icon={StretchHorizontal}
               label="Compact"
             />
             <ViewToggleButton
               mode="grid"
               activeMode={viewMode}
-              onSelect={setViewMode}
+              onSelect={handleViewModeChange}
               icon={Grid3X3}
               label="Grid"
             />

@@ -20,10 +20,12 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 import { Separator } from "@/components/ui/separator";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../convex/_generated/api";
 
 export default function DashboardPage() {
   const { isLoading, isAuthenticated } = useConvexAuth();
+  const { sectionShadow, cardShadow } = useThemeGlow();
   const { signOut } = useAuthActions();
   const upsertCurrentUser = useMutation(api.users.upsertCurrentUser);
   const profile = useQuery(api.users.getCurrentUser, isAuthenticated ? {} : "skip");
@@ -97,7 +99,7 @@ export default function DashboardPage() {
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        <section className="rounded-3xl border border-black/8 bg-white/52 p-5 shadow-[0_30px_90px_-35px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35 dark:shadow-[0_30px_90px_-35px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <section className="rounded-3xl border border-black/8 bg-white/52 p-5 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35" style={{ boxShadow: sectionShadow }}>
           <header className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h1 className="font-display text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
@@ -141,7 +143,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <SessionsDashboardSection />
 
-            <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+            <Card className="border-white/45 bg-white/66 backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/7" style={{ boxShadow: cardShadow }}>
               <CardHeader>
                 <CardTitle>Quick Tips</CardTitle>
               </CardHeader>

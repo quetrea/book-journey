@@ -1,7 +1,10 @@
+"use client";
+
 import { Lock } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import type { QueueItem } from "@/features/queue/types";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 
 type QueueStatusBarProps = {
   queue: QueueItem[];
@@ -14,6 +17,7 @@ export function QueueStatusBar({
   viewerUserId,
   isPasscodeProtected,
 }: QueueStatusBarProps) {
+  const { cardShadow } = useThemeGlow();
   const currentReader = queue.find((item) => item.status === "reading");
   const viewerQueueItem = viewerUserId
     ? queue.find((item) => item.userId === viewerUserId)
@@ -21,7 +25,7 @@ export function QueueStatusBar({
   const totalInQueue = queue.filter((item) => item.status !== "done").length;
 
   return (
-    <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+    <Card className="border-white/45 bg-white/66 backdrop-blur-md dark:border-white/15 dark:bg-white/7" style={{ boxShadow: cardShadow }}>
       <CardContent className="flex flex-col gap-2 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">
         <div className="text-foreground">
           Current Reader:

@@ -1,3 +1,5 @@
+"use client";
+
 import { Crown, Users } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -5,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ParticipantListItem } from "@/features/participants/types";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 
 type ParticipantsListProps = {
   participants: ParticipantListItem[];
@@ -37,9 +40,13 @@ export function ParticipantsList({
   isLoading,
   errorMessage,
 }: ParticipantsListProps) {
+  const { cardShadow } = useThemeGlow();
+
+  const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
+
   if (isLoading) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Users className="size-4 text-indigo-500" />
@@ -57,7 +64,7 @@ export function ParticipantsList({
 
   if (errorMessage) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Users className="size-4 text-indigo-500" />
@@ -73,7 +80,7 @@ export function ParticipantsList({
 
   if (participants.length === 0) {
     return (
-      <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
         <CardHeader>
           <CardTitle className="inline-flex items-center gap-2">
             <Users className="size-4 text-indigo-500" />
@@ -88,7 +95,7 @@ export function ParticipantsList({
   }
 
   return (
-    <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+    <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
         <CardTitle className="inline-flex items-center gap-2">
           <Users className="size-4 text-indigo-500" />
@@ -103,7 +110,7 @@ export function ParticipantsList({
             className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 ${
               participant.role === "host"
                 ? "border-indigo-300/60 bg-indigo-50/60 dark:border-indigo-400/35 dark:bg-indigo-500/10"
-                : "border-white/[0.35] bg-white/[0.56] dark:border-white/[0.12] dark:bg-white/[0.06]"
+                : "border-white/35 bg-white/56 dark:border-white/12 dark:bg-white/6"
             }`}
           >
             <div className="flex min-w-0 items-center gap-2.5">

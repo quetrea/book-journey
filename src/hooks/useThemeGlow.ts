@@ -19,6 +19,11 @@ export function useThemeGlow() {
   const orb = theme.orb1;
 
   return {
+    /** Large ambient shadow for outer section wrappers */
+    sectionShadow: isDark
+      ? `0 30px 90px -35px ${hexToRgba(orb, 0.55)}, inset 0 1px 0 rgba(255,255,255,0.05)`
+      : `0 30px 90px -35px ${hexToRgba(orb, 0.12)}, inset 0 1px 0 rgba(255,255,255,0.88)`,
+
     /** Soft ambient shadow for card containers */
     cardShadow: isDark
       ? `0 18px 50px -28px ${hexToRgba(orb, 0.65)}, inset 0 1px 0 rgba(255,255,255,0.06)`
