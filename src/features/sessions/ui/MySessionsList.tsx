@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 import type { SessionListItem } from "../types";
 import { api } from "../../../../convex/_generated/api";
 
@@ -163,6 +164,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
 
 export function MySessionsList() {
   const sessions = useQuery(api.sessions.listMySessionsServer);
+  const { itemShadow, itemHoverShadow } = useThemeGlow();
 
   const [now, setNow] = useState(() => Date.now());
   const [searchQuery, setSearchQuery] = useState("");
@@ -282,14 +284,24 @@ export function MySessionsList() {
               <Card
                 className={cn(
                   "group relative gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
-                  // Active session — emerald tinted glass + glow
                   session.status === "active"
-                    ? "border-emerald-200/60 bg-white/70 shadow-[0_8px_28px_-10px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(255,255,255,0.92)] hover:shadow-[0_16px_40px_-8px_rgba(16,185,129,0.38),inset_0_1px_0_rgba(255,255,255,0.96)] hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/[0.09] dark:shadow-[0_8px_28px_-10px_rgba(16,185,129,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] dark:hover:shadow-[0_16px_40px_-8px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.10)] dark:hover:bg-white/[0.13]"
-                    : "border-black/8 bg-white/65 shadow-[0_8px_28px_-10px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.90)] hover:shadow-[0_16px_40px_-8px_rgba(79,70,229,0.22),inset_0_1px_0_rgba(255,255,255,0.96)] hover:bg-white/78 dark:border-white/12 dark:bg-white/[0.08] dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)] dark:hover:shadow-[0_16px_40px_-8px_rgba(79,70,229,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] dark:hover:bg-white/[0.12]",
+                    ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
+                    : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
                   isCompactView ? "px-3 py-3" : "px-4 py-4",
                   isGridView ? "h-full" : "",
                 )}
-                style={{ animationDelay: `${Math.min(index * 45, 180)}ms` }}
+                style={{
+                  animationDelay: `${Math.min(index * 45, 180)}ms`,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  ["--glow" as any]: itemHoverShadow,
+                  boxShadow: itemShadow,
+                } as React.CSSProperties}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = itemHoverShadow;
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.boxShadow = itemShadow;
+                }}
               >
                 {/* Status accent bar */}
                 <span

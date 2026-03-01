@@ -120,6 +120,19 @@ async function clearExtraReaders(
   }
 }
 
+async function resetQueueForRepeat(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+) {
+  const queue = await getQueueItemsByPosition(ctx, sessionId);
+
+  for (const item of queue) {
+    if (item.status === "done") {
+      await ctx.db.patch(item._id, { status: "waiting" });
+    }
+  }
+}
+
 async function normalizeQueuePositions(
   ctx: MutationCtx,
   sessionId: Id<"sessions">,
@@ -253,7 +266,13 @@ export const leaveQueueServer = mutation({
     await normalizeQueuePositions(ctx, args.sessionId);
 
     if (wasReader) {
-      const nextReaderId = await setNextReader(ctx, args.sessionId);
+      let nextReaderId = await setNextReader(ctx, args.sessionId);
+
+      if (!nextReaderId && session.isRepeatEnabled) {
+        await resetQueueForRepeat(ctx, args.sessionId);
+        nextReaderId = await setNextReader(ctx, args.sessionId);
+      }
+
       if (nextReaderId) {
         const nextItem = await ctx.db.get(nextReaderId);
         if (nextItem) {
@@ -310,9 +329,15 @@ export const skipMyTurnServer = mutation({
       status: "done",
     });
 
-    const nextReaderId = await setNextReader(ctx, args.sessionId, existing.position);
+    let nextReaderId = await setNextReader(ctx, args.sessionId, existing.position);
     await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
+
+    if (!nextReaderId && session.isRepeatEnabled) {
+      await resetQueueForRepeat(ctx, args.sessionId);
+      nextReaderId = await setNextReader(ctx, args.sessionId);
+      await clearExtraReaders(ctx, args.sessionId);
+    }
 
     if (nextReaderId) {
       const nextItem = await ctx.db.get(nextReaderId);
@@ -353,9 +378,15 @@ export const advanceQueueServer = mutation({
     const currentReader = queue.find((item) => item.status === "reading");
 
     if (!currentReader) {
-      const nextReaderId = await setNextReader(ctx, args.sessionId);
+      let nextReaderId = await setNextReader(ctx, args.sessionId);
       await normalizeQueuePositions(ctx, args.sessionId);
       await clearExtraReaders(ctx, args.sessionId);
+
+      if (!nextReaderId && session.isRepeatEnabled) {
+        await resetQueueForRepeat(ctx, args.sessionId);
+        nextReaderId = await setNextReader(ctx, args.sessionId);
+        await clearExtraReaders(ctx, args.sessionId);
+      }
 
       if (nextReaderId) {
         const nextItem = await ctx.db.get(nextReaderId);
@@ -375,13 +406,19 @@ export const advanceQueueServer = mutation({
       status: "done",
     });
 
-    const nextReaderId = await setNextReader(
+    let nextReaderId = await setNextReader(
       ctx,
       args.sessionId,
       currentReader.position,
     );
     await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
+
+    if (!nextReaderId && session.isRepeatEnabled) {
+      await resetQueueForRepeat(ctx, args.sessionId);
+      nextReaderId = await setNextReader(ctx, args.sessionId);
+      await clearExtraReaders(ctx, args.sessionId);
+    }
 
     if (nextReaderId) {
       const nextItem = await ctx.db.get(nextReaderId);

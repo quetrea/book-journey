@@ -167,6 +167,7 @@ function sanitizeSession(session: {
   status: "active" | "ended";
   endedAt?: number;
   hostPasscode?: string;
+  isRepeatEnabled?: boolean;
 }) {
   const safeSession = { ...session };
   delete safeSession.hostPasscode;
@@ -508,6 +509,72 @@ export const verifySessionPasscodeServer = mutation({
       isPasscodeProtected: true,
       hasPasscodeAccess: verified,
     };
+  },
+});
+
+export const toggleRepeatModeServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+
+    const participant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      viewer._id,
+    );
+
+    if (!participant || participant.role !== "host") {
+      throw new Error("Only host can toggle repeat mode.");
+    }
+
+    if (session.status === "ended") {
+      throw new Error("Session has ended.");
+    }
+
+    const newValue = !session.isRepeatEnabled;
+    await ctx.db.patch(args.sessionId, { isRepeatEnabled: newValue });
+    return newValue;
+  },
+});
+
+export const listJoinedSessionsServer = query({
+  args: {},
+  handler: async (ctx) => {
+    const viewer = await getViewerProfileForQuery(ctx);
+
+    if (!viewer) {
+      return [];
+    }
+
+    const participations = await ctx.db
+      .query("participants")
+      .filter((q) => q.eq(q.field("userId"), viewer._id))
+      .collect();
+
+    const readerParticipations = participations.filter(
+      (p) => p.role === "reader",
+    );
+
+    const sessions = await Promise.all(
+      readerParticipations.map(async (p) => {
+        const session = await ctx.db.get(p.sessionId);
+        if (!session) return null;
+        const host = await ctx.db.get(session.createdBy);
+        return {
+          ...sanitizeSession(session),
+          hostName: host?.name,
+          hostImage: host?.image,
+          joinedAt: p.joinedAt,
+        };
+      }),
+    );
+
+    return sessions
+      .filter((s): s is NonNullable<typeof s> => s !== null)
+      .sort((a, b) => b.joinedAt - a.joinedAt);
   },
 });
 

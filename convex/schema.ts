@@ -25,6 +25,7 @@ export default defineSchema({
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
+    isRepeatEnabled: v.optional(v.boolean()),
     createdBy: v.id("profiles"),
     createdAt: v.number(),
     status: v.union(v.literal("active"), v.literal("ended")),

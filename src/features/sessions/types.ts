@@ -9,6 +9,7 @@ export type SessionListItem = {
   createdAt: number;
   status: "active" | "ended";
   endedAt?: number;
+  isRepeatEnabled?: boolean;
   hostName?: string;
   hostImage?: string;
 };

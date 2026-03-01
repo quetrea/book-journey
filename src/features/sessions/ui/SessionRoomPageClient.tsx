@@ -30,7 +30,9 @@ import { JoinQueueButton } from "@/features/queue/ui/JoinQueueButton";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { SkipTurnButton } from "@/features/queue/ui/SkipTurnButton";
+import { Switch } from "@/components/ui/switch";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { SessionHeaderCard } from "./SessionHeaderCard";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -56,6 +58,7 @@ export function SessionRoomPageClient({
   const skipMyTurn = useMutation(api.queue.skipMyTurnServer);
   const advanceQueue = useMutation(api.queue.advanceQueueServer);
   const addUserToQueue = useMutation(api.queue.addUserToQueueServer);
+  const toggleRepeatMode = useMutation(api.sessions.toggleRepeatModeServer);
 
   const sessionIdAsConvex = sessionId as Id<"sessions">;
 
@@ -99,6 +102,8 @@ export function SessionRoomPageClient({
     subscribe: subscribeToPush,
     unsubscribe: unsubscribeFromPush,
   } = usePushNotifications();
+
+  const { cardShadow } = useThemeGlow();
 
   useEffect(() => {
     setPasscodeValue("");
@@ -163,7 +168,7 @@ export function SessionRoomPageClient({
         <ParticlesBackground />
         <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-          <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+          <Card className="border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
             <CardHeader className="pb-2">
               <CardTitle>Loading session room...</CardTitle>
             </CardHeader>
@@ -202,7 +207,7 @@ export function SessionRoomPageClient({
         <ParticlesBackground />
         <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-          <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+          <Card className="border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
             <CardHeader>
               <CardTitle>Session not found</CardTitle>
             </CardHeader>
@@ -360,7 +365,7 @@ export function SessionRoomPageClient({
       <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <div className="mb-5 animate-in fade-in slide-in-from-top-1 duration-500">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/45 bg-white/62 p-2 shadow-[0_18px_48px_-30px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_48px_-30px_rgba(79,70,229,0.75)]">
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/45 bg-white/62 p-2 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 type="button"
@@ -433,7 +438,7 @@ export function SessionRoomPageClient({
                 />
               </div>
 
-              <Card className="border-white/45 bg-white/68 shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-500 dark:border-white/15 dark:bg-white/8 dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+              <Card className="border-white/45 bg-white/68 backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-500 dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
                 <CardHeader className="pb-3">
                   <CardTitle className="inline-flex items-center gap-2 text-base">
                     <BookOpenText className="size-4 text-indigo-500" />
@@ -498,6 +503,24 @@ export function SessionRoomPageClient({
                       <AdvanceQueueButton
                         isHost={details.isHost}
                         onAdvance={handleAdvanceQueue}
+                      />
+                    </div>
+                  ) : null}
+
+                  {details.isHost && canUseQueueControls ? (
+                    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/40 bg-white/60 px-3 py-2.5 dark:border-white/[0.14] dark:bg-white/6">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">Repeat queue</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Automatically restart when everyone is done
+                        </p>
+                      </div>
+                      <Switch
+                        size="default"
+                        checked={Boolean(details.session.isRepeatEnabled)}
+                        onCheckedChange={() => {
+                          void toggleRepeatMode({ sessionId: sessionIdAsConvex });
+                        }}
                       />
                     </div>
                   ) : null}
