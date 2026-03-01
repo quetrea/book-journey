@@ -17,10 +17,12 @@ export default function Home() {
         <footer className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400 dark:text-white/30">
           <p>No bots. No logs. Just the session.</p>
           <a
-            href="#"
+            href="https://github.com/quetrea/book-journey"
+            target="_blank"
+            rel="noopener noreferrer"
             className="underline-offset-4 transition-colors hover:text-slate-600 hover:underline dark:hover:text-white/60"
           >
-            GitHub (soon)
+            GitHub
           </a>
         </footer>
       </main>
