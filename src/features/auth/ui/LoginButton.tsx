@@ -18,7 +18,7 @@ export function LoginButton() {
     setErrorMessage(null);
 
     try {
-      await signIn("discord", { redirectTo: "/dashboard" });
+      await signIn("discord");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in.";
       setErrorMessage(message);
