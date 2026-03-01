@@ -1,13 +1,21 @@
+import { authTables } from "@convex-dev/auth/server";
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  users: defineTable({
-    discordId: v.string(),
+  ...authTables,
+
+  profiles: defineTable({
+    authUserId: v.id("users"),
+    tokenIdentifier: v.string(),
+    provider: v.optional(v.string()),
     name: v.string(),
     image: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_discordId", ["discordId"]),
+    updatedAt: v.number(),
+  })
+    .index("by_authUserId", ["authUserId"])
+    .index("by_tokenIdentifier", ["tokenIdentifier"]),
 
   sessions: defineTable({
     bookTitle: v.string(),
@@ -15,7 +23,7 @@ export default defineSchema({
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
-    createdBy: v.id("users"),
+    createdBy: v.id("profiles"),
     createdAt: v.number(),
     status: v.union(v.literal("active"), v.literal("ended")),
     endedAt: v.optional(v.number()),
@@ -23,7 +31,7 @@ export default defineSchema({
 
   participants: defineTable({
     sessionId: v.id("sessions"),
-    userId: v.id("users"),
+    userId: v.id("profiles"),
     role: v.union(v.literal("host"), v.literal("reader")),
     joinedAt: v.number(),
   })
@@ -32,11 +40,18 @@ export default defineSchema({
 
   queueItems: defineTable({
     sessionId: v.id("sessions"),
-    userId: v.id("users"),
+    userId: v.id("profiles"),
     position: v.number(),
     status: v.union(v.literal("waiting"), v.literal("reading"), v.literal("done")),
     joinedAt: v.number(),
   })
     .index("by_sessionId_position", ["sessionId", "position"])
     .index("by_sessionId_userId", ["sessionId", "userId"]),
+
+  sessionPasscodeGrants: defineTable({
+    sessionId: v.id("sessions"),
+    userId: v.id("profiles"),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  }).index("by_sessionId_userId", ["sessionId", "userId"]),
 });

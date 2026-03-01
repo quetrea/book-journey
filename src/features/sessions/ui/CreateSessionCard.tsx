@@ -1,12 +1,21 @@
 "use client";
 
+import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { api } from "../../../../convex/_generated/api";
 
 type CreateSessionCardProps = {
   isReady: boolean;
@@ -20,6 +29,8 @@ function normalizeOptional(value: string) {
 
 export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps) {
   const router = useRouter();
+  const createSession = useMutation(api.sessions.createSessionServer);
+
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
   const [title, setTitle] = useState("");
@@ -55,39 +66,13 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
     try {
       setIsSubmitting(true);
 
-      const response = await fetch("/api/sessions/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookTitle: normalizedBookTitle,
-          authorName: normalizeOptional(authorName),
-          title: normalizeOptional(title),
-          synopsis: normalizeOptional(synopsis),
-          hostPasscode: normalizeOptional(hostPasscode),
-        }),
+      const createdSessionId = await createSession({
+        bookTitle: normalizedBookTitle,
+        authorName: normalizeOptional(authorName),
+        title: normalizeOptional(title),
+        synopsis: normalizeOptional(synopsis),
+        hostPasscode: normalizeOptional(hostPasscode),
       });
-      const body = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        const message =
-          typeof body?.error === "string"
-            ? body.error
-            : "Failed to create session.";
-        throw new Error(message);
-      }
-
-      const createdSessionId =
-        typeof body?.sessionId === "string"
-          ? body.sessionId
-          : typeof body?.session?._id === "string"
-            ? body.session._id
-            : null;
-
-      if (!createdSessionId) {
-        throw new Error("Session created but no sessionId was returned.");
-      }
 
       setBookTitle("");
       setAuthorName("");

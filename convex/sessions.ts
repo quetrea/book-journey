@@ -1,7 +1,14 @@
 import { v } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import {
+  getAuthUserIdFromIdentity,
+  getProfileByAuthUserId,
+  requireIdentity,
+  upsertViewerProfile,
+} from "./lib/authProfile";
+import { grantPasscodeAccess, hasActivePasscodeGrant } from "./lib/passcodeAccess";
 
 function normalizeOptional(value: string | undefined) {
   const trimmed = value?.trim();
@@ -28,64 +35,6 @@ function verifyPasscodeHash(passcode: string, hash: string) {
   return hashPasscode(passcode) === hash;
 }
 
-function normalizeServerKey(value: string | undefined) {
-  if (!value) {
-    return "";
-  }
-
-  const trimmed = value.trim();
-
-  if (
-    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
-}
-
-function assertServerKey(serverKey: string) {
-  const expectedKey =
-    normalizeServerKey(process.env.SESSIONS_SERVER_KEY) ||
-    normalizeServerKey(process.env.PARTICIPANTS_SERVER_KEY);
-  const providedKey = normalizeServerKey(serverKey);
-
-  if (!expectedKey) {
-    throw new Error("Server key not configured");
-  }
-
-  if (providedKey !== expectedKey) {
-    throw new Error("Forbidden");
-  }
-}
-
-async function getUserByDiscordIdOrThrow(
-  ctx: MutationCtx | QueryCtx,
-  discordId: string,
-) {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
-    .unique();
-
-  if (!user) {
-    throw new Error("User not found. Refresh the dashboard and try again.");
-  }
-
-  return user;
-}
-
-async function getUserByDiscordId(
-  ctx: MutationCtx | QueryCtx,
-  discordId: string,
-) {
-  return ctx.db
-    .query("users")
-    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
-    .unique();
-}
-
 async function getSessionById(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
@@ -109,7 +58,7 @@ async function getSessionByIdOrThrow(
 async function getParticipantBySessionAndUser(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
-  userId: Id<"users">,
+  userId: Id<"profiles">,
 ) {
   return ctx.db
     .query("participants")
@@ -122,7 +71,7 @@ async function getParticipantBySessionAndUser(
 async function getQueueItemBySessionAndUser(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
-  userId: Id<"users">,
+  userId: Id<"profiles">,
 ) {
   return ctx.db
     .query("queueItems")
@@ -191,7 +140,7 @@ async function ensureSingleReader(
 async function removeUserFromQueueForSession(
   ctx: MutationCtx,
   sessionId: Id<"sessions">,
-  userId: Id<"users">,
+  userId: Id<"profiles">,
 ) {
   const queueItem = await getQueueItemBySessionAndUser(ctx, sessionId, userId);
 
@@ -213,7 +162,7 @@ function sanitizeSession(session: {
   authorName?: string;
   title?: string;
   synopsis?: string;
-  createdBy: Id<"users">;
+  createdBy: Id<"profiles">;
   createdAt: number;
   status: "active" | "ended";
   endedAt?: number;
@@ -224,10 +173,14 @@ function sanitizeSession(session: {
   return safeSession;
 }
 
+async function getViewerProfileForQuery(ctx: QueryCtx) {
+  const identity = await requireIdentity(ctx);
+  const authUserId = getAuthUserIdFromIdentity(identity);
+  return getProfileByAuthUserId(ctx, authUserId);
+}
+
 export const createSessionServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     bookTitle: v.string(),
     authorName: v.optional(v.string()),
     title: v.optional(v.string()),
@@ -235,14 +188,13 @@ export const createSessionServer = mutation({
     hostPasscode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const bookTitle = args.bookTitle.trim();
 
     if (!bookTitle) {
       throw new Error("Book title is required.");
     }
 
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const viewer = await upsertViewerProfile(ctx);
     const hostPasscode = normalizePasscode(args.hostPasscode);
 
     const sessionId = await ctx.db.insert("sessions", {
@@ -251,9 +203,16 @@ export const createSessionServer = mutation({
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
       hostPasscode: hostPasscode ? hashPasscode(hostPasscode) : undefined,
-      createdBy: user._id,
+      createdBy: viewer._id,
       createdAt: Date.now(),
       status: "active",
+    });
+
+    await ctx.db.insert("participants", {
+      sessionId,
+      userId: viewer._id,
+      role: "host",
+      joinedAt: Date.now(),
     });
 
     return sessionId;
@@ -261,17 +220,17 @@ export const createSessionServer = mutation({
 });
 
 export const listMySessionsServer = query({
-  args: {
-    serverKey: v.string(),
-    discordId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+  args: {},
+  handler: async (ctx) => {
+    const viewer = await getViewerProfileForQuery(ctx);
+
+    if (!viewer) {
+      return [];
+    }
 
     const sessions = await ctx.db
       .query("sessions")
-      .withIndex("by_createdBy_createdAt", (q) => q.eq("createdBy", user._id))
+      .withIndex("by_createdBy_createdAt", (q) => q.eq("createdBy", viewer._id))
       .order("desc")
       .collect();
 
@@ -291,18 +250,15 @@ export const listMySessionsServer = query({
 
 export const endSessionServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const viewer = await upsertViewerProfile(ctx);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     const participant = await getParticipantBySessionAndUser(
       ctx,
       args.sessionId,
-      user._id,
+      viewer._id,
     );
 
     if (!participant || participant.role !== "host") {
@@ -334,18 +290,15 @@ export const endSessionServer = mutation({
 
 export const leaveSessionServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const viewer = await upsertViewerProfile(ctx);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     const participant = await getParticipantBySessionAndUser(
       ctx,
       args.sessionId,
-      user._id,
+      viewer._id,
     );
 
     if (!participant) {
@@ -357,7 +310,7 @@ export const leaveSessionServer = mutation({
     }
 
     await ctx.db.delete(participant._id);
-    await removeUserFromQueueForSession(ctx, args.sessionId, user._id);
+    await removeUserFromQueueForSession(ctx, args.sessionId, viewer._id);
 
     return participant._id;
   },
@@ -365,13 +318,11 @@ export const leaveSessionServer = mutation({
 
 export const getSessionByIdServer = query({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-
+    const viewerIdentity = await requireIdentity(ctx);
+    const viewerAuthUserId = getAuthUserIdFromIdentity(viewerIdentity);
     const session = await getSessionById(ctx, args.sessionId);
 
     if (!session) {
@@ -379,11 +330,19 @@ export const getSessionByIdServer = query({
     }
 
     const host = await ctx.db.get(session.createdBy);
-    const viewer = await getUserByDiscordId(ctx, args.discordId);
+    const viewer = await getProfileByAuthUserId(ctx, viewerAuthUserId);
     const viewerParticipant = viewer
       ? await getParticipantBySessionAndUser(ctx, args.sessionId, viewer._id)
       : null;
     const isHost = viewerParticipant?.role === "host";
+    const isPasscodeProtected = Boolean(session.hostPasscode);
+    const hasPasscodeAccess =
+      !isPasscodeProtected ||
+      isHost ||
+      Boolean(
+        viewer &&
+          (await hasActivePasscodeGrant(ctx, args.sessionId, viewer._id)),
+      );
 
     return {
       session: sanitizeSession(session),
@@ -391,26 +350,24 @@ export const getSessionByIdServer = query({
       hostImage: host?.image,
       viewerUserId: viewer?._id,
       isHost,
-      isPasscodeProtected: Boolean(session.hostPasscode),
+      isPasscodeProtected,
+      hasPasscodeAccess,
     };
   },
 });
 
 export const joinSessionServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const viewer = await upsertViewerProfile(ctx);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
 
     const existing = await ctx.db
       .query("participants")
       .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
       )
       .unique();
 
@@ -420,8 +377,8 @@ export const joinSessionServer = mutation({
 
     const participantId = await ctx.db.insert("participants", {
       sessionId: args.sessionId,
-      userId: user._id,
-      role: session.createdBy === user._id ? "host" : "reader",
+      userId: viewer._id,
+      role: session.createdBy === viewer._id ? "host" : "reader",
       joinedAt: Date.now(),
     });
 
@@ -435,52 +392,12 @@ export const joinSessionServer = mutation({
   },
 });
 
-export const ensureHostParticipantOnCreateServer = mutation({
-  args: {
-    serverKey: v.string(),
-    discordId: v.string(),
-    sessionId: v.id("sessions"),
-  },
-  handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
-    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
-
-    const existing = await ctx.db
-      .query("participants")
-      .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
-      )
-      .unique();
-
-    if (existing) {
-      if (existing.role !== "host" && session.createdBy === user._id) {
-        await ctx.db.patch(existing._id, { role: "host" });
-      }
-
-      return existing._id;
-    }
-
-    if (session.createdBy !== user._id) {
-      throw new Error("Only the session creator can be host.");
-    }
-
-    return ctx.db.insert("participants", {
-      sessionId: args.sessionId,
-      userId: user._id,
-      role: "host",
-      joinedAt: session.createdAt,
-    });
-  },
-});
-
 export const listParticipantsServer = query({
   args: {
-    serverKey: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
+    await requireIdentity(ctx);
     await getSessionByIdOrThrow(ctx, args.sessionId);
 
     const participants = await ctx.db
@@ -528,27 +445,20 @@ export const listParticipantsServer = query({
 
 export const isParticipantServer = query({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
+    const viewer = await getViewerProfileForQuery(ctx);
     await getSessionByIdOrThrow(ctx, args.sessionId);
 
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_discordId", (q) => q.eq("discordId", args.discordId))
-      .unique();
-
-    if (!user) {
+    if (!viewer) {
       return false;
     }
 
     const participant = await ctx.db
       .query("participants")
       .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
       )
       .unique();
 
@@ -556,58 +466,100 @@ export const isParticipantServer = query({
   },
 });
 
-export const verifySessionPasscodeServer = query({
+export const verifySessionPasscodeServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
     passcode: v.string(),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
+    const viewer = await upsertViewerProfile(ctx);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
-    const viewer = await getUserByDiscordId(ctx, args.discordId);
-    const isHost = Boolean(viewer && viewer._id === session.createdBy);
+    const isHost = viewer._id === session.createdBy;
 
     if (!session.hostPasscode || isHost) {
       return {
         verified: true,
         isHost,
         isPasscodeProtected: Boolean(session.hostPasscode),
+        hasPasscodeAccess: true,
       };
     }
 
-    const verified = verifyPasscodeHash(args.passcode.trim(), session.hostPasscode);
+    const normalizedPasscode = args.passcode.trim();
+
+    if (!normalizedPasscode) {
+      return {
+        verified: false,
+        isHost,
+        isPasscodeProtected: true,
+        hasPasscodeAccess: false,
+      };
+    }
+
+    const verified = verifyPasscodeHash(normalizedPasscode, session.hostPasscode);
+
+    if (verified) {
+      await grantPasscodeAccess(ctx, args.sessionId, viewer._id);
+    }
 
     return {
       verified,
       isHost,
       isPasscodeProtected: true,
+      hasPasscodeAccess: verified,
     };
   },
 });
 
-// Deprecated insecure endpoints kept only to fail closed if called directly.
-export const createSession = mutation({
+const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+const CLEANUP_BATCH_SIZE = 50;
+
+export const cleanupExpiredSessions = internalMutation({
   args: {},
-  handler: async () => {
-    throw new Error("Deprecated insecure endpoint. Use createSessionServer.");
+  handler: async (ctx) => {
+    const cutoff = Date.now() - RETENTION_MS;
+
+    const expired = await ctx.db
+      .query("sessions")
+      .filter((q) =>
+        q.and(
+          q.eq(q.field("status"), "ended"),
+          q.lte(q.field("endedAt"), cutoff),
+        ),
+      )
+      .take(CLEANUP_BATCH_SIZE);
+
+    for (const session of expired) {
+      const participants = await ctx.db
+        .query("participants")
+        .withIndex("by_sessionId", (q) => q.eq("sessionId", session._id))
+        .collect();
+
+      for (const row of participants) {
+        await ctx.db.delete(row._id);
+      }
+
+      const queueItems = await ctx.db
+        .query("queueItems")
+        .withIndex("by_sessionId_position", (q) => q.eq("sessionId", session._id))
+        .collect();
+
+      for (const row of queueItems) {
+        await ctx.db.delete(row._id);
+      }
+
+      const grants = await ctx.db
+        .query("sessionPasscodeGrants")
+        .withIndex("by_sessionId_userId", (q) => q.eq("sessionId", session._id))
+        .collect();
+
+      for (const row of grants) {
+        await ctx.db.delete(row._id);
+      }
+
+      await ctx.db.delete(session._id);
+    }
+
+    return { deleted: expired.length };
   },
 });
-
-export const listMySessions = query({
-  args: {},
-  handler: async () => {
-    throw new Error("Deprecated insecure endpoint. Use listMySessionsServer.");
-  },
-});
-
-export const endSession = mutation({
-  args: {},
-  handler: async () => {
-    throw new Error("Deprecated insecure endpoint. Use endSessionServer.");
-  },
-});
-
-// TODO(retention): When implementing auto-delete cleanup for sessions older than 7 days,
-// also delete related participants and queueItems in the same cleanup flow.

@@ -5,12 +5,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type SkipTurnButtonProps = {
-  sessionId: string;
   canSkip: boolean;
-  onChanged: () => Promise<void> | void;
+  onSkip: () => Promise<void>;
 };
 
-export function SkipTurnButton({ sessionId, canSkip, onChanged }: SkipTurnButtonProps) {
+export function SkipTurnButton({ canSkip, onSkip }: SkipTurnButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -23,17 +22,7 @@ export function SkipTurnButton({ sessionId, canSkip, onChanged }: SkipTurnButton
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/queue/skip`, {
-        method: "POST",
-      });
-      const body = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        const message = typeof body?.error === "string" ? body.error : "Failed to skip turn.";
-        throw new Error(message);
-      }
-
-      await onChanged();
+      await onSkip();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to skip turn.";
       setErrorMessage(message);
@@ -44,7 +33,14 @@ export function SkipTurnButton({ sessionId, canSkip, onChanged }: SkipTurnButton
 
   return (
     <div className="space-y-2">
-      <Button type="button" variant="outline" onClick={handleSkip} disabled={isSubmitting}>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => {
+          void handleSkip();
+        }}
+        disabled={isSubmitting}
+      >
         {isSubmitting ? "Skipping..." : "Skip my turn"}
       </Button>
       {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}

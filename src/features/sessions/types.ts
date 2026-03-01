@@ -20,4 +20,5 @@ export type SessionDetailsPayload = {
   viewerUserId?: string;
   isHost: boolean;
   isPasscodeProtected: boolean;
+  hasPasscodeAccess: boolean;
 };

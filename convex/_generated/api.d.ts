@@ -8,6 +8,11 @@
  * @module
  */
 
+import type * as auth from "../auth.js";
+import type * as crons from "../crons.js";
+import type * as http from "../http.js";
+import type * as lib_authProfile from "../lib/authProfile.js";
+import type * as lib_passcodeAccess from "../lib/passcodeAccess.js";
 import type * as queue from "../queue.js";
 import type * as sessions from "../sessions.js";
 import type * as users from "../users.js";
@@ -19,6 +24,11 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  auth: typeof auth;
+  crons: typeof crons;
+  http: typeof http;
+  "lib/authProfile": typeof lib_authProfile;
+  "lib/passcodeAccess": typeof lib_passcodeAccess;
   queue: typeof queue;
   sessions: typeof sessions;
   users: typeof users;

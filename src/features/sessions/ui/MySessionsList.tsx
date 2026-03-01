@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -21,11 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { SessionListItem } from "../types";
-
-type MySessionsListProps = {
-  isReady: boolean;
-  refreshKey: number;
-};
+import { api } from "../../../../convex/_generated/api";
 
 type SessionsViewMode = "list" | "compact" | "grid";
 
@@ -104,7 +101,9 @@ function ViewToggleButton({
   );
 }
 
-function StatusBadge({ status }: { status: SessionListItem["status"] }) {
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+function StatusBadge({ status, endedAt }: { status: SessionListItem["status"]; endedAt?: number }) {
   if (status === "active") {
     return (
       <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
@@ -113,78 +112,61 @@ function StatusBadge({ status }: { status: SessionListItem["status"] }) {
     );
   }
 
+  const daysLeft =
+    endedAt !== undefined
+      ? Math.max(0, Math.ceil((endedAt + SEVEN_DAYS_MS - Date.now()) / (1000 * 60 * 60 * 24)))
+      : null;
+
   return (
-    <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
-      Ended
-    </Badge>
+    <div className="flex flex-col items-end gap-0.5">
+      <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
+        Ended
+      </Badge>
+      {daysLeft !== null ? (
+        <span className="whitespace-nowrap text-[10px] text-muted-foreground/65">
+          {daysLeft > 0 ? `Deletes in ${daysLeft}d` : "Deleting soon"}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
-export function MySessionsList({ isReady, refreshKey }: MySessionsListProps) {
+function renderLoadingSkeleton(viewMode: SessionsViewMode) {
+  const skeletonGridClass =
+    viewMode === "grid" ? "grid gap-2.5 md:grid-cols-2" : "space-y-2.5";
+
+  return (
+    <div className={skeletonGridClass}>
+      {Array.from({ length: 3 }).map((_, index) => (
+        <Card
+          key={`sessions-skeleton-${index}`}
+          className={cn(
+            "border-white/[0.34] bg-white/[0.58] px-4 py-4 backdrop-blur-md dark:border-white/[0.12] dark:bg-white/[0.07]",
+            viewMode === "grid" ? "h-full" : "",
+          )}
+        >
+          <CardContent className="space-y-3 p-0">
+            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-4 w-5/6" />
+            <div className="flex gap-2">
+              <Skeleton className="h-6 w-18 rounded-full" />
+              <Skeleton className="h-6 w-22 rounded-full" />
+            </div>
+            <Skeleton className="h-11 w-full rounded-xl" />
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+export function MySessionsList() {
+  const sessions = useQuery(api.sessions.listMySessionsServer);
+
   const [now, setNow] = useState(() => Date.now());
-  const [sessions, setSessions] = useState<SessionListItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<SessionsViewMode>("list");
-
-  useEffect(() => {
-    if (!isReady) {
-      setSessions([]);
-      setErrorMessage(null);
-      setIsLoading(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    async function loadSessions() {
-      try {
-        setIsLoading(true);
-        setErrorMessage(null);
-
-        const response = await fetch("/api/sessions/list", {
-          cache: "no-store",
-        });
-        const body = await response.json().catch(() => null);
-
-        if (!response.ok) {
-          const message =
-            typeof body?.error === "string" ? body.error : "Failed to load sessions.";
-          throw new Error(message);
-        }
-
-        const loadedSessions = Array.isArray(body?.sessions) ? body.sessions : [];
-
-        if (!cancelled) {
-          setSessions(loadedSessions as SessionListItem[]);
-        }
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-
-        const message =
-          error instanceof Error ? error.message : "Failed to load sessions.";
-        setErrorMessage(message);
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    void loadSessions();
-
-    const intervalId = window.setInterval(() => {
-      void loadSessions();
-    }, 10_000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [isReady, refreshKey]);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -218,46 +200,8 @@ export function MySessionsList({ isReady, refreshKey }: MySessionsListProps) {
     });
   }, [normalizedSearch, normalizedSessions]);
 
-  function renderLoadingSkeleton() {
-    const skeletonGridClass =
-      viewMode === "grid" ? "grid gap-2.5 md:grid-cols-2" : "space-y-2.5";
-
-    return (
-      <div className={skeletonGridClass}>
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Card
-            key={`sessions-skeleton-${index}`}
-            className={cn(
-              "border-white/[0.34] bg-white/[0.58] px-4 py-4 backdrop-blur-md dark:border-white/[0.12] dark:bg-white/[0.07]",
-              viewMode === "grid" ? "h-full" : "",
-            )}
-          >
-            <CardContent className="space-y-3 p-0">
-              <Skeleton className="h-5 w-2/3" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-4 w-5/6" />
-              <div className="flex gap-2">
-                <Skeleton className="h-6 w-18 rounded-full" />
-                <Skeleton className="h-6 w-22 rounded-full" />
-              </div>
-              <Skeleton className="h-11 w-full rounded-xl" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
-  }
-
-  if (!isReady) {
-    return renderLoadingSkeleton();
-  }
-
-  if (isLoading) {
-    return renderLoadingSkeleton();
-  }
-
-  if (errorMessage) {
-    return <p className="text-sm text-red-500">{errorMessage}</p>;
+  if (sessions === undefined) {
+    return renderLoadingSkeleton(viewMode);
   }
 
   if (normalizedSessions.length === 0) {
@@ -320,118 +264,112 @@ export function MySessionsList({ isReady, refreshKey }: MySessionsListProps) {
       {filteredSessions.length === 0 ? (
         <Card className="border-white/[0.35] bg-white/[0.44] py-4 dark:border-white/[0.12] dark:bg-white/[0.04]">
           <CardContent className="px-4 text-sm text-muted-foreground">
-            No sessions match
-            {" "}
-            <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
+            No sessions match <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
           </CardContent>
         </Card>
       ) : null}
 
       <div className={sessionsWrapperClass}>
         {filteredSessions.map((session, index) => {
-        const finishedAt = session.status === "ended" ? (session.endedAt ?? session.createdAt) : now;
-        const elapsed = formatElapsed(finishedAt - session.createdAt);
-        const isCompactView = viewMode === "compact";
-        const isGridView = viewMode === "grid";
+          const finishedAt =
+            session.status === "ended" ? (session.endedAt ?? session.createdAt) : now;
+          const elapsed = formatElapsed(finishedAt - session.createdAt);
+          const isCompactView = viewMode === "compact";
+          const isGridView = viewMode === "grid";
 
-        return (
-          <Link key={session._id} href={`/s/${session._id}`} className="block">
-            <Card
-              className={cn(
-                "relative gap-0 overflow-hidden border-white/[0.36] bg-white/[0.62] shadow-[0_10px_24px_-18px_rgba(79,70,229,0.6)] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.72] hover:shadow-[0_14px_26px_-16px_rgba(79,70,229,0.7)] animate-in fade-in slide-in-from-bottom-1 dark:border-white/[0.12] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]",
-                isCompactView ? "px-3 py-3" : "px-4 py-4",
-                isGridView ? "h-full" : "",
-              )}
-              style={{ animationDelay: `${Math.min(index * 45, 180)}ms` }}
-            >
-              <span
-                className={`pointer-events-none absolute left-0 top-0 h-full w-[2px] ${
-                  session.status === "active"
-                    ? "bg-gradient-to-b from-emerald-400/95 via-emerald-300/80 to-transparent"
-                    : "bg-gradient-to-b from-slate-300/80 to-transparent dark:from-slate-400/45"
-                }`}
-              />
+          return (
+            <Link key={session._id} href={`/s/${session._id}`} className="block">
+              <Card
+                className={cn(
+                  "relative gap-0 overflow-hidden border-white/[0.36] bg-white/[0.62] shadow-[0_10px_24px_-18px_rgba(79,70,229,0.6)] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.72] hover:shadow-[0_14px_26px_-16px_rgba(79,70,229,0.7)] animate-in fade-in slide-in-from-bottom-1 dark:border-white/[0.12] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]",
+                  isCompactView ? "px-3 py-3" : "px-4 py-4",
+                  isGridView ? "h-full" : "",
+                )}
+                style={{ animationDelay: `${Math.min(index * 45, 180)}ms` }}
+              >
+                <span
+                  className={`pointer-events-none absolute left-0 top-0 h-full w-[2px] ${
+                    session.status === "active"
+                      ? "bg-gradient-to-b from-emerald-400/95 via-emerald-300/80 to-transparent"
+                      : "bg-gradient-to-b from-slate-300/80 to-transparent dark:from-slate-400/45"
+                  }`}
+                />
 
-              <CardContent className="p-0">
-                <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
-                  <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 space-y-1">
-                      <p
-                        className={cn(
-                          "line-clamp-1 font-semibold tracking-tight text-foreground",
-                          isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
-                        )}
-                      >
-                        {session.title ?? session.bookTitle}
-                      </p>
-                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                        {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
-                      </p>
-                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                        {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-                      </p>
+                <CardContent className="p-0">
+                  <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "") }>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0 space-y-1">
+                        <p
+                          className={cn(
+                            "line-clamp-1 font-semibold tracking-tight text-foreground",
+                            isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
+                          )}
+                        >
+                          {session.title ?? session.bookTitle}
+                        </p>
+                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm") }>
+                          {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
+                        </p>
+                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm") }>
+                          {session.authorName ? `by ${session.authorName}` : "Author unknown"}
+                        </p>
+                      </div>
+
+                      <StatusBadge status={session.status} endedAt={session.endedAt} />
                     </div>
 
-                    <StatusBadge status={session.status} />
-                  </div>
+                    {!isCompactView && session.synopsis ? (
+                      <p className="line-clamp-3 rounded-xl border border-white/45 bg-white/55 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
+                        {session.synopsis}
+                      </p>
+                    ) : null}
 
-                  {!isCompactView && session.synopsis ? (
-                    <p className="line-clamp-3 rounded-xl border border-white/45 bg-white/55 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
-                      {session.synopsis}
-                    </p>
-                  ) : null}
-
-                  <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                      <Clock3 className="size-3.5" />
-                      Elapsed: {elapsed}
-                    </span>
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                      <CalendarDays className="size-3.5" />
-                      {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
-                    </span>
-                  </div>
-
-                  <div
-                    className={cn(
-                      "flex items-center justify-between gap-2 rounded-xl border border-white/45 bg-white/58 dark:border-white/10 dark:bg-white/[0.07]",
-                      isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
-                    )}
-                  >
-                    <div className="inline-flex min-w-0 items-center gap-2">
-                      <Avatar size="sm" className="ring-1 ring-white/70 dark:ring-white/20">
-                        <AvatarImage
-                          src={session.hostImage ?? undefined}
-                          alt={session.hostName ?? "Host"}
-                        />
-                        <AvatarFallback>
-                          {getInitials(session.hostName ?? "H")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="truncate text-xs text-muted-foreground">
-                        Hosted by{" "}
-                        <span className="font-medium text-foreground">
-                          {session.hostName ?? "Unknown"}
-                        </span>
+                    <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2") }>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                        <Clock3 className="size-3.5" />
+                        Elapsed: {elapsed}
+                      </span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                        <CalendarDays className="size-3.5" />
+                        {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
                       </span>
                     </div>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/85">
-                      Open
-                      <ChevronRight className="size-3.5" />
-                    </span>
-                  </div>
 
-                  {!isCompactView ? (
-                    <div className="border-t border-white/45 pt-2 text-[11px] text-muted-foreground/85 dark:border-white/10">
-                      Session ID: {session._id}
+                    <div
+                      className={cn(
+                        "flex items-center justify-between gap-2 rounded-xl border border-white/45 bg-white/58 dark:border-white/10 dark:bg-white/[0.07]",
+                        isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
+                      )}
+                    >
+                      <div className="inline-flex min-w-0 items-center gap-2">
+                        <Avatar size="sm" className="ring-1 ring-white/70 dark:ring-white/20">
+                          <AvatarImage
+                            src={session.hostImage ?? undefined}
+                            alt={session.hostName ?? "Host"}
+                          />
+                          <AvatarFallback>{getInitials(session.hostName ?? "H")}</AvatarFallback>
+                        </Avatar>
+                        <span className="truncate text-xs text-muted-foreground">
+                          Hosted by <span className="font-medium text-foreground">{session.hostName ?? "Unknown"}</span>
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/85">
+                        Open
+                        <ChevronRight className="size-3.5" />
+                      </span>
                     </div>
-                  ) : null}
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        );
-      })}
+
+                    {!isCompactView ? (
+                      <div className="border-t border-white/45 pt-2 text-[11px] text-muted-foreground/85 dark:border-white/10">
+                        Session ID: {session._id}
+                      </div>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );

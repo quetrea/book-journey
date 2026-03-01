@@ -2,55 +2,13 @@ import { v } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
-
-function normalizeServerKey(value: string | undefined) {
-  if (!value) {
-    return "";
-  }
-
-  const trimmed = value.trim();
-
-  if (
-    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
-    (trimmed.startsWith("'") && trimmed.endsWith("'"))
-  ) {
-    return trimmed.slice(1, -1).trim();
-  }
-
-  return trimmed;
-}
-
-function assertServerKey(serverKey: string) {
-  const expectedKey =
-    normalizeServerKey(process.env.SESSIONS_SERVER_KEY) ||
-    normalizeServerKey(process.env.PARTICIPANTS_SERVER_KEY) ||
-    normalizeServerKey(process.env.QUEUE_SERVER_KEY);
-  const providedKey = normalizeServerKey(serverKey);
-
-  if (!expectedKey) {
-    throw new Error("Server key not configured");
-  }
-
-  if (providedKey !== expectedKey) {
-    throw new Error("Forbidden");
-  }
-}
-
-async function getUserByDiscordIdOrThrow(
-  ctx: MutationCtx | QueryCtx,
-  discordId: string,
-) {
-  const user = await ctx.db
-    .query("users")
-    .withIndex("by_discordId", (q) => q.eq("discordId", discordId))
-    .unique();
-
-  if (!user) {
-    throw new Error("User not found. Refresh the dashboard and try again.");
-  }
-
-  return user;
-}
+import {
+  getAuthUserIdFromIdentity,
+  getProfileByAuthUserId,
+  requireIdentity,
+  upsertViewerProfile,
+} from "./lib/authProfile";
+import { hasActivePasscodeGrant } from "./lib/passcodeAccess";
 
 async function getSessionByIdOrThrow(
   ctx: MutationCtx | QueryCtx,
@@ -74,7 +32,7 @@ function assertSessionActive(session: { status: "active" | "ended" }) {
 async function getParticipantBySessionAndUser(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
-  userId: Id<"users">,
+  userId: Id<"profiles">,
 ) {
   return ctx.db
     .query("participants")
@@ -87,7 +45,7 @@ async function getParticipantBySessionAndUser(
 async function getParticipantBySessionAndUserOrThrow(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
-  userId: Id<"users">,
+  userId: Id<"profiles">,
 ) {
   const participant = await getParticipantBySessionAndUser(ctx, sessionId, userId);
 
@@ -178,24 +136,55 @@ async function normalizeQueuePositions(
   }
 }
 
+async function assertPasscodeGrantForQueueMutation(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+  sessionCreatedBy: Id<"profiles">,
+  viewerId: Id<"profiles">,
+) {
+  if (viewerId === sessionCreatedBy) {
+    return;
+  }
+
+  const hasGrant = await hasActivePasscodeGrant(ctx, sessionId, viewerId);
+
+  if (!hasGrant) {
+    throw new Error("Passcode verification required.");
+  }
+}
+
+async function getViewerProfileForQuery(ctx: QueryCtx) {
+  const identity = await requireIdentity(ctx);
+  const authUserId = getAuthUserIdFromIdentity(identity);
+  return getProfileByAuthUserId(ctx, authUserId);
+}
+
 export const joinQueueServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
-    await getParticipantBySessionAndUserOrThrow(ctx, args.sessionId, user._id);
+
+    const viewer = await upsertViewerProfile(ctx);
+    await getParticipantBySessionAndUserOrThrow(ctx, args.sessionId, viewer._id);
+
+    if (session.hostPasscode) {
+      await assertPasscodeGrantForQueueMutation(
+        ctx,
+        args.sessionId,
+        session.createdBy,
+        viewer._id,
+      );
+    }
+
     await normalizeQueuePositions(ctx, args.sessionId);
 
     const existing = await ctx.db
       .query("queueItems")
       .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
       )
       .unique();
 
@@ -210,7 +199,7 @@ export const joinQueueServer = mutation({
 
     const insertedId = await ctx.db.insert("queueItems", {
       sessionId: args.sessionId,
-      userId: user._id,
+      userId: viewer._id,
       position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
       status: hasActiveReaderOrWaiting ? "waiting" : "reading",
       joinedAt: Date.now(),
@@ -230,20 +219,27 @@ export const joinQueueServer = mutation({
 
 export const leaveQueueServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+
+    const viewer = await upsertViewerProfile(ctx);
+
+    if (session.hostPasscode) {
+      await assertPasscodeGrantForQueueMutation(
+        ctx,
+        args.sessionId,
+        session.createdBy,
+        viewer._id,
+      );
+    }
 
     const existing = await ctx.db
       .query("queueItems")
       .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
       )
       .unique();
 
@@ -267,20 +263,27 @@ export const leaveQueueServer = mutation({
 
 export const skipMyTurnServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+
+    const viewer = await upsertViewerProfile(ctx);
+
+    if (session.hostPasscode) {
+      await assertPasscodeGrantForQueueMutation(
+        ctx,
+        args.sessionId,
+        session.createdBy,
+        viewer._id,
+      );
+    }
 
     const existing = await ctx.db
       .query("queueItems")
       .withIndex("by_sessionId_userId", (q) =>
-        q.eq("sessionId", args.sessionId).eq("userId", user._id),
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
       )
       .unique();
 
@@ -306,20 +309,18 @@ export const skipMyTurnServer = mutation({
 
 export const advanceQueueServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
-    const user = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+
+    const viewer = await upsertViewerProfile(ctx);
 
     const participant = await getParticipantBySessionAndUserOrThrow(
       ctx,
       args.sessionId,
-      user._id,
+      viewer._id,
     );
 
     if (participant.role !== "host") {
@@ -354,17 +355,14 @@ export const advanceQueueServer = mutation({
 
 export const addUserToQueueServer = mutation({
   args: {
-    serverKey: v.string(),
-    discordId: v.string(),
     sessionId: v.id("sessions"),
-    targetUserId: v.id("users"),
+    targetUserId: v.id("profiles"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
     const session = await getSessionByIdOrThrow(ctx, args.sessionId);
     assertSessionActive(session);
 
-    const actor = await getUserByDiscordIdOrThrow(ctx, args.discordId);
+    const actor = await upsertViewerProfile(ctx);
     const actorParticipant = await getParticipantBySessionAndUserOrThrow(
       ctx,
       args.sessionId,
@@ -425,11 +423,10 @@ export const addUserToQueueServer = mutation({
 
 export const getQueueServer = query({
   args: {
-    serverKey: v.string(),
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
-    assertServerKey(args.serverKey);
+    await getViewerProfileForQuery(ctx);
     await getSessionByIdOrThrow(ctx, args.sessionId);
 
     const queue = await getQueueItemsByPosition(ctx, args.sessionId);

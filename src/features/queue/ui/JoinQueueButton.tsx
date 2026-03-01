@@ -5,19 +5,19 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 
 type JoinQueueButtonProps = {
-  sessionId: string;
   isParticipant: boolean;
   isInQueue: boolean;
   isSessionEnded: boolean;
-  onChanged: () => Promise<void> | void;
+  onJoin: () => Promise<void>;
+  onLeave: () => Promise<void>;
 };
 
 export function JoinQueueButton({
-  sessionId,
   isParticipant,
   isInQueue,
   isSessionEnded,
-  onChanged,
+  onJoin,
+  onLeave,
 }: JoinQueueButtonProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -27,18 +27,11 @@ export function JoinQueueButton({
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/sessions/${sessionId}/queue/${path}`, {
-        method: "POST",
-      });
-      const body = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        const message =
-          typeof body?.error === "string" ? body.error : "Queue action failed.";
-        throw new Error(message);
+      if (path === "join") {
+        await onJoin();
+      } else {
+        await onLeave();
       }
-
-      await onChanged();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Queue action failed.";
       setErrorMessage(message);

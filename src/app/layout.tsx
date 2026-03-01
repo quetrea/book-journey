@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { AppConvexProvider } from "@/features/db/ConvexProvider";
+import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,7 +37,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider>
-            <AppConvexProvider>{children}</AppConvexProvider>
+            <ConvexClientProvider>{children}</ConvexClientProvider>
           </TooltipProvider>
         </ThemeProvider>
       </body>

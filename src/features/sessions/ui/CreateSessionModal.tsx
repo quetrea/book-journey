@@ -1,5 +1,6 @@
 "use client";
 
+import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 
@@ -16,19 +17,17 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-type CreateSessionModalProps = {
-  isReady: boolean;
-  onCreated: () => void;
-};
+import { api } from "../../../../convex/_generated/api";
 
 function normalizeOptional(value: string) {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalProps) {
+export function CreateSessionModal() {
   const router = useRouter();
+  const createSession = useMutation(api.sessions.createSessionServer);
+
   const [open, setOpen] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -39,8 +38,8 @@ export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalPro
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isDisabled = useMemo(
-    () => !isReady || isSubmitting || bookTitle.trim().length === 0,
-    [bookTitle, isReady, isSubmitting],
+    () => isSubmitting || bookTitle.trim().length === 0,
+    [bookTitle, isSubmitting],
   );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -54,45 +53,16 @@ export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalPro
       return;
     }
 
-    if (!isReady) {
-      setErrorMessage("Preparing account...");
-      return;
-    }
-
     try {
       setIsSubmitting(true);
 
-      const response = await fetch("/api/sessions/create", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bookTitle: normalizedBookTitle,
-          authorName: normalizeOptional(authorName),
-          title: normalizeOptional(title),
-          synopsis: normalizeOptional(synopsis),
-          hostPasscode: normalizeOptional(hostPasscode),
-        }),
+      const createdSessionId = await createSession({
+        bookTitle: normalizedBookTitle,
+        authorName: normalizeOptional(authorName),
+        title: normalizeOptional(title),
+        synopsis: normalizeOptional(synopsis),
+        hostPasscode: normalizeOptional(hostPasscode),
       });
-      const body = await response.json().catch(() => null);
-
-      if (!response.ok) {
-        const message =
-          typeof body?.error === "string" ? body.error : "Failed to create session.";
-        throw new Error(message);
-      }
-
-      const createdSessionId =
-        typeof body?.sessionId === "string"
-          ? body.sessionId
-          : typeof body?.session?._id === "string"
-            ? body.session._id
-            : null;
-
-      if (!createdSessionId) {
-        throw new Error("Session created but no sessionId was returned.");
-      }
 
       setOpen(false);
       setBookTitle("");
@@ -100,7 +70,6 @@ export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalPro
       setTitle("");
       setSynopsis("");
       setHostPasscode("");
-      onCreated();
       router.push(`/s/${createdSessionId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
@@ -115,7 +84,6 @@ export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalPro
       <DialogTrigger asChild>
         <Button
           type="button"
-          disabled={!isReady}
           className="w-full sm:w-auto transition-transform duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-16px_rgba(79,70,229,0.75)]"
         >
           Create session
@@ -161,9 +129,6 @@ export function CreateSessionModal({ isReady, onCreated }: CreateSessionModalPro
           />
 
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
-          {!isReady ? (
-            <p className="text-xs text-muted-foreground">Preparing account...</p>
-          ) : null}
 
           <DialogFooter className="pt-1">
             <DialogClose asChild>
