@@ -15,8 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { ThemePicker } from "@/components/background/ThemePicker";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
-import { ParticlesBackground } from "@/features/dashboard/ui/ParticlesBackground";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 import { Separator } from "@/components/ui/separator";
@@ -70,9 +70,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <main className="relative min-h-screen overflow-hidden px-4 py-10">
-        <ParticlesBackground />
-        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.45),transparent_70%),linear-gradient(145deg,rgba(30,41,59,0.65),rgba(56,72,148,0.42)_45%,rgba(111,76,155,0.3))]" />
-        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl items-center justify-center rounded-3xl border border-white/[0.15] bg-[#0d1222]/[0.58] p-6 text-sm text-muted-foreground shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl items-center justify-center rounded-3xl border border-black/10 bg-white/60 p-6 text-sm text-slate-400 backdrop-blur-xl dark:border-white/15 dark:bg-black/40 dark:text-white/50">
           Loading dashboard...
         </div>
       </main>
@@ -82,12 +80,10 @@ export default function DashboardPage() {
   if (!isAuthenticated) {
     return (
       <main className="relative min-h-screen overflow-hidden px-4 py-10">
-        <ParticlesBackground />
-        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.45),transparent_70%),linear-gradient(145deg,rgba(30,41,59,0.65),rgba(56,72,148,0.42)_45%,rgba(111,76,155,0.3))]" />
-        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col items-center justify-center gap-3 rounded-3xl border border-white/[0.15] bg-[#0d1222]/[0.58] p-6 text-center shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)] backdrop-blur-xl">
-          <p className="text-sm text-muted-foreground">You are not signed in.</p>
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col items-center justify-center gap-3 rounded-3xl border border-black/10 bg-white/60 p-6 text-center backdrop-blur-xl dark:border-white/15 dark:bg-black/40">
+          <p className="text-sm text-slate-500 dark:text-white/60">You are not signed in.</p>
           <LoginButton />
-          <Link href="/" className="text-sm font-medium underline">
+          <Link href="/" className="text-sm font-medium text-slate-500 underline underline-offset-4 hover:text-slate-800 dark:text-white/50 dark:hover:text-white/80">
             Back to home
           </Link>
         </div>
@@ -95,26 +91,25 @@ export default function DashboardPage() {
     );
   }
 
-  const userName = profile?.name ?? "reader";
+  const userName = (profile?.displayName || profile?.name) ?? "reader";
   const initials = userName.slice(0, 1).toUpperCase();
 
   return (
     <main className="relative min-h-screen overflow-hidden">
-      <ParticlesBackground />
-      <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        <section className="rounded-3xl border border-white/[0.45] bg-white/[0.56] p-5 shadow-[0_30px_90px_-35px_rgba(79,70,229,0.55)] backdrop-blur-xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/[0.15] dark:bg-[#0d1222]/[0.58] dark:shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)]">
+        <section className="rounded-3xl border border-black/8 bg-white/52 p-5 shadow-[0_30px_90px_-35px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.88)] backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35 dark:shadow-[0_30px_90px_-35px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.05)]">
           <header className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-semibold tracking-tight text-foreground">
+              <h1 className="font-display text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
                 Dashboard
               </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-1 text-sm text-slate-500 dark:text-white/50">
                 Your sessions and queue access
               </p>
             </div>
 
             <div className="flex items-center gap-2">
+              <ThemePicker />
               <ThemeToggle />
               <Button
                 type="button"
@@ -146,7 +141,7 @@ export default function DashboardPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <SessionsDashboardSection />
 
-            <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+            <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
               <CardHeader>
                 <CardTitle>Quick Tips</CardTitle>
               </CardHeader>

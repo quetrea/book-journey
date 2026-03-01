@@ -16,18 +16,20 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Authentication Setup (Convex Auth + Discord)
 
-## Session Security Setup
+Set these environment variables (see `.env.example`):
 
-Session create/list/end routes are protected by a shared server key.
+1. `NEXT_PUBLIC_CONVEX_URL`
+2. `AUTH_SECRET`
+3. `AUTH_DISCORD_ID`
+4. `AUTH_DISCORD_SECRET`
 
-1. Set `SESSIONS_SERVER_KEY` in Next.js environment variables.
-2. Set the same `SESSIONS_SERVER_KEY` in Convex deployment environment variables.
+Discord Developer Portal OAuth2 redirect URI:
 
-If the values do not match, session API operations are rejected.
+- `https://<your-convex-site-domain>/api/auth/callback/discord`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This project uses Convex-managed authentication and direct realtime Convex client calls.
 
 ## Learn More
 
@@ -40,6 +42,6 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

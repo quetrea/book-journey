@@ -141,7 +141,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
         <Card
           key={`sessions-skeleton-${index}`}
           className={cn(
-            "border-white/[0.34] bg-white/[0.58] px-4 py-4 backdrop-blur-md dark:border-white/[0.12] dark:bg-white/[0.07]",
+            "border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/[0.07] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
             viewMode === "grid" ? "h-full" : "",
           )}
         >
@@ -206,7 +206,7 @@ export function MySessionsList() {
 
   if (normalizedSessions.length === 0) {
     return (
-      <Card className="border-white/[0.35] bg-white/[0.44] py-4 dark:border-white/[0.12] dark:bg-white/[0.04]">
+      <Card className="border-black/8 bg-white/60 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/5 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <CardContent className="px-4 text-sm text-muted-foreground">
           No sessions yet. Create one to start reading live.
         </CardContent>
@@ -219,7 +219,7 @@ export function MySessionsList() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-white/[0.38] bg-white/[0.5] p-2.5 backdrop-blur-md dark:border-white/[0.12] dark:bg-white/[0.06]">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-black/8 bg-white/65 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md dark:border-white/12 dark:bg-white/6 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -227,11 +227,11 @@ export function MySessionsList() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search by title, book, author, host, or session ID..."
-              className="h-9 border-white/45 bg-white/70 pl-9 text-sm dark:border-white/14 dark:bg-white/8"
+              className="h-9 border-black/10 bg-white/80 pl-9 text-sm dark:border-white/14 dark:bg-white/8"
             />
           </div>
 
-          <div className="inline-flex items-center rounded-xl border border-white/50 bg-white/70 p-1 dark:border-white/14 dark:bg-white/10">
+          <div className="inline-flex items-center rounded-xl border border-black/10 bg-white/80 p-1 dark:border-white/14 dark:bg-white/10">
             <ViewToggleButton
               mode="list"
               activeMode={viewMode}
@@ -262,7 +262,7 @@ export function MySessionsList() {
       </div>
 
       {filteredSessions.length === 0 ? (
-        <Card className="border-white/[0.35] bg-white/[0.44] py-4 dark:border-white/[0.12] dark:bg-white/[0.04]">
+        <Card className="border-black/8 bg-white/60 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/5 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
           <CardContent className="px-4 text-sm text-muted-foreground">
             No sessions match <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
           </CardContent>
@@ -281,22 +281,27 @@ export function MySessionsList() {
             <Link key={session._id} href={`/s/${session._id}`} className="block">
               <Card
                 className={cn(
-                  "relative gap-0 overflow-hidden border-white/[0.36] bg-white/[0.62] shadow-[0_10px_24px_-18px_rgba(79,70,229,0.6)] backdrop-blur-md transition-all duration-200 hover:-translate-y-0.5 hover:bg-white/[0.72] hover:shadow-[0_14px_26px_-16px_rgba(79,70,229,0.7)] animate-in fade-in slide-in-from-bottom-1 dark:border-white/[0.12] dark:bg-white/[0.08] dark:hover:bg-white/[0.12]",
+                  "group relative gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
+                  // Active session — emerald tinted glass + glow
+                  session.status === "active"
+                    ? "border-emerald-200/60 bg-white/70 shadow-[0_8px_28px_-10px_rgba(16,185,129,0.22),inset_0_1px_0_rgba(255,255,255,0.92)] hover:shadow-[0_16px_40px_-8px_rgba(16,185,129,0.38),inset_0_1px_0_rgba(255,255,255,0.96)] hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/[0.09] dark:shadow-[0_8px_28px_-10px_rgba(16,185,129,0.28),inset_0_1px_0_rgba(255,255,255,0.07)] dark:hover:shadow-[0_16px_40px_-8px_rgba(16,185,129,0.45),inset_0_1px_0_rgba(255,255,255,0.10)] dark:hover:bg-white/[0.13]"
+                    : "border-black/8 bg-white/65 shadow-[0_8px_28px_-10px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.90)] hover:shadow-[0_16px_40px_-8px_rgba(79,70,229,0.22),inset_0_1px_0_rgba(255,255,255,0.96)] hover:bg-white/78 dark:border-white/12 dark:bg-white/[0.08] dark:shadow-[0_8px_28px_-10px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.06)] dark:hover:shadow-[0_16px_40px_-8px_rgba(79,70,229,0.42),inset_0_1px_0_rgba(255,255,255,0.09)] dark:hover:bg-white/[0.12]",
                   isCompactView ? "px-3 py-3" : "px-4 py-4",
                   isGridView ? "h-full" : "",
                 )}
                 style={{ animationDelay: `${Math.min(index * 45, 180)}ms` }}
               >
+                {/* Status accent bar */}
                 <span
-                  className={`pointer-events-none absolute left-0 top-0 h-full w-[2px] ${
+                  className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
                     session.status === "active"
-                      ? "bg-gradient-to-b from-emerald-400/95 via-emerald-300/80 to-transparent"
-                      : "bg-gradient-to-b from-slate-300/80 to-transparent dark:from-slate-400/45"
+                      ? "bg-gradient-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
+                      : "bg-gradient-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
                   }`}
                 />
 
                 <CardContent className="p-0">
-                  <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "") }>
+                  <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0 space-y-1">
                         <p
@@ -307,10 +312,10 @@ export function MySessionsList() {
                         >
                           {session.title ?? session.bookTitle}
                         </p>
-                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm") }>
+                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
                           {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
                         </p>
-                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm") }>
+                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
                           {session.authorName ? `by ${session.authorName}` : "Author unknown"}
                         </p>
                       </div>
@@ -319,30 +324,30 @@ export function MySessionsList() {
                     </div>
 
                     {!isCompactView && session.synopsis ? (
-                      <p className="line-clamp-3 rounded-xl border border-white/45 bg-white/55 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
+                      <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
                         {session.synopsis}
                       </p>
                     ) : null}
 
-                    <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2") }>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                        <Clock3 className="size-3.5" />
+                    <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                        <Clock3 className="size-3.5 shrink-0" />
                         Elapsed: {elapsed}
                       </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                        <CalendarDays className="size-3.5" />
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                        <CalendarDays className="size-3.5 shrink-0" />
                         {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
                       </span>
                     </div>
 
                     <div
                       className={cn(
-                        "flex items-center justify-between gap-2 rounded-xl border border-white/45 bg-white/58 dark:border-white/10 dark:bg-white/[0.07]",
+                        "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 dark:border-white/10 dark:bg-white/[0.07]",
                         isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
                       )}
                     >
                       <div className="inline-flex min-w-0 items-center gap-2">
-                        <Avatar size="sm" className="ring-1 ring-white/70 dark:ring-white/20">
+                        <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
                           <AvatarImage
                             src={session.hostImage ?? undefined}
                             alt={session.hostName ?? "Host"}
@@ -353,14 +358,14 @@ export function MySessionsList() {
                           Hosted by <span className="font-medium text-foreground">{session.hostName ?? "Unknown"}</span>
                         </span>
                       </div>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/85">
+                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 transition-colors group-hover:text-muted-foreground">
                         Open
-                        <ChevronRight className="size-3.5" />
+                        <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
                       </span>
                     </div>
 
                     {!isCompactView ? (
-                      <div className="border-t border-white/45 pt-2 text-[11px] text-muted-foreground/85 dark:border-white/10">
+                      <div className="border-t border-black/8 pt-2 text-[11px] text-muted-foreground/70 dark:border-white/10">
                         Session ID: {session._id}
                       </div>
                     ) : null}

@@ -1,12 +1,6 @@
-import { Info } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 
 type LandingHeroProps = {
   loginButton: ReactNode;
@@ -14,47 +8,61 @@ type LandingHeroProps = {
 
 export function LandingHero({ loginButton }: LandingHeroProps) {
   return (
-    <section className="mt-10 space-y-5 sm:mt-14 sm:space-y-6">
-      <div className="space-y-3">
-        <h1 className="text-3xl leading-tight font-semibold tracking-tight text-foreground sm:text-5xl">
-          Live Reading Sessions, Discord-style.
+    <section className="mt-12 space-y-8 sm:mt-20">
+      {/* Eyebrow */}
+      <div
+        className="animate-in fade-in slide-in-from-bottom-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/5 px-3.5 py-1.5 [animation-duration:600ms] [animation-fill-mode:both] dark:border-white/15 dark:bg-white/8"
+        style={{ animationDelay: "0ms" }}
+      >
+        <span className="size-1.5 animate-pulse rounded-full bg-emerald-500 dark:bg-emerald-400" />
+        <span className="text-[11px] font-medium uppercase tracking-widest text-slate-500 dark:text-white/60">
+          Live · Real-time · No refresh
+        </span>
+      </div>
+
+      {/* Heading */}
+      <div className="space-y-4">
+        <h1
+          className="animate-in fade-in slide-in-from-bottom-4 font-display text-4xl font-bold leading-[1.1] tracking-tight text-slate-900 animation-duration-[650ms] fill-mode-[both] sm:text-6xl dark:text-white"
+          style={{ animationDelay: "80ms" }}
+        >
+          Book Club Sessions,
+          <br />
+          <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-white/90 dark:to-white/60">
+            Built for Live Reading.
+          </span>
         </h1>
-        <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-          Create a session in seconds, share the link, and run queue-based live
-          turns with synced elapsed time and no page refresh.
+
+        <p
+          className="animate-in fade-in slide-in-from-bottom-3 max-w-lg text-base leading-7 text-slate-500 animation-duration-[650ms] fill-mode-[both] sm:text-lg sm:leading-8 dark:text-white/50"
+          style={{ animationDelay: "160ms" }}
+        >
+          Create a session, share the link, and run queue-based turns with
+          synced elapsed time — for everyone, live.
         </p>
       </div>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center gap-2">
-          {loginButton}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label="Discord auth info"
-                className="inline-flex size-9 items-center justify-center rounded-md border border-white/20 bg-white/20 text-muted-foreground backdrop-blur-md transition-colors hover:text-foreground dark:border-white/10 dark:bg-white/10"
-              >
-                <Info className="size-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="top" className="max-w-xs text-center">
-              Discord login is required to create or join reading sessions.
-            </TooltipContent>
-          </Tooltip>
-        </div>
-
+      {/* CTA row */}
+      <div
+        className="animate-in fade-in slide-in-from-bottom-3 flex flex-col gap-3 [animation-duration:600ms] [animation-fill-mode:both] sm:flex-row sm:items-center"
+        style={{ animationDelay: "240ms" }}
+      >
+        {loginButton}
         <Button
           asChild
           variant="outline"
-          className="border-white/25 bg-white/20 text-foreground backdrop-blur-md hover:bg-white/30 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/20"
+          className="border-black/15 bg-black/5 text-slate-700 backdrop-blur-md transition-all hover:bg-black/10 hover:text-slate-900 dark:border-white/15 dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white"
         >
           <a href="#features">See how it works</a>
         </Button>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        Discord login is required to join sessions.
+      {/* Disclaimer */}
+      <p
+        className="animate-in fade-in [animation-duration:800ms] [animation-fill-mode:both] text-xs text-slate-400 dark:text-white/30"
+        style={{ animationDelay: "320ms" }}
+      >
+        A Discord account is required to create or join sessions.
       </p>
     </section>
   );
