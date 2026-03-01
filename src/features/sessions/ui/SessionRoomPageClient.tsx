@@ -30,6 +30,7 @@ import { JoinQueueButton } from "@/features/queue/ui/JoinQueueButton";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { SkipTurnButton } from "@/features/queue/ui/SkipTurnButton";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { SessionHeaderCard } from "./SessionHeaderCard";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -89,6 +90,15 @@ export function SessionRoomPageClient({
   const [leaveSessionErrorMessage, setLeaveSessionErrorMessage] = useState<
     string | null
   >(null);
+
+  const {
+    isSupported: isPushSupported,
+    permission: pushPermission,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    subscribe: subscribeToPush,
+    unsubscribe: unsubscribeFromPush,
+  } = usePushNotifications();
 
   useEffect(() => {
     setPasscodeValue("");
@@ -539,6 +549,36 @@ export function SessionRoomPageClient({
                           {addParticipantToQueueError}
                         </p>
                       ) : null}
+                    </div>
+                  ) : null}
+
+                  {isPushSupported && safeIsCurrentUserParticipant && !isSessionEnded ? (
+                    <div className="flex items-center gap-2 rounded-xl border border-white/40 bg-white/60 px-3 py-2 dark:border-white/[0.14] dark:bg-white/6">
+                      <span className="flex-1 text-xs text-muted-foreground">
+                        {pushPermission === "denied"
+                          ? "Notifications blocked in browser settings"
+                          : isPushSubscribed
+                            ? "Turn notifications are on"
+                            : "Get notified when it's your turn"}
+                      </span>
+                      {pushPermission !== "denied" && (
+                        <Button
+                          type="button"
+                          variant={isPushSubscribed ? "secondary" : "outline"}
+                          size="sm"
+                          onClick={() => {
+                            void (isPushSubscribed ? unsubscribeFromPush() : subscribeToPush());
+                          }}
+                          disabled={isPushLoading}
+                          className="shrink-0 text-xs"
+                        >
+                          {isPushLoading
+                            ? "..."
+                            : isPushSubscribed
+                              ? "Disable"
+                              : "Enable notifications"}
+                        </Button>
+                      )}
                     </div>
                   ) : null}
 

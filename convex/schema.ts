@@ -56,4 +56,11 @@ export default defineSchema({
     expiresAt: v.number(),
     createdAt: v.number(),
   }).index("by_sessionId_userId", ["sessionId", "userId"]),
+
+  pushSubscriptions: defineTable({
+    userId: v.id("profiles"),
+    endpoint: v.string(),
+    p256dh: v.string(),
+    auth: v.string(),
+  }).index("by_userId", ["userId"]),
 });

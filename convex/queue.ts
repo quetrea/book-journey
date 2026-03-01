@@ -2,6 +2,7 @@ import { v } from "convex/values";
 
 import type { Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
 import {
   getAuthUserIdFromIdentity,
   getProfileByAuthUserId,
@@ -252,7 +253,17 @@ export const leaveQueueServer = mutation({
     await normalizeQueuePositions(ctx, args.sessionId);
 
     if (wasReader) {
-      await setNextReader(ctx, args.sessionId);
+      const nextReaderId = await setNextReader(ctx, args.sessionId);
+      if (nextReaderId) {
+        const nextItem = await ctx.db.get(nextReaderId);
+        if (nextItem) {
+          await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+            userId: nextItem.userId,
+            bookTitle: session.bookTitle,
+            sessionId: args.sessionId,
+          });
+        }
+      }
     }
 
     await clearExtraReaders(ctx, args.sessionId);
@@ -299,9 +310,20 @@ export const skipMyTurnServer = mutation({
       status: "done",
     });
 
-    await setNextReader(ctx, args.sessionId, existing.position);
+    const nextReaderId = await setNextReader(ctx, args.sessionId, existing.position);
     await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
+
+    if (nextReaderId) {
+      const nextItem = await ctx.db.get(nextReaderId);
+      if (nextItem) {
+        await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+          userId: nextItem.userId,
+          bookTitle: session.bookTitle,
+          sessionId: args.sessionId,
+        });
+      }
+    }
 
     return existing._id;
   },
@@ -331,10 +353,22 @@ export const advanceQueueServer = mutation({
     const currentReader = queue.find((item) => item.status === "reading");
 
     if (!currentReader) {
-      const nextReader = await setNextReader(ctx, args.sessionId);
+      const nextReaderId = await setNextReader(ctx, args.sessionId);
       await normalizeQueuePositions(ctx, args.sessionId);
       await clearExtraReaders(ctx, args.sessionId);
-      return nextReader;
+
+      if (nextReaderId) {
+        const nextItem = await ctx.db.get(nextReaderId);
+        if (nextItem) {
+          await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+            userId: nextItem.userId,
+            bookTitle: session.bookTitle,
+            sessionId: args.sessionId,
+          });
+        }
+      }
+
+      return nextReaderId;
     }
 
     await ctx.db.patch(currentReader._id, {
@@ -348,6 +382,17 @@ export const advanceQueueServer = mutation({
     );
     await normalizeQueuePositions(ctx, args.sessionId);
     await clearExtraReaders(ctx, args.sessionId);
+
+    if (nextReaderId) {
+      const nextItem = await ctx.db.get(nextReaderId);
+      if (nextItem) {
+        await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+          userId: nextItem.userId,
+          bookTitle: session.bookTitle,
+          sessionId: args.sessionId,
+        });
+      }
+    }
 
     return nextReaderId;
   },

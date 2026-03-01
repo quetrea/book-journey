@@ -13,6 +13,8 @@ import type * as crons from "../crons.js";
 import type * as http from "../http.js";
 import type * as lib_authProfile from "../lib/authProfile.js";
 import type * as lib_passcodeAccess from "../lib/passcodeAccess.js";
+import type * as pushNotificationsAction from "../pushNotificationsAction.js";
+import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as queue from "../queue.js";
 import type * as sessions from "../sessions.js";
 import type * as users from "../users.js";
@@ -29,6 +31,8 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/authProfile": typeof lib_authProfile;
   "lib/passcodeAccess": typeof lib_passcodeAccess;
+  pushNotificationsAction: typeof pushNotificationsAction;
+  pushSubscriptions: typeof pushSubscriptions;
   queue: typeof queue;
   sessions: typeof sessions;
   users: typeof users;
