@@ -64,4 +64,14 @@ export default defineSchema({
     p256dh: v.string(),
     auth: v.string(),
   }).index("by_userId", ["userId"]),
+
+  sessionWords: defineTable({
+    sessionId: v.id("sessions"),
+    userId: v.id("profiles"),
+    word: v.string(),
+    context: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_sessionId_createdAt", ["sessionId", "createdAt"])
+    .index("by_sessionId_userId", ["sessionId", "userId"]),
 });

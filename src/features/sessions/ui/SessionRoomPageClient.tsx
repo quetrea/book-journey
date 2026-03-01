@@ -31,9 +31,11 @@ import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { SkipTurnButton } from "@/features/queue/ui/SkipTurnButton";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { SessionHeaderCard } from "./SessionHeaderCard";
+import { WordsList } from "./WordsList";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -655,26 +657,43 @@ export function SessionRoomPageClient({
               </div>
             </div>
 
-            <div className="space-y-4 xl:sticky xl:top-4">
-              <QueueStatusBar
-                queue={safeQueue}
-                viewerUserId={details.viewerUserId}
-                isPasscodeProtected={details.isPasscodeProtected}
-              />
-              <div className="animate-in fade-in slide-in-from-right-2 duration-500">
-                <QueueList
-                  queue={safeQueue}
-                  isLoading={false}
-                  errorMessage={null}
-                  isHost={details.isHost}
-                  onRemove={(userId) => {
-                    void removeFromQueue({
-                      sessionId: sessionIdAsConvex,
-                      targetUserId: userId as Id<"profiles">,
-                    });
-                  }}
-                />
-              </div>
+            <div className="xl:sticky xl:top-4">
+              <Tabs defaultValue="queue">
+                <TabsList className="mb-4 w-full">
+                  <TabsTrigger value="queue" className="flex-1">Queue</TabsTrigger>
+                  <TabsTrigger value="words" className="flex-1">Words</TabsTrigger>
+                </TabsList>
+                <TabsContent value="queue" className="space-y-4">
+                  <QueueStatusBar
+                    queue={safeQueue}
+                    viewerUserId={details.viewerUserId}
+                    isPasscodeProtected={details.isPasscodeProtected}
+                  />
+                  <div className="animate-in fade-in slide-in-from-right-2 duration-500">
+                    <QueueList
+                      queue={safeQueue}
+                      isLoading={false}
+                      errorMessage={null}
+                      isHost={details.isHost}
+                      onRemove={(userId) => {
+                        void removeFromQueue({
+                          sessionId: sessionIdAsConvex,
+                          targetUserId: userId as Id<"profiles">,
+                        });
+                      }}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="words">
+                  <WordsList
+                    sessionId={sessionIdAsConvex}
+                    isParticipant={safeIsCurrentUserParticipant}
+                    isSessionEnded={isSessionEnded}
+                    viewerUserId={details.viewerUserId}
+                    isHost={details.isHost}
+                  />
+                </TabsContent>
+              </Tabs>
             </div>
           </div>
         </section>

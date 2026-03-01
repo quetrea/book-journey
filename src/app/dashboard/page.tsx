@@ -110,7 +110,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <ThemePicker />
               <ThemeToggle />
               <Button
@@ -131,7 +131,7 @@ export default function DashboardPage() {
                 <span className="max-w-36 truncate text-sm font-medium text-foreground">
                   {userName}
                 </span>
-                <Badge variant="secondary" className="rounded-full px-2 py-0 text-[11px]">
+                <Badge variant="secondary" className="hidden sm:inline-flex rounded-full px-2 py-0 text-[11px]">
                   Discord
                 </Badge>
               </div>

@@ -16,6 +16,7 @@ import type * as lib_passcodeAccess from "../lib/passcodeAccess.js";
 import type * as pushNotificationsAction from "../pushNotificationsAction.js";
 import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as queue from "../queue.js";
+import type * as sessionWords from "../sessionWords.js";
 import type * as sessions from "../sessions.js";
 import type * as users from "../users.js";
 
@@ -34,6 +35,7 @@ declare const fullApi: ApiFromModules<{
   pushNotificationsAction: typeof pushNotificationsAction;
   pushSubscriptions: typeof pushSubscriptions;
   queue: typeof queue;
+  sessionWords: typeof sessionWords;
   sessions: typeof sessions;
   users: typeof users;
 }>;
