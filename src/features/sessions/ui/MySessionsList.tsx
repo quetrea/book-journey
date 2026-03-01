@@ -104,7 +104,7 @@ function ViewToggleButton({
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-function StatusBadge({ status, endedAt }: { status: SessionListItem["status"]; endedAt?: number }) {
+function StatusBadge({ status, endedAt, now }: { status: SessionListItem["status"]; endedAt?: number; now: number }) {
   if (status === "active") {
     return (
       <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
@@ -115,7 +115,7 @@ function StatusBadge({ status, endedAt }: { status: SessionListItem["status"]; e
 
   const daysLeft =
     endedAt !== undefined
-      ? Math.max(0, Math.ceil((endedAt + SEVEN_DAYS_MS - Date.now()) / (1000 * 60 * 60 * 24)))
+      ? Math.max(0, Math.ceil((endedAt + SEVEN_DAYS_MS - now) / (1000 * 60 * 60 * 24)))
       : null;
 
   return (
@@ -316,8 +316,8 @@ export function MySessionsList() {
                 <span
                   className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
                     session.status === "active"
-                      ? "bg-gradient-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
-                      : "bg-gradient-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
+                      ? "bg-linear-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
+                      : "bg-linear-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
                   }`}
                 />
 
@@ -341,7 +341,7 @@ export function MySessionsList() {
                         </p>
                       </div>
 
-                      <StatusBadge status={session.status} endedAt={session.endedAt} />
+                      <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
                     </div>
 
                     {!isCompactView && session.synopsis ? (

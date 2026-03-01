@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
 
 type CreateSessionCardProps = {
@@ -30,6 +31,7 @@ function normalizeOptional(value: string) {
 export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps) {
   const router = useRouter();
   const createSession = useMutation(api.sessions.createSessionServer);
+  const { cardShadow } = useThemeGlow();
 
   const [bookTitle, setBookTitle] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -91,7 +93,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   }
 
   return (
-    <Card className="border-white/[0.45] bg-white/[0.66] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.07] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
+    <Card className="border-white/45 bg-white/66 backdrop-blur-md dark:border-white/15 dark:bg-white/7" style={{ boxShadow: cardShadow }}>
       <CardHeader>
         <CardTitle>Create Session</CardTitle>
         <CardDescription>Start a live room for your reading group.</CardDescription>

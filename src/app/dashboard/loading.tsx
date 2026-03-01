@@ -17,7 +17,7 @@ function SessionsSkeletonCard({ cardShadow }: { cardShadow: string }) {
         {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={`dashboard-session-skeleton-${index}`}
-            className="space-y-2 rounded-xl border border-white/[0.35] bg-white/[0.45] p-3 dark:border-white/[0.12] dark:bg-white/[0.05]"
+            className="space-y-2 rounded-xl border border-white/35 bg-white/45 p-3 dark:border-white/12 dark:bg-white/5"
           >
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />

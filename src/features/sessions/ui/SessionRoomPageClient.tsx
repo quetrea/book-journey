@@ -189,7 +189,7 @@ export function SessionRoomPageClient({
       <main className="relative min-h-screen overflow-hidden px-4 py-10">
         <ParticlesBackground />
         <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.45),transparent_70%),linear-gradient(145deg,rgba(30,41,59,0.65),rgba(56,72,148,0.42)_45%,rgba(111,76,155,0.3))]" />
-        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col items-center justify-center gap-3 rounded-3xl border border-white/[0.15] bg-[#0d1222]/[0.58] p-6 text-center shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)] backdrop-blur-xl">
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col items-center justify-center gap-3 rounded-3xl border border-white/15 bg-[#0d1222]/58 p-6 text-center shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)] backdrop-blur-xl">
           <p className="text-sm text-muted-foreground">
             You are not signed in.
           </p>
