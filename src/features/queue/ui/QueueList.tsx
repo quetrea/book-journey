@@ -1,7 +1,8 @@
-import { CircleCheckBig, CircleDot, Clock3, Radio, UserRoundCheck } from "lucide-react";
+import { CircleCheckBig, CircleDot, Clock3, Radio, UserRoundCheck, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { QueueItem } from "@/features/queue/types";
@@ -10,6 +11,8 @@ type QueueListProps = {
   queue: QueueItem[];
   isLoading: boolean;
   errorMessage: string | null;
+  isHost?: boolean;
+  onRemove?: (userId: string) => void;
 };
 
 function getInitials(name: string) {
@@ -56,7 +59,7 @@ function QueueStatusBadge({ status }: { status: QueueItem["status"] }) {
   );
 }
 
-export function QueueList({ queue, isLoading, errorMessage }: QueueListProps) {
+export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: QueueListProps) {
   if (isLoading) {
     return (
       <Card className="border-white/[0.45] bg-white/[0.68] shadow-[0_18px_50px_-28px_rgba(67,56,202,0.7)] backdrop-blur-md dark:border-white/[0.15] dark:bg-white/[0.08] dark:shadow-[0_18px_50px_-28px_rgba(79,70,229,0.7)]">
@@ -160,6 +163,17 @@ export function QueueList({ queue, isLoading, errorMessage }: QueueListProps) {
                 <CircleCheckBig className="size-4 text-slate-500" />
               ) : null}
               <QueueStatusBadge status={item.status} />
+              {isHost && onRemove ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="size-6 shrink-0 rounded-full text-muted-foreground/50 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                  onClick={() => onRemove(item.userId)}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              ) : null}
             </div>
           </div>
         ))}

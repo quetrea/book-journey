@@ -503,6 +503,67 @@ export const addUserToQueueServer = mutation({
   },
 });
 
+export const removeFromQueueServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    targetUserId: v.id("profiles"),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    assertSessionActive(session);
+
+    const actor = await upsertViewerProfile(ctx);
+    const actorParticipant = await getParticipantBySessionAndUserOrThrow(
+      ctx,
+      args.sessionId,
+      actor._id,
+    );
+
+    if (actorParticipant.role !== "host") {
+      throw new Error("Only host can remove participants from queue.");
+    }
+
+    const existing = await ctx.db
+      .query("queueItems")
+      .withIndex("by_sessionId_userId", (q) =>
+        q.eq("sessionId", args.sessionId).eq("userId", args.targetUserId),
+      )
+      .unique();
+
+    if (!existing) {
+      return null;
+    }
+
+    const wasReader = existing.status === "reading";
+    await ctx.db.delete(existing._id);
+    await normalizeQueuePositions(ctx, args.sessionId);
+
+    if (wasReader) {
+      let nextReaderId = await setNextReader(ctx, args.sessionId);
+
+      if (!nextReaderId && session.isRepeatEnabled) {
+        await resetQueueForRepeat(ctx, args.sessionId);
+        nextReaderId = await setNextReader(ctx, args.sessionId);
+      }
+
+      if (nextReaderId) {
+        const nextItem = await ctx.db.get(nextReaderId);
+        if (nextItem) {
+          await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+            userId: nextItem.userId,
+            bookTitle: session.bookTitle,
+            sessionId: args.sessionId,
+          });
+        }
+      }
+    }
+
+    await clearExtraReaders(ctx, args.sessionId);
+
+    return existing._id;
+  },
+});
+
 export const getQueueServer = query({
   args: {
     sessionId: v.id("sessions"),

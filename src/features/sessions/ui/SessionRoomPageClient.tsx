@@ -59,6 +59,7 @@ export function SessionRoomPageClient({
   const advanceQueue = useMutation(api.queue.advanceQueueServer);
   const addUserToQueue = useMutation(api.queue.addUserToQueueServer);
   const toggleRepeatMode = useMutation(api.sessions.toggleRepeatModeServer);
+  const removeFromQueue = useMutation(api.queue.removeFromQueueServer);
 
   const sessionIdAsConvex = sessionId as Id<"sessions">;
 
@@ -665,6 +666,13 @@ export function SessionRoomPageClient({
                   queue={safeQueue}
                   isLoading={false}
                   errorMessage={null}
+                  isHost={details.isHost}
+                  onRemove={(userId) => {
+                    void removeFromQueue({
+                      sessionId: sessionIdAsConvex,
+                      targetUserId: userId as Id<"profiles">,
+                    });
+                  }}
                 />
               </div>
             </div>
