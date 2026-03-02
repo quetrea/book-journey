@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LandingFeatures } from "@/components/landing/LandingFeatures";
 import { LandingHero } from "@/components/landing/LandingHero";
+import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
 import { LiveSessionsSection } from "@/components/landing/LiveSessionsSection";
 import { Separator } from "@/components/ui/separator";
@@ -13,6 +14,7 @@ export default function Home() {
         <LandingTopBar />
         <LandingHero loginButton={<LoginButton />} />
         <LandingFeatures />
+        <LandingHowItWorks />
         <LiveSessionsSection />
 
         <Separator className="mt-10 animate-in fade-in slide-in-from-bottom-2 [animation-delay:580ms] [animation-duration:700ms] [animation-fill-mode:both] bg-black/10 dark:bg-white/10" />
