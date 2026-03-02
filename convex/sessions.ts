@@ -512,6 +512,27 @@ export const verifySessionPasscodeServer = mutation({
   },
 });
 
+export const getSessionMetadataPublic = query({
+  args: { sessionId: v.id("sessions") },
+  handler: async (ctx, args) => {
+    const session = await getSessionById(ctx, args.sessionId);
+    if (!session) return null;
+    const host = await ctx.db.get(session.createdBy);
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    return {
+      bookTitle: session.bookTitle,
+      authorName: session.authorName,
+      title: session.title,
+      status: session.status,
+      hostName: host?.name,
+      memberCount: participants.length,
+    };
+  },
+});
+
 export const deleteSessionServer = mutation({
   args: {
     sessionId: v.id("sessions"),
