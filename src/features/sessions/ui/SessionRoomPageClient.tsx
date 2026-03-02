@@ -30,6 +30,13 @@ import { JoinQueueButton } from "@/features/queue/ui/JoinQueueButton";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { SkipTurnButton } from "@/features/queue/ui/SkipTurnButton";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -535,23 +542,25 @@ export function SessionRoomPageClient({
                       </p>
                       {addableParticipants.length > 0 ? (
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <select
+                          <Select
                             value={selectedParticipantUserId}
-                            onChange={(event) =>
-                              setSelectedParticipantUserId(event.target.value)
-                            }
-                            className="h-9 flex-1 rounded-md border border-white/45 bg-white/75 px-2 text-sm dark:border-white/14 dark:bg-white/10"
+                            onValueChange={setSelectedParticipantUserId}
                           >
-                            {addableParticipants.map((participant) => (
-                              <option
-                                key={participant.userId}
-                                value={participant.userId}
-                              >
-                                {participant.name}
-                                {participant.role === "host" ? " (Host)" : ""}
-                              </option>
-                            ))}
-                          </select>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select participant" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {addableParticipants.map((participant) => (
+                                <SelectItem
+                                  key={participant.userId}
+                                  value={participant.userId}
+                                >
+                                  {participant.name}
+                                  {participant.role === "host" ? " (Host)" : ""}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                           <Button
                             type="button"
                             onClick={() => {
