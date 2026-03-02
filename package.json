@@ -13,6 +13,7 @@
     "@base-ui/react": "^1.2.0",
     "@convex-dev/auth": "^0.0.91",
     "@hookform/resolvers": "^5.2.2",
+    "@vercel/analytics": "^1.6.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",

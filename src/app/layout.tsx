@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Space_Grotesk } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import { BackgroundProvider } from "@/components/background/BackgroundProvider";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -68,6 +69,7 @@ export default function RootLayout({
             </TooltipProvider>
           </BackgroundProvider>
         </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

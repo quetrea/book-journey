@@ -131,7 +131,7 @@ export function CreateSessionModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="relative border-white/30 bg-white/72 shadow-2xl backdrop-blur-2xl sm:max-w-xl dark:border-white/12 dark:bg-[#0d1222]/78">
+      <DialogContent className="border-white/30 bg-white/72 shadow-2xl backdrop-blur-2xl sm:max-w-xl dark:border-white/12 dark:bg-[#0d1222]/78">
         {/* Glass noise texture — clipped to dialog bounds */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
           <div
