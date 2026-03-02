@@ -691,6 +691,7 @@ export function SessionRoomPageClient({
                     isSessionEnded={isSessionEnded}
                     viewerUserId={details.viewerUserId}
                     isHost={details.isHost}
+                    bookTitle={details.session.bookTitle}
                   />
                 </TabsContent>
               </Tabs>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, ChevronDown, ChevronUp, Check, Copy, Trash2 } from "lucide-react";
+import { BookMarked, ChevronDown, ChevronUp, Check, Copy, Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,6 +19,7 @@ type WordsListProps = {
   isSessionEnded: boolean;
   viewerUserId?: string;
   isHost: boolean;
+  bookTitle?: string;
 };
 
 function getInitials(name: string) {
@@ -40,6 +41,7 @@ export function WordsList({
   isSessionEnded,
   viewerUserId,
   isHost,
+  bookTitle,
 }: WordsListProps) {
   const { cardShadow } = useThemeGlow();
   const words = useQuery(api.sessionWords.listWordsServer, { sessionId });
@@ -61,6 +63,41 @@ export function WordsList({
       setCopiedId(id);
       window.setTimeout(() => setCopiedId(null), 1500);
     });
+  }
+
+  function handleDownload() {
+    if (!words || words.length === 0) return;
+
+    const dateStr = new Intl.DateTimeFormat(undefined, {
+      year: "numeric", month: "long", day: "numeric",
+    }).format(new Date());
+
+    const lines: string[] = [
+      "BookJourney — Vocabulary List",
+      bookTitle ? `Book: ${bookTitle}` : "",
+      `Exported: ${dateStr}`,
+      `Total: ${words.length} word${words.length !== 1 ? "s" : ""}`,
+      "─".repeat(40),
+      "",
+    ].filter((l) => l !== "");
+
+    words.forEach((entry, i) => {
+      lines.push(`${i + 1}. ${entry.word}`);
+      if (entry.context) {
+        lines.push(`   "${entry.context}"`);
+      }
+      lines.push(`   — ${entry.userName} · ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(entry.createdAt))}`);
+      lines.push("");
+    });
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const slug = (bookTitle ?? "session").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    a.href = url;
+    a.download = `bookjourney-vocab-${slug}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   const canAdd = isParticipant && !isSessionEnded;
@@ -111,10 +148,25 @@ export function WordsList({
   return (
     <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
-        <CardTitle className="inline-flex items-center gap-2 text-base">
-          <BookMarked className="size-4 text-indigo-500" />
-          Words
-        </CardTitle>
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="inline-flex items-center gap-2 text-base">
+            <BookMarked className="size-4 text-indigo-500" />
+            Words
+            {words.length > 0 && (
+              <span className="text-sm font-normal text-muted-foreground">({words.length})</span>
+            )}
+          </CardTitle>
+          {words.length > 0 && (
+            <button
+              type="button"
+              onClick={handleDownload}
+              title="Download vocabulary list"
+              className="rounded-full p-1.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+            >
+              <Download className="size-3.5" />
+            </button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground">
           Save words or phrases from the reading.
         </p>
