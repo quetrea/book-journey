@@ -5,6 +5,7 @@ import {
   BookOpenText,
   Clock3,
   Copy,
+  Info,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -13,6 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import type { SessionListItem } from "@/features/sessions/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 
@@ -48,6 +56,16 @@ function formatShortDate(timestamp: number) {
   }).format(timestamp);
 }
 
+function formatFullDate(timestamp: number) {
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(timestamp);
+}
+
 export function SessionHeaderCard({
   session,
   hostName,
@@ -55,9 +73,8 @@ export function SessionHeaderCard({
   memberCount,
 }: SessionHeaderCardProps) {
   const [now, setNow] = useState(() => Date.now());
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
-    "idle"
-  );
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
   const { cardShadow } = useThemeGlow();
 
   useEffect(() => {
@@ -101,18 +118,117 @@ export function SessionHeaderCard({
             <Sparkles className="size-3.5 text-indigo-500" />
             Session room
           </div>
-          {session.status === "active" ? (
-            <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
-              Active
-            </Badge>
-          ) : (
-            <Badge
-              variant="secondary"
-              className="rounded-full px-2.5 text-[11px]"
-            >
-              Ended
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {session.status === "active" ? (
+              <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
+                Active
+              </Badge>
+            ) : (
+              <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
+                Ended
+              </Badge>
+            )}
+            <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+              <DialogTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" className="size-7 text-muted-foreground/50 hover:text-foreground">
+                  <Info className="size-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-base">
+                    <BookOpenText className="size-4 text-indigo-500" />
+                    Session details
+                  </DialogTitle>
+                </DialogHeader>
+
+                <div className="space-y-4 text-sm">
+                  {/* Book info */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Book</p>
+                    <p className="font-semibold text-foreground">{session.bookTitle}</p>
+                    {session.authorName ? (
+                      <p className="text-muted-foreground">by {session.authorName}</p>
+                    ) : null}
+                  </div>
+
+                  {/* Session title */}
+                  {session.title ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Session title</p>
+                      <p className="text-foreground">{session.title}</p>
+                    </div>
+                  ) : null}
+
+                  {/* Synopsis */}
+                  {session.synopsis ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Synopsis</p>
+                      <p className="leading-relaxed text-foreground/85">{session.synopsis}</p>
+                    </div>
+                  ) : null}
+
+                  {/* Host */}
+                  {hostName ? (
+                    <div className="space-y-1.5">
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Host</p>
+                      <div className="inline-flex items-center gap-2 rounded-full border border-white/55 bg-white/70 px-2.5 py-1.5 dark:border-white/15 dark:bg-white/10">
+                        <Avatar className="size-5 ring-1 ring-white/70 dark:ring-white/20">
+                          <AvatarImage src={hostImage ?? undefined} alt={hostName} />
+                          <AvatarFallback className="text-[10px]">{getInitials(hostName)}</AvatarFallback>
+                        </Avatar>
+                        <span className="text-xs font-medium text-foreground">{hostName}</span>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Started</p>
+                      <p className="text-xs text-foreground/80">{formatFullDate(session.createdAt)}</p>
+                    </div>
+                    {session.status === "ended" && session.endedAt ? (
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Ended</p>
+                        <p className="text-xs text-foreground/80">{formatFullDate(session.endedAt)}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Running for</p>
+                        <p className="text-xs text-foreground/80">{elapsedLabel}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Members */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Members</p>
+                    <p className="text-xs text-foreground/80">{memberCount} participant{memberCount !== 1 ? "s" : ""}</p>
+                  </div>
+
+                  {/* Session ID + copy link */}
+                  <div className="space-y-2 border-t border-black/8 pt-3 dark:border-white/10">
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Session ID</p>
+                    <p className="break-all font-mono text-[11px] text-muted-foreground">{session._id}</p>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => {
+                        void handleCopyInviteLink();
+                        setIsInfoOpen(false);
+                      }}
+                    >
+                      <Copy className="mr-1.5 size-3.5" />
+                      Copy invite link
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         <div className="min-w-0">
