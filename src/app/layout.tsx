@@ -25,6 +25,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://bookreading.space"),
   title: {
     default: "BookJourney — Live Reading Sessions",
     template: "%s · BookJourney",
@@ -34,6 +35,7 @@ export const metadata: Metadata = {
   keywords: ["book club", "reading sessions", "live reading", "queue", "realtime"],
   openGraph: {
     type: "website",
+    url: "https://bookreading.space",
     siteName: "BookJourney",
     title: "BookJourney — Live Reading Sessions",
     description:
