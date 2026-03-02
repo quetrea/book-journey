@@ -1,5 +1,6 @@
 "use client";
 
+import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -55,6 +56,7 @@ export function SessionRoomPageClient({
 }: SessionRoomPageClientProps) {
   const router = useRouter();
   const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
+  const { signIn } = useAuthActions();
 
   const joinSession = useMutation(api.sessions.joinSessionServer);
   const endSession = useMutation(api.sessions.endSessionServer);
@@ -104,6 +106,10 @@ export function SessionRoomPageClient({
     string | null
   >(null);
 
+  const [guestName, setGuestName] = useState("");
+  const [isJoiningAsGuest, setIsJoiningAsGuest] = useState(false);
+  const [guestJoinError, setGuestJoinError] = useState<string | null>(null);
+
   const {
     isSupported: isPushSupported,
     permission: pushPermission,
@@ -120,6 +126,7 @@ export function SessionRoomPageClient({
     setPasscodeErrorMessage(null);
     setIsPasscodeVerified(false);
   }, [sessionId]);
+
 
   useEffect(() => {
     if (!sessionDetails) {
@@ -198,13 +205,52 @@ export function SessionRoomPageClient({
       <main className="relative min-h-screen overflow-hidden px-4 py-10">
         <ParticlesBackground />
         <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.45),transparent_70%),linear-gradient(145deg,rgba(30,41,59,0.65),rgba(56,72,148,0.42)_45%,rgba(111,76,155,0.3))]" />
-        <div className="mx-auto flex min-h-[80vh] w-full max-w-4xl flex-col items-center justify-center gap-3 rounded-3xl border border-white/15 bg-[#0d1222]/58 p-6 text-center shadow-[0_35px_110px_-35px_rgba(37,99,235,0.45)] backdrop-blur-xl">
-          <p className="text-sm text-muted-foreground">
-            You are not signed in.
-          </p>
-          <LoginButton />
-          <Button asChild variant="outline">
-            <Link href="/">Back to home</Link>
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-sm flex-col items-center justify-center gap-6">
+          {/* Discord sign-in */}
+          <div className="w-full rounded-2xl border border-white/15 bg-[#0d1222]/70 p-6 text-center backdrop-blur-xl">
+            <p className="mb-1 text-sm font-medium text-white/80">Sign in with Discord</p>
+            <p className="mb-4 text-xs text-white/40">Full access — create and host sessions</p>
+            <LoginButton />
+          </div>
+
+          {/* Divider */}
+          <div className="flex w-full items-center gap-3">
+            <div className="h-px flex-1 bg-white/12" />
+            <span className="text-xs text-white/30">or</span>
+            <div className="h-px flex-1 bg-white/12" />
+          </div>
+
+          {/* Guest join */}
+          <div className="w-full rounded-2xl border border-white/15 bg-[#0d1222]/70 p-6 backdrop-blur-xl">
+            <p className="mb-1 text-sm font-medium text-white/80">Join as Guest</p>
+            <p className="mb-4 text-xs text-white/40">Enter just your name — no account needed</p>
+            <div className="space-y-3">
+              <Input
+                placeholder="Your name"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void handleGuestJoin();
+                }}
+                maxLength={32}
+                className="border-white/15 bg-white/8 text-white placeholder:text-white/30"
+              />
+              <Button
+                type="button"
+                className="w-full"
+                onClick={() => void handleGuestJoin()}
+                disabled={isJoiningAsGuest || guestName.trim().length < 2}
+              >
+                {isJoiningAsGuest ? "Joining..." : "Join session"}
+              </Button>
+              {guestJoinError && (
+                <p className="text-xs text-red-400">{guestJoinError}</p>
+              )}
+            </div>
+          </div>
+
+          <Button asChild variant="ghost" className="text-white/40 hover:text-white/60">
+            <Link href="/">← Back to home</Link>
           </Button>
         </div>
       </main>
@@ -246,6 +292,26 @@ export function SessionRoomPageClient({
 
   async function handleJoin() {
     await joinSession({ sessionId: sessionIdAsConvex });
+  }
+
+  async function handleGuestJoin() {
+    const name = guestName.trim();
+    if (name.length < 2) {
+      setGuestJoinError("Name must be at least 2 characters.");
+      return;
+    }
+    setIsJoiningAsGuest(true);
+    setGuestJoinError(null);
+    try {
+      await signIn("anonymous", { name });
+      await joinSession({ sessionId: sessionIdAsConvex });
+    } catch (error) {
+      setGuestJoinError(
+        error instanceof Error ? error.message : "Failed to join as guest."
+      );
+    } finally {
+      setIsJoiningAsGuest(false);
+    }
   }
 
   async function handleJoinQueue() {

@@ -196,6 +196,11 @@ export const createSessionServer = mutation({
     }
 
     const viewer = await upsertViewerProfile(ctx);
+
+    if (viewer.isGuest) {
+      throw new Error("Guests cannot create sessions. Please sign in with Discord.");
+    }
+
     const hostPasscode = normalizePasscode(args.hostPasscode);
 
     const sessionId = await ctx.db.insert("sessions", {

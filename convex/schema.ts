@@ -13,6 +13,7 @@ export default defineSchema({
     displayName: v.optional(v.string()),
     bio: v.optional(v.string()),
     image: v.optional(v.string()),
+    isGuest: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

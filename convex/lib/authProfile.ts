@@ -96,9 +96,11 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
   const nextProvider = providerFromTokenIdentifier(identity.tokenIdentifier);
   const now = Date.now();
 
+  const isGuest = nextProvider === "anonymous" ? true : undefined;
+
   if (existing) {
     const updates: Partial<
-      Pick<Doc<"profiles">, "tokenIdentifier" | "provider" | "name" | "image" | "updatedAt">
+      Pick<Doc<"profiles">, "tokenIdentifier" | "provider" | "name" | "image" | "isGuest" | "updatedAt">
     > = {};
 
     if (existing.tokenIdentifier !== identity.tokenIdentifier) {
@@ -115,6 +117,10 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
 
     if ((existing.image ?? undefined) !== nextImage) {
       updates.image = nextImage;
+    }
+
+    if ((existing.isGuest ?? undefined) !== isGuest) {
+      updates.isGuest = isGuest;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -137,6 +143,7 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
     provider: nextProvider,
     name: nextName,
     image: nextImage,
+    isGuest,
     createdAt: now,
     updatedAt: now,
   });
