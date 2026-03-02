@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, Check, Copy, Trash2 } from "lucide-react";
+import { BookMarked, ChevronDown, ChevronUp, Check, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -51,6 +51,9 @@ export function WordsList({
   const [isAdding, setIsAdding] = useState(false);
   const [showContextInput, setShowContextInput] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(3);
+
+  const PAGE_SIZE = 3;
 
   function handleCopy(id: string, word: string, context?: string) {
     const text = context ? `${word}\n"${context}"` : word;
@@ -123,9 +126,8 @@ export function WordsList({
           </p>
         ) : (
           <div className="space-y-2">
-            {words.map((entry) => {
-              const canDelete =
-                isHost || entry.userId === viewerUserId;
+            {words.slice(0, visibleCount).map((entry) => {
+              const canDelete = isHost || entry.userId === viewerUserId;
 
               return (
                 <div
@@ -161,9 +163,7 @@ export function WordsList({
                   {canDelete ? (
                     <button
                       type="button"
-                      onClick={() => {
-                        void removeWord({ wordId: entry._id });
-                      }}
+                      onClick={() => { void removeWord({ wordId: entry._id }); }}
                       className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
                     >
                       <Trash2 className="size-3.5" />
@@ -172,6 +172,33 @@ export function WordsList({
                 </div>
               );
             })}
+
+            {/* Show more / Show less */}
+            {words.length > PAGE_SIZE && (
+              <div className="flex items-center gap-2 pt-0.5">
+                {visibleCount < words.length && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                  >
+                    <ChevronDown className="size-3.5" />
+                    Show {Math.min(PAGE_SIZE, words.length - visibleCount)} more
+                    <span className="text-muted-foreground/40">· {words.length - visibleCount} hidden</span>
+                  </button>
+                )}
+                {visibleCount > PAGE_SIZE && (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(PAGE_SIZE)}
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                  >
+                    <ChevronUp className="size-3.5" />
+                    Show less
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
