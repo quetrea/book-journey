@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, Trash2 } from "lucide-react";
+import { BookMarked, Check, Copy, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -50,6 +50,15 @@ export function WordsList({
   const [contextInput, setContextInput] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [showContextInput, setShowContextInput] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  function handleCopy(id: string, word: string, context?: string) {
+    const text = context ? `${word}\n"${context}"` : word;
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      window.setTimeout(() => setCopiedId(null), 1500);
+    });
+  }
 
   const canAdd = isParticipant && !isSessionEnded;
 
@@ -140,6 +149,15 @@ export function WordsList({
                       {entry.userName} · {formatTimeAgo(entry.createdAt)}
                     </p>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(entry._id, entry.word, entry.context)}
+                    className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                  >
+                    {copiedId === entry._id
+                      ? <Check className="size-3.5 text-emerald-500" />
+                      : <Copy className="size-3.5" />}
+                  </button>
                   {canDelete ? (
                     <button
                       type="button"
