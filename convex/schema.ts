@@ -23,6 +23,7 @@ export default defineSchema({
   sessions: defineTable({
     bookTitle: v.string(),
     authorName: v.optional(v.string()),
+    bookCoverUrl: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),

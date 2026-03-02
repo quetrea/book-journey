@@ -160,6 +160,7 @@ function sanitizeSession(session: {
   _creationTime: number;
   bookTitle: string;
   authorName?: string;
+  bookCoverUrl?: string;
   title?: string;
   synopsis?: string;
   createdBy: Id<"profiles">;
@@ -168,6 +169,7 @@ function sanitizeSession(session: {
   endedAt?: number;
   hostPasscode?: string;
   isRepeatEnabled?: boolean;
+  isPrivate?: boolean;
 }) {
   const safeSession = { ...session };
   delete safeSession.hostPasscode;
@@ -184,6 +186,7 @@ export const createSessionServer = mutation({
   args: {
     bookTitle: v.string(),
     authorName: v.optional(v.string()),
+    bookCoverUrl: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
@@ -207,6 +210,7 @@ export const createSessionServer = mutation({
     const sessionId = await ctx.db.insert("sessions", {
       bookTitle,
       authorName: normalizeOptional(args.authorName),
+      bookCoverUrl: normalizeOptional(args.bookCoverUrl),
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
       hostPasscode: hostPasscode ? hashPasscode(hostPasscode) : undefined,

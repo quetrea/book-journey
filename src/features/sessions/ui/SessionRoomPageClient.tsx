@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, BookOpenText, UsersRound } from "lucide-react";
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +46,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { SessionHeaderCard } from "./SessionHeaderCard";
 import { WordsList } from "./WordsList";
+import { WordsQuickPanel } from "./WordsQuickPanel";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
@@ -399,6 +402,7 @@ export function SessionRoomPageClient({
     : undefined;
   const canSkipTurn = viewerQueueItem?.status === "reading";
   const isSessionEnded = details.session.status === "ended";
+  const currentReader = safeQueue.find((item) => item.status === "reading");
   const showPasscodePrompt = Boolean(
     !isSessionEnded &&
     details.isPasscodeProtected &&
@@ -457,6 +461,12 @@ export function SessionRoomPageClient({
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
+              {safeIsCurrentUserParticipant && !isSessionEnded ? (
+                <WordsQuickPanel
+                  sessionId={sessionIdAsConvex}
+                  isParticipant={safeIsCurrentUserParticipant}
+                />
+              ) : null}
               {details.isHost && !isSessionEnded ? (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -502,15 +512,68 @@ export function SessionRoomPageClient({
           ) : null}
         </div>
 
+        {currentReader && !isSessionEnded ? (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 xl:hidden">
+            <span className="size-2 animate-ping rounded-full bg-emerald-500" />
+            <Avatar className="size-5">
+              <AvatarImage src={currentReader.image} />
+              <AvatarFallback className="text-[9px]">{currentReader.name[0]?.toUpperCase()}</AvatarFallback>
+            </Avatar>
+            <span className="text-sm font-medium text-emerald-700 dark:text-emerald-400">{currentReader.name}</span>
+            <span className="ml-auto text-xs text-muted-foreground">reading now</span>
+          </div>
+        ) : null}
+
         <section className="space-y-4 sm:space-y-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.92fr)] xl:items-start">
-            <div className="space-y-4">
+            <div className="xl:order-last xl:sticky xl:top-4">
+              <Tabs defaultValue="queue">
+                <TabsList className="mb-4 w-full">
+                  <TabsTrigger value="queue" className="flex-1">Queue</TabsTrigger>
+                  <TabsTrigger value="words" className="flex-1">Words</TabsTrigger>
+                </TabsList>
+                <TabsContent value="queue" className="space-y-4">
+                  <QueueStatusBar
+                    queue={safeQueue}
+                    viewerUserId={details.viewerUserId}
+                    isPasscodeProtected={details.isPasscodeProtected}
+                  />
+                  <div className="animate-in fade-in slide-in-from-right-2 duration-500">
+                    <QueueList
+                      queue={safeQueue}
+                      isLoading={false}
+                      errorMessage={null}
+                      isHost={details.isHost}
+                      onRemove={(userId) => {
+                        void removeFromQueue({
+                          sessionId: sessionIdAsConvex,
+                          targetUserId: userId as Id<"profiles">,
+                        });
+                      }}
+                    />
+                  </div>
+                </TabsContent>
+                <TabsContent value="words">
+                  <WordsList
+                    sessionId={sessionIdAsConvex}
+                    isParticipant={safeIsCurrentUserParticipant}
+                    isSessionEnded={isSessionEnded}
+                    viewerUserId={details.viewerUserId}
+                    isHost={details.isHost}
+                    bookTitle={details.session.bookTitle}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
+
+            <div className="xl:order-first space-y-4">
               <div className="animate-in fade-in zoom-in-95 duration-500">
                 <SessionHeaderCard
                   session={details.session}
                   hostName={details.hostName}
                   hostImage={details.hostImage}
                   memberCount={safeParticipants.length}
+                  bookCoverUrl={details.session.bookCoverUrl}
                 />
               </div>
 
@@ -732,45 +795,6 @@ export function SessionRoomPageClient({
               </div>
             </div>
 
-            <div className="xl:sticky xl:top-4">
-              <Tabs defaultValue="queue">
-                <TabsList className="mb-4 w-full">
-                  <TabsTrigger value="queue" className="flex-1">Queue</TabsTrigger>
-                  <TabsTrigger value="words" className="flex-1">Words</TabsTrigger>
-                </TabsList>
-                <TabsContent value="queue" className="space-y-4">
-                  <QueueStatusBar
-                    queue={safeQueue}
-                    viewerUserId={details.viewerUserId}
-                    isPasscodeProtected={details.isPasscodeProtected}
-                  />
-                  <div className="animate-in fade-in slide-in-from-right-2 duration-500">
-                    <QueueList
-                      queue={safeQueue}
-                      isLoading={false}
-                      errorMessage={null}
-                      isHost={details.isHost}
-                      onRemove={(userId) => {
-                        void removeFromQueue({
-                          sessionId: sessionIdAsConvex,
-                          targetUserId: userId as Id<"profiles">,
-                        });
-                      }}
-                    />
-                  </div>
-                </TabsContent>
-                <TabsContent value="words">
-                  <WordsList
-                    sessionId={sessionIdAsConvex}
-                    isParticipant={safeIsCurrentUserParticipant}
-                    isSessionEnded={isSessionEnded}
-                    viewerUserId={details.viewerUserId}
-                    isHost={details.isHost}
-                    bookTitle={details.session.bookTitle}
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
           </div>
         </section>
       </div>

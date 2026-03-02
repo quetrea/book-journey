@@ -29,6 +29,7 @@ type SessionHeaderCardProps = {
   hostName?: string;
   hostImage?: string;
   memberCount: number;
+  bookCoverUrl?: string;
 };
 
 function formatElapsed(ms: number) {
@@ -71,6 +72,7 @@ export function SessionHeaderCard({
   hostName,
   hostImage,
   memberCount,
+  bookCoverUrl,
 }: SessionHeaderCardProps) {
   const [now, setNow] = useState(() => Date.now());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
@@ -144,12 +146,21 @@ export function SessionHeaderCard({
 
                 <div className="space-y-4 text-sm">
                   {/* Book info */}
-                  <div className="space-y-1">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Book</p>
-                    <p className="font-semibold text-foreground">{session.bookTitle}</p>
-                    {session.authorName ? (
-                      <p className="text-muted-foreground">by {session.authorName}</p>
+                  <div className="flex gap-4">
+                    {bookCoverUrl ? (
+                      <img
+                        src={bookCoverUrl}
+                        alt={session.bookTitle}
+                        className="h-24 w-16 shrink-0 rounded-md object-cover shadow-md ring-1 ring-black/10 dark:ring-white/10"
+                      />
                     ) : null}
+                    <div className="min-w-0 space-y-1">
+                      <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Book</p>
+                      <p className="font-semibold text-foreground">{session.bookTitle}</p>
+                      {session.authorName ? (
+                        <p className="text-muted-foreground">by {session.authorName}</p>
+                      ) : null}
+                    </div>
                   </div>
 
                   {/* Session title */}
@@ -164,7 +175,9 @@ export function SessionHeaderCard({
                   {session.synopsis ? (
                     <div className="space-y-1">
                       <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Synopsis</p>
-                      <p className="leading-relaxed text-foreground/85">{session.synopsis}</p>
+                      <div className="max-h-36 overflow-y-auto rounded-lg pr-1 text-sm leading-relaxed text-foreground/85">
+                        {session.synopsis}
+                      </div>
                     </div>
                   ) : null}
 
@@ -231,28 +244,37 @@ export function SessionHeaderCard({
           </div>
         </div>
 
-        <div className="min-w-0">
-          <div className="mb-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <BookOpenText className="size-3.5" />
-            Shared book
-          </div>
+        <div className="flex min-w-0 gap-4">
+          {bookCoverUrl ? (
+            <img
+              src={bookCoverUrl}
+              alt={session.bookTitle}
+              className="h-20 w-14 shrink-0 rounded-md object-cover shadow-md ring-1 ring-black/10 dark:ring-white/10"
+            />
+          ) : null}
+          <div className="min-w-0">
+            <div className="mb-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <BookOpenText className="size-3.5" />
+              Shared book
+            </div>
 
-          <CardTitle className="line-clamp-2 text-xl font-semibold tracking-tight sm:text-2xl">
-            {session.bookTitle}
-          </CardTitle>
-          <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
-            {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-          </p>
-          {session.title ? (
-            <p className="mt-2 line-clamp-1 text-sm font-medium text-foreground/90">
-              {session.title}
+            <CardTitle className="line-clamp-2 text-xl font-semibold tracking-tight sm:text-2xl">
+              {session.bookTitle}
+            </CardTitle>
+            <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">
+              {session.authorName ? `by ${session.authorName}` : "Author unknown"}
             </p>
-          ) : null}
-          {session.synopsis ? (
-            <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-              {session.synopsis}
-            </p>
-          ) : null}
+            {session.title ? (
+              <p className="mt-2 line-clamp-1 text-sm font-medium text-foreground/90">
+                {session.title}
+              </p>
+            ) : null}
+            {session.synopsis ? (
+              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                {session.synopsis}
+              </p>
+            ) : null}
+          </div>
         </div>
       </CardHeader>
 

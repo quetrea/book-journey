@@ -3,7 +3,7 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 
-type BookData = { title: string; author?: string };
+type BookData = { title: string; author?: string; coverUrl?: string };
 
 function extractIsbn(text: string): string | null {
   const m = text.match(/\b(97[89]\d{10}|\d{13})\b/);
@@ -34,7 +34,8 @@ async function fromOpenLibraryWork(olid: string): Promise<BookData | null> {
     );
     if (ad?.name) author = ad.name as string;
   }
-  return { title: data.title as string, author };
+  const coverUrl = `https://covers.openlibrary.org/b/olid/${olid}-M.jpg`;
+  return { title: data.title as string, author, coverUrl };
 }
 
 async function fromGoogleBooksId(id: string): Promise<BookData | null> {
@@ -44,7 +45,9 @@ async function fromGoogleBooksId(id: string): Promise<BookData | null> {
   const info = data?.volumeInfo as Record<string, unknown> | undefined;
   if (!info?.title) return null;
   const authors = info.authors as string[] | undefined;
-  return { title: info.title as string, author: authors?.[0] };
+  const imageLinks = info.imageLinks as Record<string, string> | undefined;
+  const coverUrl = imageLinks?.thumbnail ?? imageLinks?.smallThumbnail;
+  return { title: info.title as string, author: authors?.[0], coverUrl };
 }
 
 async function fromIsbn(isbn: string): Promise<BookData | null> {

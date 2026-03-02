@@ -47,6 +47,7 @@ export function CreateSessionModal() {
   const [isImporting, setIsImporting] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const [importedCoverUrl, setImportedCoverUrl] = useState<string | undefined>(undefined);
 
   const isDisabled = useMemo(
     () => isSubmitting || bookTitle.trim().length === 0,
@@ -64,6 +65,7 @@ export function CreateSessionModal() {
       if (result) {
         setBookTitle(result.title);
         if (result.author) setAuthorName(result.author);
+        if (result.coverUrl) setImportedCoverUrl(result.coverUrl);
         setImportUrl("");
         setImportSuccess("Book info imported!");
       } else {
@@ -95,6 +97,7 @@ export function CreateSessionModal() {
       const createdSessionId = await createSession({
         bookTitle: normalizedBookTitle,
         authorName: normalizeOptional(authorName),
+        bookCoverUrl: importedCoverUrl,
         title: normalizeOptional(title),
         synopsis: normalizeOptional(synopsis),
         hostPasscode: normalizeOptional(hostPasscode),
@@ -111,6 +114,7 @@ export function CreateSessionModal() {
       setImportUrl("");
       setImportError(null);
       setImportSuccess(null);
+      setImportedCoverUrl(undefined);
       router.push(`/s/${createdSessionId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";

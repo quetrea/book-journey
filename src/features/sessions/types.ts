@@ -3,6 +3,7 @@ export type SessionListItem = {
   _creationTime: number;
   bookTitle: string;
   authorName?: string;
+  bookCoverUrl?: string;
   title?: string;
   synopsis?: string;
   createdBy: string;
