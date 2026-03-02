@@ -61,21 +61,13 @@ async function fromIsbn(isbn: string): Promise<BookData | null> {
 
 async function fromOgMeta(url: string): Promise<BookData | null> {
   try {
-    const controller = new AbortController();
-    const t = setTimeout(() => controller.abort(), 7000);
-    let res: Response;
-    try {
-      res = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (compatible; BookJourneyBot/1.0; +https://book-journey.app)",
-          Accept: "text/html,application/xhtml+xml",
-        },
-      });
-    } finally {
-      clearTimeout(t);
-    }
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; BookJourneyBot/1.0; +https://book-journey.app)",
+        Accept: "text/html,application/xhtml+xml",
+      },
+    });
     if (!res.ok) return null;
     const html = await res.text();
 
@@ -128,7 +120,7 @@ export const importBookFromUrl = action({
       const olEdition = pathname.match(/\/books\/(OL\w+)/i);
       if (hostname.includes("openlibrary.org") && olEdition) {
         const data = await safeJson(
-          await fetch(`https://openlibrary.org/books/${olEdition[1]}.json`)
+          await fetch(`https://openlibrary.org/books/${olEdition[1]!}.json`)
         );
         const worksKey = (
           data?.works as Array<{ key: string }> | undefined
