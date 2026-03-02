@@ -131,7 +131,7 @@ export function CreateSessionModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="relative border-white/30 bg-white/72 shadow-2xl backdrop-blur-2xl sm:max-w-xl max-h-[calc(100svh-2rem)] overflow-y-auto dark:border-white/12 dark:bg-[#0d1222]/78">
+      <DialogContent className="relative border-white/30 bg-white/72 shadow-2xl backdrop-blur-2xl sm:max-w-xl dark:border-white/12 dark:bg-[#0d1222]/78">
         {/* Glass noise texture — clipped to dialog bounds */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
           <div
@@ -158,107 +158,111 @@ export function CreateSessionModal() {
           <DialogDescription>Start a live room for your reading group.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="relative space-y-3">
-          {/* Quick import */}
-          <div className="space-y-2 rounded-xl border border-black/8 bg-black/3 p-3 dark:border-white/10 dark:bg-white/4">
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
-              Import from link
-            </p>
-            <div className="flex gap-2">
-              <Input
-                value={importUrl}
-                onChange={(e) => {
-                  setImportUrl(e.target.value);
-                  setImportError(null);
-                  setImportSuccess(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    void handleImport();
-                  }
-                }}
-                placeholder="goodreads.com/book/... · openlibrary.org/works/..."
-                className="flex-1 text-xs"
-                disabled={isImporting}
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={!importUrl.trim() || isImporting}
-                onClick={() => void handleImport()}
-                className="shrink-0"
-              >
-                {isImporting ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  "Import"
-                )}
-              </Button>
-            </div>
-            {importError && (
-              <p className="text-[11px] text-red-500">{importError}</p>
-            )}
-            {importSuccess && (
-              <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
-                {importSuccess}
+        <form onSubmit={handleSubmit} className="relative flex flex-col gap-3">
+          {/* Scrollable fields area */}
+          <div className="flex flex-col gap-3 overflow-y-auto max-h-[min(calc(100dvh-16rem),34rem)] pr-0.5">
+            {/* Quick import */}
+            <div className="space-y-2 rounded-xl border border-black/8 bg-black/3 p-3 dark:border-white/10 dark:bg-white/4">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
+                Import from link
               </p>
-            )}
-          </div>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-black/8 dark:border-white/8" />
+              <div className="flex gap-2">
+                <Input
+                  value={importUrl}
+                  onChange={(e) => {
+                    setImportUrl(e.target.value);
+                    setImportError(null);
+                    setImportSuccess(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleImport();
+                    }
+                  }}
+                  placeholder="goodreads.com/book/... · openlibrary.org/works/..."
+                  className="flex-1 text-xs"
+                  disabled={isImporting}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={!importUrl.trim() || isImporting}
+                  onClick={() => void handleImport()}
+                  className="shrink-0"
+                >
+                  {isImporting ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    "Import"
+                  )}
+                </Button>
+              </div>
+              {importError && (
+                <p className="text-[11px] text-red-500">{importError}</p>
+              )}
+              {importSuccess && (
+                <p className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                  {importSuccess}
+                </p>
+              )}
             </div>
-            <div className="relative flex justify-center">
-              <span className="bg-white/95 px-2.5 text-[10px] uppercase tracking-widest text-slate-400 dark:bg-[#0d1222] dark:text-white/30">
-                or enter manually
-              </span>
-            </div>
-          </div>
 
-          <Input
-            value={bookTitle}
-            onChange={(event) => setBookTitle(event.target.value)}
-            placeholder="Book title"
-            required
-          />
-          <Input
-            value={authorName}
-            onChange={(event) => setAuthorName(event.target.value)}
-            placeholder="Author name (optional)"
-          />
-          <Input
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Session title (optional)"
-          />
-          <div className="space-y-1.5">
-            <p className="text-xs text-muted-foreground">Synopsis (optional)</p>
-            <Textarea
-              value={synopsis}
-              onChange={(event) => setSynopsis(event.target.value)}
-              placeholder="Add a short synopsis..."
-              rows={3}
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-black/8 dark:border-white/8" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-white/95 px-2.5 text-[10px] uppercase tracking-widest text-slate-400 dark:bg-[#0d1222] dark:text-white/30">
+                  or enter manually
+                </span>
+              </div>
+            </div>
+
+            <Input
+              value={bookTitle}
+              onChange={(event) => setBookTitle(event.target.value)}
+              placeholder="Book title"
+              required
             />
-          </div>
-          <Input
-            value={hostPasscode}
-            onChange={(event) => setHostPasscode(event.target.value)}
-            placeholder="Host passcode (optional)"
-            type="password"
-          />
-
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-black/8 bg-black/3 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
-            <div>
-              <p className="text-xs font-medium text-foreground">Private session</p>
-              <p className="text-[11px] text-muted-foreground">Hidden from the public listing on the home page</p>
+            <Input
+              value={authorName}
+              onChange={(event) => setAuthorName(event.target.value)}
+              placeholder="Author name (optional)"
+            />
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Session title (optional)"
+            />
+            <div className="space-y-1.5">
+              <p className="text-xs text-muted-foreground">Synopsis (optional)</p>
+              <Textarea
+                value={synopsis}
+                onChange={(event) => setSynopsis(event.target.value)}
+                placeholder="Add a short synopsis..."
+                rows={3}
+              />
             </div>
-            <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+            <Input
+              value={hostPasscode}
+              onChange={(event) => setHostPasscode(event.target.value)}
+              placeholder="Host passcode (optional)"
+              type="password"
+            />
+
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-black/8 bg-black/3 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
+              <div>
+                <p className="text-xs font-medium text-foreground">Private session</p>
+                <p className="text-[11px] text-muted-foreground">Hidden from the public listing on the home page</p>
+              </div>
+              <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+            </div>
           </div>
 
+          {/* Error + footer always visible */}
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
 
           <DialogFooter className="pt-1">
