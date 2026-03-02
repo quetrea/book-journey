@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import { BookMarked, ChevronDown, ChevronUp, Check, Copy, Download, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,7 @@ export function WordsList({
   const [showContextInput, setShowContextInput] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(3);
+  const wordInputRef = useRef<HTMLInputElement>(null);
 
   const PAGE_SIZE = 3;
 
@@ -119,6 +120,7 @@ export function WordsList({
       setWordInput("");
       setContextInput("");
       setShowContextInput(false);
+      wordInputRef.current?.focus();
     } finally {
       setIsAdding(false);
     }
@@ -258,6 +260,7 @@ export function WordsList({
           <form onSubmit={handleAdd} className="space-y-2 border-t border-black/8 pt-3 dark:border-white/10">
             <div className="flex gap-2">
               <Input
+                ref={wordInputRef}
                 value={wordInput}
                 onChange={(e) => setWordInput(e.target.value)}
                 placeholder="Add a word or phrase..."
