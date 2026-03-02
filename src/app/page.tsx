@@ -2,6 +2,7 @@ import Link from "next/link";
 import { LandingFeatures } from "@/components/landing/LandingFeatures";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
+import { LiveSessionsSection } from "@/components/landing/LiveSessionsSection";
 import { Separator } from "@/components/ui/separator";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
 
@@ -12,10 +13,11 @@ export default function Home() {
         <LandingTopBar />
         <LandingHero loginButton={<LoginButton />} />
         <LandingFeatures />
+        <LiveSessionsSection />
 
-        <Separator className="mt-10 bg-black/10 dark:bg-white/10" />
+        <Separator className="mt-10 animate-in fade-in slide-in-from-bottom-2 [animation-delay:580ms] [animation-duration:700ms] [animation-fill-mode:both] bg-black/10 dark:bg-white/10" />
 
-        <footer className="mt-4 flex items-center justify-between gap-3 text-xs text-slate-400 dark:text-white/30">
+        <footer className="mt-4 flex animate-in fade-in slide-in-from-bottom-2 [animation-delay:620ms] [animation-duration:700ms] [animation-fill-mode:both] items-center justify-between gap-3 text-xs text-slate-400 dark:text-white/30">
           <p>No bots. No logs. Just the session.</p>
           <div className="flex items-center gap-3">
             <Link

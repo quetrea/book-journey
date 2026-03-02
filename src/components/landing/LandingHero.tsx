@@ -62,7 +62,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
         className="animate-in fade-in [animation-duration:800ms] [animation-fill-mode:both] text-xs text-slate-400 dark:text-white/30"
         style={{ animationDelay: "320ms" }}
       >
-        A Discord account is required to create or join sessions.
+        Create sessions with Discord, or join any session as a guest with just your name.
       </p>
     </section>
   );

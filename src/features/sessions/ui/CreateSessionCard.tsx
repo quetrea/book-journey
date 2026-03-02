@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
@@ -38,6 +39,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   const [title, setTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
   const [hostPasscode, setHostPasscode] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -74,6 +76,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
         title: normalizeOptional(title),
         synopsis: normalizeOptional(synopsis),
         hostPasscode: normalizeOptional(hostPasscode),
+        isPrivate: isPrivate || undefined,
       });
 
       setBookTitle("");
@@ -81,6 +84,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
       setTitle("");
       setSynopsis("");
       setHostPasscode("");
+      setIsPrivate(false);
       setSuccessMessage("Session created.");
       onCreated();
       router.push(`/s/${createdSessionId}`);
@@ -132,6 +136,14 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
             placeholder="Host passcode (optional)"
             type="password"
           />
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-white/40 bg-white/60 px-3 py-2.5 dark:border-white/[0.14] dark:bg-white/6">
+            <div>
+              <p className="text-xs font-medium text-foreground">Private session</p>
+              <p className="text-[11px] text-muted-foreground">Hidden from the public listing on the home page</p>
+            </div>
+            <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+          </div>
 
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
           {successMessage ? <p className="text-xs text-emerald-600">{successMessage}</p> : null}

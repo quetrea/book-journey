@@ -187,6 +187,7 @@ export const createSessionServer = mutation({
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
+    isPrivate: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const bookTitle = args.bookTitle.trim();
@@ -209,6 +210,7 @@ export const createSessionServer = mutation({
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
       hostPasscode: hostPasscode ? hashPasscode(hostPasscode) : undefined,
+      isPrivate: args.isPrivate || undefined,
       createdBy: viewer._id,
       createdAt: Date.now(),
       status: "active",
@@ -535,6 +537,41 @@ export const getSessionMetadataPublic = query({
       hostName: host?.name,
       memberCount: participants.length,
     };
+  },
+});
+
+export const listPublicSessionsServer = query({
+  args: {},
+  handler: async (ctx) => {
+    const sessions = await ctx.db
+      .query("sessions")
+      .order("desc")
+      .take(50);
+
+    const publicActive = sessions
+      .filter((s) => s.status === "active" && !s.isPrivate)
+      .slice(0, 8);
+
+    return Promise.all(
+      publicActive.map(async (session) => {
+        const host = await ctx.db.get(session.createdBy);
+        const participants = await ctx.db
+          .query("participants")
+          .withIndex("by_sessionId", (q) => q.eq("sessionId", session._id))
+          .collect();
+        return {
+          id: session._id,
+          bookTitle: session.bookTitle,
+          authorName: session.authorName,
+          title: session.title,
+          hostName: host?.name ?? "Unknown",
+          hostImage: host?.image,
+          memberCount: participants.length,
+          isPasscodeProtected: !!session.hostPasscode,
+          createdAt: session.createdAt,
+        };
+      }),
+    );
   },
 });
 

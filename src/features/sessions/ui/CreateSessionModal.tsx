@@ -16,6 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "../../../../convex/_generated/api";
 
@@ -34,6 +35,7 @@ export function CreateSessionModal() {
   const [title, setTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
   const [hostPasscode, setHostPasscode] = useState("");
+  const [isPrivate, setIsPrivate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -62,6 +64,7 @@ export function CreateSessionModal() {
         title: normalizeOptional(title),
         synopsis: normalizeOptional(synopsis),
         hostPasscode: normalizeOptional(hostPasscode),
+        isPrivate: isPrivate || undefined,
       });
 
       setOpen(false);
@@ -70,6 +73,7 @@ export function CreateSessionModal() {
       setTitle("");
       setSynopsis("");
       setHostPasscode("");
+      setIsPrivate(false);
       router.push(`/s/${createdSessionId}`);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
@@ -127,6 +131,14 @@ export function CreateSessionModal() {
             placeholder="Host passcode (optional)"
             type="password"
           />
+
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-black/8 bg-black/3 px-3 py-2.5 dark:border-white/10 dark:bg-white/5">
+            <div>
+              <p className="text-xs font-medium text-foreground">Private session</p>
+              <p className="text-[11px] text-muted-foreground">Hidden from the public listing on the home page</p>
+            </div>
+            <Switch checked={isPrivate} onCheckedChange={setIsPrivate} />
+          </div>
 
           {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
 
