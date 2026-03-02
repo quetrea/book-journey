@@ -512,6 +512,55 @@ export const verifySessionPasscodeServer = mutation({
   },
 });
 
+export const deleteSessionServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+
+    if (session.createdBy !== viewer._id) {
+      throw new Error("Only the session creator can delete this session.");
+    }
+
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_sessionId", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    for (const row of participants) {
+      await ctx.db.delete(row._id);
+    }
+
+    const queueItems = await ctx.db
+      .query("queueItems")
+      .withIndex("by_sessionId_position", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    for (const row of queueItems) {
+      await ctx.db.delete(row._id);
+    }
+
+    const grants = await ctx.db
+      .query("sessionPasscodeGrants")
+      .withIndex("by_sessionId_userId", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    for (const row of grants) {
+      await ctx.db.delete(row._id);
+    }
+
+    const words = await ctx.db
+      .query("sessionWords")
+      .withIndex("by_sessionId_createdAt", (q) => q.eq("sessionId", args.sessionId))
+      .collect();
+    for (const row of words) {
+      await ctx.db.delete(row._id);
+    }
+
+    await ctx.db.delete(args.sessionId);
+    return args.sessionId;
+  },
+});
+
 export const toggleRepeatModeServer = mutation({
   args: {
     sessionId: v.id("sessions"),
@@ -621,6 +670,15 @@ export const cleanupExpiredSessions = internalMutation({
         .collect();
 
       for (const row of grants) {
+        await ctx.db.delete(row._id);
+      }
+
+      const words = await ctx.db
+        .query("sessionWords")
+        .withIndex("by_sessionId_createdAt", (q) => q.eq("sessionId", session._id))
+        .collect();
+
+      for (const row of words) {
         await ctx.db.delete(row._id);
       }
 

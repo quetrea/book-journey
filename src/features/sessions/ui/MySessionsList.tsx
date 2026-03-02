@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -12,8 +12,20 @@ import {
   Rows3,
   Search,
   StretchHorizontal,
+  Trash2,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -162,6 +174,181 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
   );
 }
 
+type SessionCardProps = {
+  session: SessionListItem;
+  viewMode: SessionsViewMode;
+  now: number;
+  index: number;
+  itemShadow: string;
+  itemHoverShadow: string;
+};
+
+function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShadow }: SessionCardProps) {
+  const deleteSession = useMutation(api.sessions.deleteSessionServer);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDelete() {
+    setIsDeleting(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await deleteSession({ sessionId: session._id as any });
+      setIsDeleteOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  }
+
+  const finishedAt = session.status === "ended" ? (session.endedAt ?? session.createdAt) : now;
+  const elapsed = formatElapsed(finishedAt - session.createdAt);
+  const isCompactView = viewMode === "compact";
+  const isGridView = viewMode === "grid";
+
+  return (
+    <div className="group relative">
+      <Link href={`/s/${session._id}`} className="block">
+        <Card
+          className={cn(
+            "relative gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
+            session.status === "active"
+              ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
+              : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
+            isCompactView ? "px-3 py-3" : "px-4 py-4",
+            isGridView ? "h-full" : "",
+          )}
+          style={{
+            animationDelay: `${Math.min(index * 45, 180)}ms`,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ["--glow" as any]: itemHoverShadow,
+            boxShadow: itemShadow,
+          } as React.CSSProperties}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = itemHoverShadow;
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.boxShadow = itemShadow;
+          }}
+        >
+          {/* Status accent bar */}
+          <span
+            className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
+              session.status === "active"
+                ? "bg-linear-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
+                : "bg-linear-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
+            }`}
+          />
+
+          <CardContent className="p-0">
+            <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1 pr-6">
+                  <p
+                    className={cn(
+                      "line-clamp-1 font-semibold tracking-tight text-foreground",
+                      isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
+                    )}
+                  >
+                    {session.title ?? session.bookTitle}
+                  </p>
+                  <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                    {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
+                  </p>
+                  <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                    {session.authorName ? `by ${session.authorName}` : "Author unknown"}
+                  </p>
+                </div>
+
+                <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
+              </div>
+
+              {!isCompactView && session.synopsis ? (
+                <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
+                  {session.synopsis}
+                </p>
+              ) : null}
+
+              <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                  <Clock3 className="size-3.5 shrink-0" />
+                  Elapsed: {elapsed}
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
+                  <CalendarDays className="size-3.5 shrink-0" />
+                  {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
+                </span>
+              </div>
+
+              <div
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 dark:border-white/10 dark:bg-white/[0.07]",
+                  isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
+                )}
+              >
+                <div className="inline-flex min-w-0 items-center gap-2">
+                  <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
+                    <AvatarImage
+                      src={session.hostImage ?? undefined}
+                      alt={session.hostName ?? "Host"}
+                    />
+                    <AvatarFallback>{getInitials(session.hostName ?? "H")}</AvatarFallback>
+                  </Avatar>
+                  <span className="truncate text-xs text-muted-foreground">
+                    Hosted by <span className="font-medium text-foreground">{session.hostName ?? "Unknown"}</span>
+                  </span>
+                </div>
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 transition-colors group-hover:text-muted-foreground">
+                  Open
+                  <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </div>
+
+              {!isCompactView ? (
+                <div className="border-t border-black/8 pt-2 text-[11px] text-muted-foreground/70 dark:border-white/10">
+                  Session ID: {session._id}
+                </div>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+      </Link>
+
+      {/* Delete button — outside Link to avoid navigation */}
+      <div className="absolute right-2.5 top-2.5 z-10">
+        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <AlertDialogTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7 rounded-lg text-muted-foreground/40 opacity-0 transition-opacity hover:bg-red-50 hover:text-red-500 group-hover:opacity-100 dark:hover:bg-red-950/50"
+            >
+              <Trash2 className="size-3.5" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+              <AlertDialogDescription>
+                &quot;{session.title ?? session.bookTitle}&quot; and all its data (queue, words, participants) will be permanently deleted. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={isDeleting}
+                onClick={() => { void handleDelete(); }}
+              >
+                {isDeleting ? "Deleting..." : "Delete session"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
+}
+
 export function MySessionsList() {
   const sessions = useQuery(api.sessions.listMySessionsServer);
   const { itemShadow, itemHoverShadow } = useThemeGlow();
@@ -281,121 +468,17 @@ export function MySessionsList() {
       ) : null}
 
       <div className={sessionsWrapperClass}>
-        {filteredSessions.map((session, index) => {
-          const finishedAt =
-            session.status === "ended" ? (session.endedAt ?? session.createdAt) : now;
-          const elapsed = formatElapsed(finishedAt - session.createdAt);
-          const isCompactView = viewMode === "compact";
-          const isGridView = viewMode === "grid";
-
-          return (
-            <Link key={session._id} href={`/s/${session._id}`} className="block">
-              <Card
-                className={cn(
-                  "group relative gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
-                  session.status === "active"
-                    ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
-                    : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
-                  isCompactView ? "px-3 py-3" : "px-4 py-4",
-                  isGridView ? "h-full" : "",
-                )}
-                style={{
-                  animationDelay: `${Math.min(index * 45, 180)}ms`,
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  ["--glow" as any]: itemHoverShadow,
-                  boxShadow: itemShadow,
-                } as React.CSSProperties}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = itemHoverShadow;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.boxShadow = itemShadow;
-                }}
-              >
-                {/* Status accent bar */}
-                <span
-                  className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
-                    session.status === "active"
-                      ? "bg-linear-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
-                      : "bg-linear-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
-                  }`}
-                />
-
-                <CardContent className="p-0">
-                  <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div className="min-w-0 space-y-1">
-                        <p
-                          className={cn(
-                            "line-clamp-1 font-semibold tracking-tight text-foreground",
-                            isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
-                          )}
-                        >
-                          {session.title ?? session.bookTitle}
-                        </p>
-                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                          {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
-                        </p>
-                        <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                          {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-                        </p>
-                      </div>
-
-                      <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
-                    </div>
-
-                    {!isCompactView && session.synopsis ? (
-                      <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
-                        {session.synopsis}
-                      </p>
-                    ) : null}
-
-                    <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                        <Clock3 className="size-3.5 shrink-0" />
-                        Elapsed: {elapsed}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/60 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                        <CalendarDays className="size-3.5 shrink-0" />
-                        {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
-                      </span>
-                    </div>
-
-                    <div
-                      className={cn(
-                        "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 dark:border-white/10 dark:bg-white/[0.07]",
-                        isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
-                      )}
-                    >
-                      <div className="inline-flex min-w-0 items-center gap-2">
-                        <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
-                          <AvatarImage
-                            src={session.hostImage ?? undefined}
-                            alt={session.hostName ?? "Host"}
-                          />
-                          <AvatarFallback>{getInitials(session.hostName ?? "H")}</AvatarFallback>
-                        </Avatar>
-                        <span className="truncate text-xs text-muted-foreground">
-                          Hosted by <span className="font-medium text-foreground">{session.hostName ?? "Unknown"}</span>
-                        </span>
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 transition-colors group-hover:text-muted-foreground">
-                        Open
-                        <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                      </span>
-                    </div>
-
-                    {!isCompactView ? (
-                      <div className="border-t border-black/8 pt-2 text-[11px] text-muted-foreground/70 dark:border-white/10">
-                        Session ID: {session._id}
-                      </div>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          );
-        })}
+        {filteredSessions.map((session, index) => (
+          <SessionCard
+            key={session._id}
+            session={session}
+            viewMode={viewMode}
+            now={now}
+            index={index}
+            itemShadow={itemShadow}
+            itemHoverShadow={itemHoverShadow}
+          />
+        ))}
       </div>
     </div>
   );
