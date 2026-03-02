@@ -131,22 +131,27 @@ export function CreateSessionModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="relative overflow-hidden border-white/45 bg-white/95 backdrop-blur-md sm:max-w-xl dark:border-white/15 dark:bg-[#0d1222]/95">
-        {/* Glass noise texture */}
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute will-change-transform"
-          style={{
-            inset: "-150%",
-            width: "400%",
-            height: "400%",
-            opacity: 0.04,
-            backgroundImage: NOISE_SVG,
-            backgroundRepeat: "repeat",
-            backgroundSize: "200px 200px",
-            animation: "grain 8s steps(10) infinite",
-          }}
-        />
+      <DialogContent className="relative border-white/30 bg-white/72 shadow-2xl backdrop-blur-2xl sm:max-w-xl max-h-[calc(100svh-2rem)] overflow-y-auto dark:border-white/12 dark:bg-[#0d1222]/78">
+        {/* Glass noise texture — clipped to dialog bounds */}
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[inherit]">
+          <div
+            aria-hidden="true"
+            className="absolute will-change-transform"
+            style={{
+              inset: "-150%",
+              width: "400%",
+              height: "400%",
+              opacity: 0.05,
+              backgroundImage: NOISE_SVG,
+              backgroundRepeat: "repeat",
+              backgroundSize: "200px 200px",
+              animation: "grain 8s steps(10) infinite",
+            }}
+          />
+        </div>
+
+        {/* Top accent line */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px rounded-t-[inherit] bg-linear-to-r from-white/60 via-white/30 to-transparent dark:from-white/20 dark:via-white/10 dark:to-transparent" />
 
         <DialogHeader className="relative">
           <DialogTitle>Create session</DialogTitle>
