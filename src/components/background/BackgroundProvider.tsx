@@ -63,10 +63,10 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
   // Dark mode: vivid orbs on dark base; Light mode: tinted orbs on near-white base
   const base = isDark ? theme.base : "#eef0f8";
-  const orb1Opacity = isDark ? 0.70 : 0.38;
-  const orb2Opacity = isDark ? 0.60 : 0.30;
-  const orb3Opacity = isDark ? 0.55 : 0.26;
-  const orb4Opacity = isDark ? 0.40 : 0.18;
+  const orb1Opacity = isDark ? 0.70 : 0.55;
+  const orb2Opacity = isDark ? 0.60 : 0.45;
+  const orb3Opacity = isDark ? 0.55 : 0.40;
+  const orb4Opacity = isDark ? 0.40 : 0.28;
   const vignette = isDark
     ? "radial-gradient(ellipse 80% 60% at 50% 0%,transparent 40%,rgba(0,0,0,0.55) 100%)"
     : "radial-gradient(ellipse 80% 60% at 50% 0%,transparent 40%,rgba(180,190,215,0.25) 100%)";
@@ -154,6 +154,32 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         <div
           className="absolute inset-0 transition-all duration-700"
           style={{ background: vignette }}
+        />
+
+        {/* Dot grid */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            backgroundImage: `radial-gradient(circle, ${isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)"} 1px, transparent 1px)`,
+            backgroundSize: "28px 28px",
+          }}
+        />
+
+        {/* Animated grain texture */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute will-change-transform"
+          style={{
+            inset: "-150%",
+            width: "400%",
+            height: "400%",
+            opacity: isDark ? 0.045 : 0.03,
+            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")`,
+            backgroundRepeat: "repeat",
+            backgroundSize: "200px 200px",
+            animation: "grain 8s steps(10) infinite",
+          }}
         />
 
         {/* Mouse spotlight */}
