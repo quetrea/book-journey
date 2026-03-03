@@ -136,11 +136,11 @@ export function QueueStatusBar({
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 It&apos;s your turn to read!
               </p>
-            ) : viewerQueueItem && viewerQueueItem.status !== "done" ? (
+            ) : viewerQueueItem?.status === "waiting" ? (
               <p className="text-xs text-muted-foreground">
                 Your position: <span className="font-medium text-foreground">#{viewerQueueItem.position}</span>
               </p>
-            ) : (
+            ) : viewerQueueItem?.status === "done" ? null : (
               <p className="text-xs text-muted-foreground">Not in queue</p>
             )}
           </div>
