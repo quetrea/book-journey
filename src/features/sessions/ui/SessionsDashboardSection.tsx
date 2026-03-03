@@ -11,7 +11,8 @@ import { JoinedSessionsList } from "./JoinedSessionsList";
 import { MySessionsList } from "./MySessionsList";
 
 type SessionsDashboardSectionProps = {
-  isGuest?: boolean;
+  /** undefined = profile still loading; false = Discord user; true = guest */
+  isGuest: boolean | undefined;
 };
 
 export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionProps) {
@@ -30,7 +31,7 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
 
   return (
     <>
-      {!isGuest && (
+      {isGuest === false && (
         <Card
           className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:100ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/[0.07]"
           style={{ boxShadow: cardShadow }}

@@ -96,7 +96,7 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
   const nextProvider = providerFromTokenIdentifier(identity.tokenIdentifier);
   const now = Date.now();
 
-  const isGuest = nextProvider === "anonymous" ? true : undefined;
+  const isGuest = authUser?.isAnonymous === true ? (true as const) : undefined;
 
   if (existing) {
     const updates: Partial<
