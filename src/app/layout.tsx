@@ -4,6 +4,7 @@ import { Analytics } from "@vercel/analytics/next";
 
 import { BackgroundProvider } from "@/components/background/BackgroundProvider";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
 import "./globals.css";
@@ -68,6 +69,7 @@ export default function RootLayout({
           <BackgroundProvider>
             <TooltipProvider>
               <ConvexClientProvider>{children}</ConvexClientProvider>
+              <Toaster position="top-right" />
             </TooltipProvider>
           </BackgroundProvider>
         </ThemeProvider>

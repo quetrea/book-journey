@@ -18,6 +18,7 @@ import { ParticipantsList } from "@/features/participants/ui/ParticipantsList";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useSessionToasts } from "@/hooks/useSessionToasts";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { SessionControlsCard } from "./SessionControlsCard";
 import { SessionHeaderCard } from "./SessionHeaderCard";
@@ -55,6 +56,8 @@ export function SessionRoomPageClient({
     queryArgs
   );
   const queue = useQuery(api.queue.getQueueServer, queryArgs);
+
+  useSessionToasts(participants, queue, sessionDetails?.viewerUserId);
 
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
 

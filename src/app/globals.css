@@ -181,6 +181,16 @@
   90%  { transform: translate(-10%, 10%) }
 }
 
+/* ── Toast responsive positioning ── */
+@media (max-width: 640px) {
+  [data-sonner-toaster] {
+    --offset: 16px !important;
+    left: 50% !important;
+    right: auto !important;
+    transform: translateX(-50%);
+  }
+}
+
 /* ── Display font utility ── */
 .font-display {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
