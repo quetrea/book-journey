@@ -31,7 +31,7 @@ export const sendTurnNotification = internalAction({
     const payload = JSON.stringify({
       title: "Your turn to read!",
       body: `It's your turn in "${args.bookTitle}"`,
-      url: `/sessions/${args.sessionId}`,
+      url: `/s/${args.sessionId}`,
     });
 
     await Promise.all(
