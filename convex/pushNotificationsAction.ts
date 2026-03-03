@@ -6,11 +6,19 @@ import { v } from "convex/values";
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!,
-);
+const vapidSubject = process.env.VAPID_SUBJECT;
+const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+
+if (!vapidSubject || !vapidPublicKey || !vapidPrivateKey) {
+  console.error("[push] VAPID env vars missing:", {
+    VAPID_SUBJECT: !!vapidSubject,
+    VAPID_PUBLIC_KEY: !!vapidPublicKey,
+    VAPID_PRIVATE_KEY: !!vapidPrivateKey,
+  });
+} else {
+  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+}
 
 export const sendTurnNotification = internalAction({
   args: {
@@ -19,10 +27,18 @@ export const sendTurnNotification = internalAction({
     sessionId: v.id("sessions"),
   },
   handler: async (ctx, args) => {
+    if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
+      console.error("[push] Aborting: VAPID env vars not set.");
+      return;
+    }
+    console.log("[push] sendTurnNotification userId:", args.userId, "book:", args.bookTitle);
+
     const subscriptions = await ctx.runQuery(
       internal.pushSubscriptions.getSubscriptionsForUser,
       { userId: args.userId },
     );
+
+    console.log("[push] subscriptions found:", subscriptions.length);
 
     if (subscriptions.length === 0) {
       return;
@@ -47,8 +63,10 @@ export const sendTurnNotification = internalAction({
             },
             payload,
           );
+          console.log("[push] sent OK to:", sub.endpoint.slice(0, 50));
         } catch (error: unknown) {
           const status = (error as { statusCode?: number })?.statusCode;
+          console.error("[push] send failed — status:", status, "error:", String(error));
           if (status === 410 || status === 404) {
             await ctx.runMutation(
               internal.pushSubscriptions.removeStaleSubscription,

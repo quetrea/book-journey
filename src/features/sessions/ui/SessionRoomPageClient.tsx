@@ -541,7 +541,24 @@ export function SessionRoomPageClient({
 
         <section className="space-y-4 sm:space-y-5">
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.92fr)] xl:items-start">
-            <div className="xl:order-last xl:sticky xl:top-4">
+
+            {/* Mobile: 1st (top). Desktop: left col, bottom row */}
+            <div className="space-y-4 xl:col-start-1 xl:row-start-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/72 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">
+                <UsersRound className="size-3.5 text-indigo-500" />
+                Members panel
+              </div>
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <ParticipantsList
+                  participants={safeParticipants}
+                  isLoading={false}
+                  errorMessage={null}
+                />
+              </div>
+            </div>
+
+            {/* Mobile: 2nd. Desktop: right col, spans 2 rows, sticky */}
+            <div className="xl:col-start-2 xl:row-start-1 xl:row-span-2 xl:sticky xl:top-4">
               <Tabs defaultValue="queue">
                 <TabsList className="mb-4 w-full">
                   <TabsTrigger value="queue" className="flex-1">Queue</TabsTrigger>
@@ -583,7 +600,8 @@ export function SessionRoomPageClient({
               </Tabs>
             </div>
 
-            <div className="xl:order-first space-y-4">
+            {/* Mobile: 3rd. Desktop: left col, top row */}
+            <div className="space-y-4 xl:col-start-1 xl:row-start-1">
               <div className="animate-in fade-in zoom-in-95 duration-500">
                 <SessionHeaderCard
                   session={details.session}
@@ -793,19 +811,6 @@ export function SessionRoomPageClient({
                 </CardContent>
               </Card>
 
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/72 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">
-                  <UsersRound className="size-3.5 text-indigo-500" />
-                  Members panel
-                </div>
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                  <ParticipantsList
-                    participants={safeParticipants}
-                    isLoading={false}
-                    errorMessage={null}
-                  />
-                </div>
-              </div>
             </div>
 
           </div>

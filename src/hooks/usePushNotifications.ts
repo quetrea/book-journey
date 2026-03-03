@@ -54,11 +54,22 @@ export function usePushNotifications(): UsePushNotificationsReturn {
       .then(async (registration) => {
         const existing = await registration.pushManager.getSubscription();
         setSubscription(existing);
+        // Re-sync to Convex in case the DB record was lost (e.g., stale removal)
+        if (existing) {
+          const json = existing.toJSON();
+          await saveSub({
+            endpoint: existing.endpoint,
+            p256dh: json.keys?.p256dh ?? "",
+            auth: json.keys?.auth ?? "",
+          }).catch(() => {
+            // Silently fail — user may not be authenticated yet
+          });
+        }
       })
       .catch(() => {
         // SW registration failed silently
       });
-  }, []);
+  }, [saveSub]);
 
   const subscribe = useCallback(async () => {
     if (!isSupported) return;
