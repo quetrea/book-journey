@@ -37,6 +37,20 @@ export function usePushNotifications(): UsePushNotificationsReturn {
   const deleteSub = useMutation(api.pushSubscriptions.deletePushSubscription);
 
   useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      if ((event.data as { type?: string } | null)?.type === "PLAY_NOTIFICATION_SOUND") {
+        const audio = new Audio("/notification2.mp3");
+        audio.play().catch(() => {});
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
+  }, []);
+
+  useEffect(() => {
     const supported =
       typeof window !== "undefined" &&
       "serviceWorker" in navigator &&
