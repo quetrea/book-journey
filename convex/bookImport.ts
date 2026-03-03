@@ -3,7 +3,20 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 
-type BookData = { title: string; author?: string; coverUrl?: string };
+type BookData = { title: string; author?: string; coverUrl?: string; synopsis?: string };
+
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, " ").replace(/\s{2,}/g, " ").trim();
+}
+
+function extractOpenLibraryDescription(raw: unknown): string | undefined {
+  if (typeof raw === "string" && raw.trim()) return raw.trim().slice(0, 1200);
+  if (raw && typeof raw === "object" && "value" in raw) {
+    const val = (raw as { value: unknown }).value;
+    if (typeof val === "string" && val.trim()) return val.trim().slice(0, 1200);
+  }
+  return undefined;
+}
 
 function extractIsbn(text: string): string | null {
   const m = text.match(/\b(97[89]\d{10}|\d{13})\b/);
@@ -35,7 +48,8 @@ async function fromOpenLibraryWork(olid: string): Promise<BookData | null> {
     if (ad?.name) author = ad.name as string;
   }
   const coverUrl = `https://covers.openlibrary.org/b/olid/${olid}-M.jpg`;
-  return { title: data.title as string, author, coverUrl };
+  const synopsis = extractOpenLibraryDescription(data.description);
+  return { title: data.title as string, author, coverUrl, synopsis };
 }
 
 async function fromGoogleBooksId(id: string): Promise<BookData | null> {
@@ -47,7 +61,11 @@ async function fromGoogleBooksId(id: string): Promise<BookData | null> {
   const authors = info.authors as string[] | undefined;
   const imageLinks = info.imageLinks as Record<string, string> | undefined;
   const coverUrl = imageLinks?.thumbnail ?? imageLinks?.smallThumbnail;
-  return { title: info.title as string, author: authors?.[0], coverUrl };
+  const rawDesc = info.description;
+  const synopsis = typeof rawDesc === "string" && rawDesc.trim()
+    ? stripHtml(rawDesc).slice(0, 1200)
+    : undefined;
+  return { title: info.title as string, author: authors?.[0], coverUrl, synopsis };
 }
 
 async function fromIsbn(isbn: string): Promise<BookData | null> {
@@ -95,7 +113,9 @@ async function fromOgMeta(url: string): Promise<BookData | null> {
     )?.trim();
 
     const author = desc?.match(/\bby\s+([A-Z][^.,\n]{1,60})/)?.[1]?.trim();
-    return { title, author };
+    // Use description as synopsis only when it's substantive (not just a tagline)
+    const synopsis = desc && desc.length > 80 ? desc.slice(0, 1200) : undefined;
+    return { title, author, synopsis };
   } catch {
     return null;
   }

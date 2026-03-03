@@ -66,8 +66,11 @@ export function CreateSessionModal() {
         setBookTitle(result.title);
         if (result.author) setAuthorName(result.author);
         if (result.coverUrl) setImportedCoverUrl(result.coverUrl);
+        if (result.synopsis) setSynopsis(result.synopsis);
         setImportUrl("");
-        setImportSuccess("Book info imported!");
+        setImportSuccess(
+          result.synopsis ? "Book info and synopsis imported!" : "Book info imported!",
+        );
       } else {
         setImportError(
           "Couldn't find book info from this link. Try a Goodreads, OpenLibrary, or Google Books URL.",
