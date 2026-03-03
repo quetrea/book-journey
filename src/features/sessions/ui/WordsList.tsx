@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, Check, Copy, Download, Search, Trash2 } from "lucide-react";
+import { BookMarked, Check, Copy, Download, LayoutGrid, LayoutList, Search, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
+
+type ViewMode = "list" | "grid";
 
 type WordsListProps = {
   sessionId: Id<"sessions">;
@@ -28,11 +30,17 @@ function getInitials(name: string) {
 
 function formatTimeAgo(ts: number) {
   const diff = Math.floor((Date.now() - ts) / 60_000);
-
   if (diff < 1) return "just now";
   if (diff < 60) return `${diff}m ago`;
-
   return `${Math.floor(diff / 60)}h ago`;
+}
+
+const LS_KEY = "words-view-mode";
+
+function readStoredViewMode(): ViewMode {
+  if (typeof window === "undefined") return "list";
+  const stored = localStorage.getItem(LS_KEY);
+  return stored === "grid" ? "grid" : "list";
 }
 
 export function WordsList({
@@ -54,7 +62,13 @@ export function WordsList({
   const [showContextInput, setShowContextInput] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>(readStoredViewMode);
   const wordInputRef = useRef<HTMLInputElement>(null);
+
+  function switchView(mode: ViewMode) {
+    setViewMode(mode);
+    localStorage.setItem(LS_KEY, mode);
+  }
 
   function handleCopy(id: string, word: string, context?: string) {
     const text = context ? `${word}\n"${context}"` : word;
@@ -82,9 +96,7 @@ export function WordsList({
 
     words.forEach((entry, i) => {
       lines.push(`${i + 1}. ${entry.word}`);
-      if (entry.context) {
-        lines.push(`   "${entry.context}"`);
-      }
+      if (entry.context) lines.push(`   "${entry.context}"`);
       lines.push(`   — ${entry.userName} · ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(entry.createdAt))}`);
       lines.push("");
     });
@@ -104,17 +116,10 @@ export function WordsList({
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = wordInput.trim();
-
     if (!trimmed) return;
-
     setIsAdding(true);
-
     try {
-      await addWord({
-        sessionId,
-        word: trimmed,
-        context: contextInput.trim() || undefined,
-      });
+      await addWord({ sessionId, word: trimmed, context: contextInput.trim() || undefined });
       setWordInput("");
       setContextInput("");
       setShowContextInput(false);
@@ -124,8 +129,7 @@ export function WordsList({
     }
   }
 
-  const cardClass =
-    "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
+  const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
 
   if (words === undefined) {
     return (
@@ -164,16 +168,38 @@ export function WordsList({
               <span className="text-sm font-normal text-muted-foreground">({words.length})</span>
             )}
           </CardTitle>
-          {words.length > 0 && (
-            <button
-              type="button"
-              onClick={handleDownload}
-              title="Download vocabulary list"
-              className="rounded-full p-1.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-            >
-              <Download className="size-3.5" />
-            </button>
-          )}
+          <div className="flex items-center gap-1">
+            {words.length > 0 && (
+              <>
+                {/* View toggle */}
+                <button
+                  type="button"
+                  onClick={() => switchView("list")}
+                  title="List view"
+                  className={`rounded-full p-1.5 transition-colors ${viewMode === "list" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
+                >
+                  <LayoutList className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchView("grid")}
+                  title="Flashcard view"
+                  className={`rounded-full p-1.5 transition-colors ${viewMode === "grid" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
+                >
+                  <LayoutGrid className="size-3.5" />
+                </button>
+                <div className="mx-1 h-3.5 w-px bg-black/12 dark:bg-white/12" />
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  title="Download vocabulary list"
+                  className="rounded-full p-1.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                >
+                  <Download className="size-3.5" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
         <p className="text-xs text-muted-foreground">
           Save words or phrases from the reading.
@@ -198,58 +224,104 @@ export function WordsList({
               </div>
             )}
 
-            <div className="max-h-104 space-y-2 overflow-y-auto pr-0.5">
+            <div className="max-h-104 overflow-y-auto pr-0.5">
               {filtered.length === 0 && search ? (
                 <p className="py-2 text-xs text-muted-foreground">
                   No words match &ldquo;{search}&rdquo;
                 </p>
+              ) : viewMode === "list" ? (
+                <div className="space-y-2">
+                  {filtered.map((entry) => {
+                    const canDelete = isHost || entry.userId === viewerUserId;
+                    return (
+                      <div
+                        key={entry._id}
+                        className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
+                      >
+                        <Avatar size="sm" className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15">
+                          <AvatarImage src={entry.userImage ?? undefined} alt={entry.userName} />
+                          <AvatarFallback>{getInitials(entry.userName)}</AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-semibold text-foreground">{entry.word}</p>
+                          {entry.context ? (
+                            <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
+                              &ldquo;{entry.context}&rdquo;
+                            </p>
+                          ) : null}
+                          <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+                            {entry.userName} · {formatTimeAgo(entry.createdAt)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(entry._id, entry.word, entry.context)}
+                          className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                        >
+                          {copiedId === entry._id
+                            ? <Check className="size-3.5 text-emerald-500" />
+                            : <Copy className="size-3.5" />}
+                        </button>
+                        {canDelete ? (
+                          <button
+                            type="button"
+                            onClick={() => { void removeWord({ wordId: entry._id }); }}
+                            className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                filtered.map((entry) => {
-                  const canDelete = isHost || entry.userId === viewerUserId;
-
-                  return (
-                    <div
-                      key={entry._id}
-                      className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
-                    >
-                      <Avatar size="sm" className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15">
-                        <AvatarImage src={entry.userImage ?? undefined} alt={entry.userName} />
-                        <AvatarFallback>{getInitials(entry.userName)}</AvatarFallback>
-                      </Avatar>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-foreground">
+                /* Grid / flashcard view */
+                <div className="grid grid-cols-2 gap-2">
+                  {filtered.map((entry) => {
+                    const canDelete = isHost || entry.userId === viewerUserId;
+                    return (
+                      <div
+                        key={entry._id}
+                        className="group relative flex min-h-20 flex-col justify-between rounded-xl border border-white/35 bg-white/55 p-3 dark:border-white/12 dark:bg-white/6"
+                      >
+                        <p className="line-clamp-2 break-all text-sm font-semibold leading-snug text-foreground">
                           {entry.word}
                         </p>
                         {entry.context ? (
-                          <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
+                          <p className="mt-1 line-clamp-2 text-[11px] italic text-muted-foreground/70">
                             &ldquo;{entry.context}&rdquo;
                           </p>
                         ) : null}
-                        <p className="mt-0.5 text-[11px] text-muted-foreground/60">
-                          {entry.userName} · {formatTimeAgo(entry.createdAt)}
-                        </p>
+                        <div className="mt-2 flex items-center justify-between gap-1">
+                          <p className="truncate text-[10px] text-muted-foreground/50">
+                            {entry.userName}
+                          </p>
+                          <div className="flex shrink-0 items-center gap-0.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopy(entry._id, entry.word, entry.context)}
+                              className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/8 hover:text-foreground dark:hover:bg-white/12"
+                            >
+                              {copiedId === entry._id
+                                ? <Check className="size-3 text-emerald-500" />
+                                : <Copy className="size-3" />}
+                            </button>
+                            {canDelete ? (
+                              <button
+                                type="button"
+                                onClick={() => { void removeWord({ wordId: entry._id }); }}
+                                className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(entry._id, entry.word, entry.context)}
-                        className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                      >
-                        {copiedId === entry._id
-                          ? <Check className="size-3.5 text-emerald-500" />
-                          : <Copy className="size-3.5" />}
-                      </button>
-                      {canDelete ? (
-                        <button
-                          type="button"
-                          onClick={() => { void removeWord({ wordId: entry._id }); }}
-                          className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                        >
-                          <Trash2 className="size-3.5" />
-                        </button>
-                      ) : null}
-                    </div>
-                  );
-                })
+                    );
+                  })}
+                </div>
               )}
             </div>
           </div>
