@@ -1,8 +1,10 @@
 "use client";
 
 import { Lock, Mic2 } from "lucide-react";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { QueueItem } from "@/features/queue/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
@@ -11,6 +13,8 @@ type QueueStatusBarProps = {
   queue: QueueItem[];
   viewerUserId?: string;
   isPasscodeProtected: boolean;
+  isHost?: boolean;
+  onAdvance?: () => Promise<void>;
 };
 
 function getInitials(name: string) {
@@ -21,8 +25,21 @@ export function QueueStatusBar({
   queue,
   viewerUserId,
   isPasscodeProtected,
+  isHost,
+  onAdvance,
 }: QueueStatusBarProps) {
   const { cardShadow, orb } = useThemeGlow();
+  const [isAdvancing, setIsAdvancing] = useState(false);
+
+  async function handleAdvance() {
+    if (!onAdvance) return;
+    setIsAdvancing(true);
+    try {
+      await onAdvance();
+    } finally {
+      setIsAdvancing(false);
+    }
+  }
   const currentReader = queue.find((item) => item.status === "reading");
   const nextReader = queue.find((item) => item.status === "waiting");
   const viewerQueueItem = viewerUserId
@@ -46,6 +63,18 @@ export function QueueStatusBar({
                 <Lock className="size-3.5" />
                 Protected
               </span>
+            )}
+            {isHost && totalInQueue > 0 && onAdvance && (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => void handleAdvance()}
+                disabled={isAdvancing}
+                className="h-7 text-xs"
+              >
+                {isAdvancing ? "..." : "Start queue →"}
+              </Button>
             )}
           </div>
         </CardContent>
@@ -126,6 +155,22 @@ export function QueueStatusBar({
               <AvatarFallback className="text-[10px]">{getInitials(nextReader.name)}</AvatarFallback>
             </Avatar>
             <span className="truncate text-xs font-medium text-foreground/80">{nextReader.name}</span>
+          </div>
+        )}
+
+        {/* Host: advance queue */}
+        {isHost && onAdvance && (
+          <div className={`flex justify-end ${nextReader ? "mt-2.5" : "mt-3 border-t border-black/6 pt-2.5 dark:border-white/8"}`}>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => void handleAdvance()}
+              disabled={isAdvancing}
+              className="h-7 text-xs"
+            >
+              {isAdvancing ? "Advancing..." : "Advance queue →"}
+            </Button>
           </div>
         )}
       </CardContent>

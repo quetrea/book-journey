@@ -28,7 +28,6 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ParticlesBackground } from "@/features/dashboard/ui/ParticlesBackground";
 import { JoinSessionButton } from "@/features/participants/ui/JoinSessionButton";
 import { ParticipantsList } from "@/features/participants/ui/ParticipantsList";
-import { AdvanceQueueButton } from "@/features/queue/ui/AdvanceQueueButton";
 import { JoinQueueButton } from "@/features/queue/ui/JoinQueueButton";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
@@ -553,6 +552,8 @@ export function SessionRoomPageClient({
                     queue={safeQueue}
                     viewerUserId={details.viewerUserId}
                     isPasscodeProtected={details.isPasscodeProtected}
+                    isHost={details.isHost && canUseQueueControls}
+                    onAdvance={handleAdvanceQueue}
                   />
                   <div className="animate-in fade-in slide-in-from-right-2 duration-500">
                     <QueueList
@@ -654,10 +655,6 @@ export function SessionRoomPageClient({
                       <SkipTurnButton
                         canSkip={Boolean(canSkipTurn)}
                         onSkip={handleSkipTurn}
-                      />
-                      <AdvanceQueueButton
-                        isHost={details.isHost}
-                        onAdvance={handleAdvanceQueue}
                       />
                     </div>
                   ) : null}
