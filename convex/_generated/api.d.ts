@@ -11,6 +11,7 @@
 import type * as auth from "../auth.js";
 import type * as bookImport from "../bookImport.js";
 import type * as crons from "../crons.js";
+import type * as feedback from "../feedback.js";
 import type * as http from "../http.js";
 import type * as lib_authProfile from "../lib/authProfile.js";
 import type * as lib_passcodeAccess from "../lib/passcodeAccess.js";
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   bookImport: typeof bookImport;
   crons: typeof crons;
+  feedback: typeof feedback;
   http: typeof http;
   "lib/authProfile": typeof lib_authProfile;
   "lib/passcodeAccess": typeof lib_passcodeAccess;

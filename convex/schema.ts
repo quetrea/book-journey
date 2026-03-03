@@ -77,4 +77,10 @@ export default defineSchema({
   })
     .index("by_sessionId_createdAt", ["sessionId", "createdAt"])
     .index("by_sessionId_userId", ["sessionId", "userId"]),
+
+  feedback: defineTable({
+    message: v.string(),
+    name: v.optional(v.string()),
+    createdAt: v.number(),
+  }),
 });

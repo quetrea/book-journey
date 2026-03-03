@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LandingFeatures } from "@/components/landing/LandingFeatures";
+import { LandingFeedback } from "@/components/landing/LandingFeedback";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
@@ -13,9 +14,10 @@ export default function Home() {
       <main className="relative z-10 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <LandingTopBar />
         <LandingHero loginButton={<LoginButton />} />
+        <LiveSessionsSection />
         <LandingFeatures />
         <LandingHowItWorks />
-        <LiveSessionsSection />
+        <LandingFeedback />
 
         <Separator className="mt-10 animate-in fade-in slide-in-from-bottom-2 [animation-delay:580ms] [animation-duration:700ms] [animation-fill-mode:both] bg-black/10 dark:bg-white/10" />
 
