@@ -5,11 +5,8 @@ import { ArrowRight, BookOpen, Lock, Users } from "lucide-react";
 import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/formatters";
 import { api } from "../../../convex/_generated/api";
-
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
 
 export function LiveSessionsSection() {
   const sessions = useQuery(api.sessions.listPublicSessionsServer);

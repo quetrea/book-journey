@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { CircleCheckBig, CircleDot, Clock3, Radio, UserRoundCheck, X } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatTimeAgo, getInitials } from "@/lib/formatters";
 import type { QueueItem } from "@/features/queue/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 
@@ -18,24 +20,8 @@ type QueueListProps = {
   onRemove?: (userId: string) => void;
 };
 
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
-
 function formatJoinedAgo(joinedAt: number) {
-  const diffMs = Date.now() - joinedAt;
-  const minutes = Math.max(0, Math.floor(diffMs / 60_000));
-
-  if (minutes < 1) {
-    return "Queued just now";
-  }
-
-  if (minutes < 60) {
-    return `Queued ${minutes}m ago`;
-  }
-
-  const hours = Math.floor(minutes / 60);
-  return `Queued ${hours}h ago`;
+  return `Queued ${formatTimeAgo(joinedAt)}`;
 }
 
 function QueueStatusBadge({ status }: { status: QueueItem["status"] }) {
@@ -62,7 +48,7 @@ function QueueStatusBadge({ status }: { status: QueueItem["status"] }) {
   );
 }
 
-export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: QueueListProps) {
+export const QueueList = memo(function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: QueueListProps) {
   const { cardShadow } = useThemeGlow();
 
   const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
@@ -187,4 +173,4 @@ export function QueueList({ queue, isLoading, errorMessage, isHost, onRemove }: 
       </CardContent>
     </Card>
   );
-}
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import {
   BookOpenText,
   Clock3,
@@ -21,6 +21,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getInitials } from "@/lib/formatters";
 import type { SessionListItem } from "@/features/sessions/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 
@@ -44,10 +45,6 @@ function formatElapsed(ms: number) {
   return `${minutes}m`;
 }
 
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
-
 function formatShortDate(timestamp: number) {
   return new Intl.DateTimeFormat(undefined, {
     month: "short",
@@ -67,7 +64,7 @@ function formatFullDate(timestamp: number) {
   }).format(timestamp);
 }
 
-export function SessionHeaderCard({
+export const SessionHeaderCard = memo(function SessionHeaderCard({
   session,
   hostName,
   hostImage,
@@ -249,7 +246,7 @@ export function SessionHeaderCard({
             <img
               src={bookCoverUrl}
               alt={session.bookTitle}
-              className="h-20 w-14 shrink-0 rounded-md object-cover shadow-md ring-1 ring-black/10 dark:ring-white/10"
+              className="h-16 w-11 shrink-0 rounded-md object-cover shadow-md ring-1 ring-black/10 sm:h-20 sm:w-14 dark:ring-white/10"
             />
           ) : null}
           <div className="min-w-0">
@@ -330,4 +327,4 @@ export function SessionHeaderCard({
       </CardContent>
     </Card>
   );
-}
+});

@@ -32,6 +32,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import type { SessionListItem } from "../types";
@@ -72,10 +73,6 @@ function formatTimeLabel(timestamp: number) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(timestamp));
-}
-
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
 }
 
 type ViewToggleButtonProps = {

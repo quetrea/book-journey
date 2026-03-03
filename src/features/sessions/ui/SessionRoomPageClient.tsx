@@ -5,49 +5,29 @@ import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, BookOpenText, UsersRound } from "lucide-react";
+import { UsersRound } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ParticlesBackground } from "@/features/dashboard/ui/ParticlesBackground";
-import { JoinSessionButton } from "@/features/participants/ui/JoinSessionButton";
 import { ParticipantsList } from "@/features/participants/ui/ParticipantsList";
-import { JoinQueueButton } from "@/features/queue/ui/JoinQueueButton";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
-import { SkipTurnButton } from "@/features/queue/ui/SkipTurnButton";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
+import { SessionControlsCard } from "./SessionControlsCard";
 import { SessionHeaderCard } from "./SessionHeaderCard";
+import { SessionTopBar } from "./SessionTopBar";
 import { WordsList } from "./WordsList";
-import { WordsQuickPanel } from "./WordsQuickPanel";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
+
+const BG_GRADIENT =
+  "fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]";
 
 type SessionRoomPageClientProps = {
   sessionId: string;
@@ -61,17 +41,7 @@ export function SessionRoomPageClient({
   const { signIn } = useAuthActions();
 
   const joinSession = useMutation(api.sessions.joinSessionServer);
-  const endSession = useMutation(api.sessions.endSessionServer);
-  const leaveSession = useMutation(api.sessions.leaveSessionServer);
-  const verifySessionPasscode = useMutation(
-    api.sessions.verifySessionPasscodeServer
-  );
-  const joinQueue = useMutation(api.queue.joinQueueServer);
-  const leaveQueue = useMutation(api.queue.leaveQueueServer);
-  const skipMyTurn = useMutation(api.queue.skipMyTurnServer);
   const advanceQueue = useMutation(api.queue.advanceQueueServer);
-  const addUserToQueue = useMutation(api.queue.addUserToQueueServer);
-  const toggleRepeatMode = useMutation(api.sessions.toggleRepeatModeServer);
   const removeFromQueue = useMutation(api.queue.removeFromQueueServer);
 
   const sessionIdAsConvex = sessionId as Id<"sessions">;
@@ -86,46 +56,15 @@ export function SessionRoomPageClient({
   );
   const queue = useQuery(api.queue.getQueueServer, queryArgs);
 
-  const [passcodeValue, setPasscodeValue] = useState("");
-  const [passcodeErrorMessage, setPasscodeErrorMessage] = useState<
-    string | null
-  >(null);
-  const [isVerifyingPasscode, setIsVerifyingPasscode] = useState(false);
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
-  const [isEndingSession, setIsEndingSession] = useState(false);
-  const [endSessionErrorMessage, setEndSessionErrorMessage] = useState<
-    string | null
-  >(null);
-  const [selectedParticipantUserId, setSelectedParticipantUserId] =
-    useState("");
-  const [isAddingParticipantToQueue, setIsAddingParticipantToQueue] =
-    useState(false);
-  const [addParticipantToQueueError, setAddParticipantToQueueError] = useState<
-    string | null
-  >(null);
-  const [isLeavingSession, setIsLeavingSession] = useState(false);
-  const [leaveSessionErrorMessage, setLeaveSessionErrorMessage] = useState<
-    string | null
-  >(null);
 
   const [guestName, setGuestName] = useState("");
   const [isJoiningAsGuest, setIsJoiningAsGuest] = useState(false);
   const [guestJoinError, setGuestJoinError] = useState<string | null>(null);
 
-  const {
-    isSupported: isPushSupported,
-    permission: pushPermission,
-    isSubscribed: isPushSubscribed,
-    isLoading: isPushLoading,
-    subscribe: subscribeToPush,
-    unsubscribe: unsubscribeFromPush,
-  } = usePushNotifications();
-
   const { cardShadow } = useThemeGlow();
 
   useEffect(() => {
-    setPasscodeValue("");
-    setPasscodeErrorMessage(null);
     setIsPasscodeVerified(false);
   }, [sessionId]);
 
@@ -157,35 +96,12 @@ export function SessionRoomPageClient({
   const safeParticipants = useMemo(() => participants ?? [], [participants]);
   const safeQueue = useMemo(() => queue ?? [], [queue]);
   const safeIsCurrentUserParticipant = Boolean(isCurrentUserParticipant);
-  const addableParticipants = useMemo(
-    () =>
-      safeParticipants.filter(
-        (participant) =>
-          !safeQueue.some(
-            (queueItem) => queueItem.userId === participant.userId
-          )
-      ),
-    [safeParticipants, safeQueue]
-  );
-
-  useEffect(() => {
-    if (
-      selectedParticipantUserId &&
-      addableParticipants.some(
-        (participant) => participant.userId === selectedParticipantUserId
-      )
-    ) {
-      return;
-    }
-
-    setSelectedParticipantUserId(addableParticipants[0]?.userId ?? "");
-  }, [addableParticipants, selectedParticipantUserId]);
 
   if (isAuthLoading || isDataLoading) {
     return (
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
-        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
+        <div className={BG_GRADIENT} />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
           <Card className="border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
             <CardHeader className="pb-2">
@@ -263,7 +179,7 @@ export function SessionRoomPageClient({
     return (
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
-        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
+        <div className={BG_GRADIENT} />
         <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
           <Card className="border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
             <CardHeader>
@@ -295,7 +211,7 @@ export function SessionRoomPageClient({
     return (
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
-        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
+        <div className={BG_GRADIENT} />
         <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-4 px-4">
           <p className="text-sm text-muted-foreground">This session has ended.</p>
           <Button asChild variant="outline">
@@ -307,10 +223,6 @@ export function SessionRoomPageClient({
   }
 
   const details = sessionDetails;
-
-  async function handleJoin() {
-    await joinSession({ sessionId: sessionIdAsConvex });
-  }
 
   async function handleGuestJoin() {
     const name = guestName.trim();
@@ -332,90 +244,10 @@ export function SessionRoomPageClient({
     }
   }
 
-  async function handleJoinQueue() {
-    await joinQueue({ sessionId: sessionIdAsConvex });
-  }
-
-  async function handleLeaveQueue() {
-    await leaveQueue({ sessionId: sessionIdAsConvex });
-  }
-
-  async function handleSkipTurn() {
-    await skipMyTurn({ sessionId: sessionIdAsConvex });
-  }
-
   async function handleAdvanceQueue() {
     await advanceQueue({ sessionId: sessionIdAsConvex });
   }
 
-  async function handleEndSession() {
-    setIsEndingSession(true);
-    setEndSessionErrorMessage(null);
-
-    try {
-      await endSession({ sessionId: sessionIdAsConvex });
-      router.replace("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to end session.";
-      setEndSessionErrorMessage(message);
-    } finally {
-      setIsEndingSession(false);
-    }
-  }
-
-  async function handleLeaveSession() {
-    setIsLeavingSession(true);
-    setLeaveSessionErrorMessage(null);
-
-    try {
-      await leaveSession({ sessionId: sessionIdAsConvex });
-      router.replace("/dashboard");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to leave session.";
-      setLeaveSessionErrorMessage(message);
-    } finally {
-      setIsLeavingSession(false);
-    }
-  }
-
-  async function handlePasscodeVerify() {
-    if (!passcodeValue.trim()) {
-      setPasscodeErrorMessage("Passcode is required.");
-      return;
-    }
-
-    setIsVerifyingPasscode(true);
-    setPasscodeErrorMessage(null);
-
-    try {
-      const result = await verifySessionPasscode({
-        sessionId: sessionIdAsConvex,
-        passcode: passcodeValue,
-      });
-
-      if (!result.verified) {
-        setPasscodeErrorMessage("Invalid passcode.");
-        return;
-      }
-
-      setIsPasscodeVerified(true);
-      setPasscodeValue("");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Failed to verify passcode.";
-      setPasscodeErrorMessage(message);
-    } finally {
-      setIsVerifyingPasscode(false);
-    }
-  }
-
-  const viewerUserId = details.viewerUserId;
-  const viewerQueueItem = viewerUserId
-    ? safeQueue.find((item) => item.userId === viewerUserId)
-    : undefined;
-  const canSkipTurn = viewerQueueItem?.status === "reading";
   const isSessionEnded = details.session.status === "ended";
   const currentReader = safeQueue.find((item) => item.status === "reading");
   const showPasscodePrompt = Boolean(
@@ -429,103 +261,18 @@ export function SessionRoomPageClient({
     (!details.isPasscodeProtected || details.isHost || isPasscodeVerified)
   );
 
-  async function handleAddParticipantToQueue() {
-    if (!selectedParticipantUserId) {
-      setAddParticipantToQueueError("Select a participant first.");
-      return;
-    }
-
-    setIsAddingParticipantToQueue(true);
-    setAddParticipantToQueueError(null);
-
-    try {
-      await addUserToQueue({
-        sessionId: sessionIdAsConvex,
-        targetUserId: selectedParticipantUserId as Id<"profiles">,
-      });
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Failed to add participant to queue.";
-      setAddParticipantToQueueError(message);
-    } finally {
-      setIsAddingParticipantToQueue(false);
-    }
-  }
-
   return (
     <main className="relative min-h-screen overflow-hidden">
       <ParticlesBackground />
-      <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
+      <div className={BG_GRADIENT} />
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
-        <div className="mb-5 animate-in fade-in slide-in-from-top-1 duration-500">
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/45 bg-white/62 p-2 backdrop-blur-md dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  router.push("/dashboard");
-                }}
-                className="w-fit"
-              >
-                <ArrowLeft className="mr-1.5 size-4" />
-                Back to Dashboard
-              </Button>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              {safeIsCurrentUserParticipant && !isSessionEnded ? (
-                <WordsQuickPanel
-                  sessionId={sessionIdAsConvex}
-                  isParticipant={safeIsCurrentUserParticipant}
-                />
-              ) : null}
-              {details.isHost && !isSessionEnded ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      disabled={isEndingSession}
-                    >
-                      End session
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>End this session?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        This will mark the session as ended and block further
-                        join/queue actions.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel disabled={isEndingSession}>
-                        Cancel
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        variant="destructive"
-                        disabled={isEndingSession}
-                        onClick={() => {
-                          void handleEndSession();
-                        }}
-                      >
-                        {isEndingSession ? "Ending..." : "End session"}
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : null}
-            </div>
-          </div>
-          {endSessionErrorMessage ? (
-            <p className="mt-2 text-xs text-red-500">
-              {endSessionErrorMessage}
-            </p>
-          ) : null}
-        </div>
+        <SessionTopBar
+          sessionId={sessionIdAsConvex}
+          isHost={details.isHost}
+          isParticipant={safeIsCurrentUserParticipant}
+          isSessionEnded={isSessionEnded}
+          cardShadow={cardShadow}
+        />
 
         {currentReader && !isSessionEnded ? (
           <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-500/20 bg-emerald-500/8 px-3 py-2 xl:hidden">
@@ -612,204 +359,20 @@ export function SessionRoomPageClient({
                 />
               </div>
 
-              <Card className="border-white/45 bg-white/68 backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-500 dark:border-white/15 dark:bg-white/8" style={{ boxShadow: cardShadow }}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="inline-flex items-center gap-2 text-base">
-                    <BookOpenText className="size-4 text-indigo-500" />
-                    Session Controls
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground">
-                    Join the room and manage your place in the reading queue.
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <JoinSessionButton
-                    isParticipant={safeIsCurrentUserParticipant}
-                    isSessionEnded={isSessionEnded}
-                    onJoin={handleJoin}
-                  />
-
-                  {showPasscodePrompt ? (
-                    <div className="space-y-3 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
-                      <p className="text-sm font-medium text-foreground">
-                        Session Passcode
-                      </p>
-                      <Input
-                        type="password"
-                        value={passcodeValue}
-                        onChange={(event) =>
-                          setPasscodeValue(event.target.value)
-                        }
-                        placeholder="Enter host passcode"
-                      />
-                      <Button
-                        type="button"
-                        onClick={() => {
-                          void handlePasscodeVerify();
-                        }}
-                        disabled={isVerifyingPasscode}
-                      >
-                        {isVerifyingPasscode
-                          ? "Verifying..."
-                          : "Unlock queue controls"}
-                      </Button>
-                      {passcodeErrorMessage ? (
-                        <p className="text-xs text-red-500">
-                          {passcodeErrorMessage}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {canUseQueueControls ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <JoinQueueButton
-                        isParticipant={safeIsCurrentUserParticipant}
-                        isInQueue={Boolean(viewerQueueItem)}
-                        isSessionEnded={details.session.status === "ended"}
-                        onJoin={handleJoinQueue}
-                        onLeave={handleLeaveQueue}
-                      />
-                      <SkipTurnButton
-                        canSkip={Boolean(canSkipTurn)}
-                        onSkip={handleSkipTurn}
-                      />
-                    </div>
-                  ) : null}
-
-                  {details.isHost && canUseQueueControls ? (
-                    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/40 bg-white/60 px-3 py-2.5 dark:border-white/[0.14] dark:bg-white/6">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Repeat queue</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          Automatically restart when everyone is done
-                        </p>
-                      </div>
-                      <Switch
-                        size="default"
-                        checked={Boolean(details.session.isRepeatEnabled)}
-                        onCheckedChange={() => {
-                          void toggleRepeatMode({ sessionId: sessionIdAsConvex });
-                        }}
-                      />
-                    </div>
-                  ) : null}
-
-                  {details.isHost && canUseQueueControls ? (
-                    <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
-                      <p className="text-xs font-medium text-foreground">
-                        Host: add participant to queue
-                      </p>
-                      {addableParticipants.length > 0 ? (
-                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                          <Select
-                            value={selectedParticipantUserId}
-                            onValueChange={setSelectedParticipantUserId}
-                          >
-                            <SelectTrigger className="flex-1">
-                              <SelectValue placeholder="Select participant" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {addableParticipants.map((participant) => (
-                                <SelectItem
-                                  key={participant.userId}
-                                  value={participant.userId}
-                                >
-                                  {participant.name}
-                                  {participant.role === "host" ? " (Host)" : ""}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            type="button"
-                            onClick={() => {
-                              void handleAddParticipantToQueue();
-                            }}
-                            disabled={isAddingParticipantToQueue}
-                            className="w-full sm:w-auto"
-                          >
-                            {isAddingParticipantToQueue
-                              ? "Adding..."
-                              : "Add to queue"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Every participant is already in queue.
-                        </p>
-                      )}
-                      {addParticipantToQueueError ? (
-                        <p className="text-xs text-red-500">
-                          {addParticipantToQueueError}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {isPushSupported && safeIsCurrentUserParticipant && !isSessionEnded ? (
-                    <div className="flex items-center gap-2 rounded-xl border border-white/40 bg-white/60 px-3 py-2 dark:border-white/[0.14] dark:bg-white/6">
-                      <span className="flex-1 text-xs text-muted-foreground">
-                        {pushPermission === "denied"
-                          ? "Notifications blocked in browser settings"
-                          : isPushSubscribed
-                            ? "Turn notifications are on"
-                            : "Get notified when it's your turn"}
-                      </span>
-                      {pushPermission !== "denied" && (
-                        <Button
-                          type="button"
-                          variant={isPushSubscribed ? "secondary" : "outline"}
-                          size="sm"
-                          onClick={() => {
-                            void (isPushSubscribed ? unsubscribeFromPush() : subscribeToPush());
-                          }}
-                          disabled={isPushLoading}
-                          className="shrink-0 text-xs"
-                        >
-                          {isPushLoading
-                            ? "..."
-                            : isPushSubscribed
-                              ? "Disable"
-                              : "Enable notifications"}
-                        </Button>
-                      )}
-                    </div>
-                  ) : null}
-
-                  {!details.isHost && safeIsCurrentUserParticipant ? (
-                    <div className="space-y-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => {
-                          void handleLeaveSession();
-                        }}
-                        disabled={isLeavingSession}
-                        className="w-full sm:w-auto"
-                      >
-                        {isLeavingSession ? "Leaving..." : "Leave session"}
-                      </Button>
-                      {leaveSessionErrorMessage ? (
-                        <p className="text-xs text-red-500">
-                          {leaveSessionErrorMessage}
-                        </p>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {isSessionEnded ? (
-                    <div className="space-y-1">
-                      <p className="text-xs text-muted-foreground">
-                        Queue controls are disabled for ended sessions.
-                      </p>
-                      <p className="text-xs text-muted-foreground/70">
-                        Auto-deletes in 7 days.
-                      </p>
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
+              <SessionControlsCard
+                sessionId={sessionIdAsConvex}
+                isHost={details.isHost}
+                isRepeatEnabled={Boolean(details.session.isRepeatEnabled)}
+                viewerUserId={details.viewerUserId}
+                safeIsCurrentUserParticipant={safeIsCurrentUserParticipant}
+                safeQueue={safeQueue}
+                safeParticipants={safeParticipants}
+                canUseQueueControls={canUseQueueControls}
+                isSessionEnded={isSessionEnded}
+                showPasscodePrompt={showPasscodePrompt}
+                onPasscodeVerified={() => setIsPasscodeVerified(true)}
+                cardShadow={cardShadow}
+              />
 
             </div>
 

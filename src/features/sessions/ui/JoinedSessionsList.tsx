@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
@@ -25,10 +26,6 @@ function formatDateLabel(timestamp: number) {
     day: "numeric",
     year: "numeric",
   }).format(date);
-}
-
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
 }
 
 export function JoinedSessionsList() {

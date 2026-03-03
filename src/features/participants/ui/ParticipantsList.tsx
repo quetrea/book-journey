@@ -1,12 +1,13 @@
 "use client";
 
 import { ChevronUp, Crown, Users } from "lucide-react";
-import { useState } from "react";
+import { memo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatTimeAgo, getInitials } from "@/lib/formatters";
 import type { ParticipantListItem } from "@/features/participants/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 
@@ -18,22 +19,11 @@ type ParticipantsListProps = {
   errorMessage: string | null;
 };
 
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
-
 function formatJoinedAgo(joinedAt: number) {
-  const diffMs = Date.now() - joinedAt;
-  const minutes = Math.max(0, Math.floor(diffMs / 60_000));
-
-  if (minutes < 1) return "Joined just now";
-  if (minutes < 60) return `Joined ${minutes}m ago`;
-
-  const hours = Math.floor(minutes / 60);
-  return `Joined ${hours}h ago`;
+  return `Joined ${formatTimeAgo(joinedAt)}`;
 }
 
-export function ParticipantsList({
+export const ParticipantsList = memo(function ParticipantsList({
   participants,
   isLoading,
   errorMessage,
@@ -185,4 +175,4 @@ export function ParticipantsList({
       )}
     </Card>
   );
-}
+});

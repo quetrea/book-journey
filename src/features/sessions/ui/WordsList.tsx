@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatTimeAgo, getInitials } from "@/lib/formatters";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -23,17 +24,6 @@ type WordsListProps = {
   isHost: boolean;
   bookTitle?: string;
 };
-
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
-
-function formatTimeAgo(ts: number) {
-  const diff = Math.floor((Date.now() - ts) / 60_000);
-  if (diff < 1) return "just now";
-  if (diff < 60) return `${diff}m ago`;
-  return `${Math.floor(diff / 60)}h ago`;
-}
 
 const LS_KEY = "words-view-mode";
 

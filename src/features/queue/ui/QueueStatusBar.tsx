@@ -1,11 +1,12 @@
 "use client";
 
 import { Lock, Mic2 } from "lucide-react";
-import { useState } from "react";
+import { memo, useMemo, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { getInitials } from "@/lib/formatters";
 import type { QueueItem } from "@/features/queue/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 
@@ -17,11 +18,7 @@ type QueueStatusBarProps = {
   onAdvance?: () => Promise<void>;
 };
 
-function getInitials(name: string) {
-  return name.slice(0, 1).toUpperCase();
-}
-
-export function QueueStatusBar({
+export const QueueStatusBar = memo(function QueueStatusBar({
   queue,
   viewerUserId,
   isPasscodeProtected,
@@ -40,13 +37,13 @@ export function QueueStatusBar({
       setIsAdvancing(false);
     }
   }
-  const currentReader = queue.find((item) => item.status === "reading");
-  const nextReader = queue.find((item) => item.status === "waiting");
-  const viewerQueueItem = viewerUserId
-    ? queue.find((item) => item.userId === viewerUserId)
-    : undefined;
-  const totalInQueue = queue.filter((item) => item.status !== "done").length;
-  const isViewerReading = viewerQueueItem?.status === "reading";
+  const { currentReader, nextReader, viewerQueueItem, totalInQueue, isViewerReading } = useMemo(() => {
+    const cr = queue.find((item) => item.status === "reading");
+    const nr = queue.find((item) => item.status === "waiting");
+    const vqi = viewerUserId ? queue.find((item) => item.userId === viewerUserId) : undefined;
+    const total = queue.filter((item) => item.status !== "done").length;
+    return { currentReader: cr, nextReader: nr, viewerQueueItem: vqi, totalInQueue: total, isViewerReading: vqi?.status === "reading" };
+  }, [queue, viewerUserId]);
 
   if (!currentReader) {
     return (
@@ -174,4 +171,4 @@ export function QueueStatusBar({
       </CardContent>
     </Card>
   );
-}
+});
