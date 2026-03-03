@@ -152,7 +152,7 @@ export default function DashboardPage() {
                   variant="secondary"
                   className="hidden sm:inline-flex rounded-full px-2 py-0 text-[11px]"
                 >
-                  Discord
+                  {profile?.isGuest ? "Guest" : "Discord"}
                 </Badge>
               </div>
             </div>
@@ -161,7 +161,7 @@ export default function DashboardPage() {
           <Separator className="my-5 bg-white/55 dark:bg-white/10" />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <SessionsDashboardSection />
+            <SessionsDashboardSection isGuest={Boolean(profile?.isGuest)} />
 
             <Card
               className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-white/45 bg-white/66 backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/7"

@@ -20,6 +20,7 @@ export type SessionDetailsPayload = {
   hostName?: string;
   hostImage?: string;
   viewerUserId?: string;
+  viewerIsGuest?: boolean;
   isHost: boolean;
   isPasscodeProtected: boolean;
   hasPasscodeAccess: boolean;

@@ -291,6 +291,22 @@ export function SessionRoomPageClient({
     return null;
   }
 
+  // Guests have no reason to view ended sessions
+  if (sessionDetails.viewerIsGuest && sessionDetails.session.status === "ended") {
+    return (
+      <main className="relative min-h-screen overflow-hidden">
+        <ParticlesBackground />
+        <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_48%_at_50%_0%,rgba(88,101,242,0.34),transparent_72%),linear-gradient(145deg,rgba(165,180,252,0.24),rgba(147,197,253,0.16)_45%,rgba(244,114,182,0.12))] dark:bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.5),transparent_72%),linear-gradient(145deg,rgba(15,23,42,0.75),rgba(49,46,129,0.48)_45%,rgba(76,29,149,0.36))]" />
+        <div className="mx-auto flex min-h-screen w-full max-w-sm flex-col items-center justify-center gap-4 px-4">
+          <p className="text-sm text-muted-foreground">This session has ended.</p>
+          <Button asChild variant="outline">
+            <Link href="/">Back to home</Link>
+          </Button>
+        </div>
+      </main>
+    );
+  }
+
   const details = sessionDetails;
 
   async function handleJoin() {

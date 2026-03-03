@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, ChevronDown, ChevronUp, Check, Copy, Download, Trash2 } from "lucide-react";
+import { BookMarked, Check, Copy, Download, Search, Trash2 } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -53,10 +53,8 @@ export function WordsList({
   const [isAdding, setIsAdding] = useState(false);
   const [showContextInput, setShowContextInput] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(3);
+  const [search, setSearch] = useState("");
   const wordInputRef = useRef<HTMLInputElement>(null);
-
-  const PAGE_SIZE = 3;
 
   function handleCopy(id: string, word: string, context?: string) {
     const text = context ? `${word}\n"${context}"` : word;
@@ -147,6 +145,14 @@ export function WordsList({
     );
   }
 
+  const filtered = search.trim()
+    ? words.filter(
+        (w) =>
+          w.word.toLowerCase().includes(search.toLowerCase()) ||
+          w.context?.toLowerCase().includes(search.toLowerCase()),
+      )
+    : words;
+
   return (
     <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
@@ -180,79 +186,72 @@ export function WordsList({
           </p>
         ) : (
           <div className="space-y-2">
-            {words.slice(0, visibleCount).map((entry) => {
-              const canDelete = isHost || entry.userId === viewerUserId;
-
-              return (
-                <div
-                  key={entry._id}
-                  className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
-                >
-                  <Avatar size="sm" className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15">
-                    <AvatarImage src={entry.userImage ?? undefined} alt={entry.userName} />
-                    <AvatarFallback>{getInitials(entry.userName)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {entry.word}
-                    </p>
-                    {entry.context ? (
-                      <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
-                        &ldquo;{entry.context}&rdquo;
-                      </p>
-                    ) : null}
-                    <p className="mt-0.5 text-[11px] text-muted-foreground/60">
-                      {entry.userName} · {formatTimeAgo(entry.createdAt)}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleCopy(entry._id, entry.word, entry.context)}
-                    className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                  >
-                    {copiedId === entry._id
-                      ? <Check className="size-3.5 text-emerald-500" />
-                      : <Copy className="size-3.5" />}
-                  </button>
-                  {canDelete ? (
-                    <button
-                      type="button"
-                      onClick={() => { void removeWord({ wordId: entry._id }); }}
-                      className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  ) : null}
-                </div>
-              );
-            })}
-
-            {/* Show more / Show less */}
-            {words.length > PAGE_SIZE && (
-              <div className="flex items-center gap-2 pt-0.5">
-                {visibleCount < words.length && (
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
-                  >
-                    <ChevronDown className="size-3.5" />
-                    Show {Math.min(PAGE_SIZE, words.length - visibleCount)} more
-                    <span className="text-muted-foreground/40">· {words.length - visibleCount} hidden</span>
-                  </button>
-                )}
-                {visibleCount > PAGE_SIZE && (
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount(PAGE_SIZE)}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
-                  >
-                    <ChevronUp className="size-3.5" />
-                    Show less
-                  </button>
-                )}
+            {words.length > 3 && (
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search words..."
+                  className="h-8 pl-7 text-xs"
+                />
               </div>
             )}
+
+            <div className="max-h-104 space-y-2 overflow-y-auto pr-0.5">
+              {filtered.length === 0 && search ? (
+                <p className="py-2 text-xs text-muted-foreground">
+                  No words match &ldquo;{search}&rdquo;
+                </p>
+              ) : (
+                filtered.map((entry) => {
+                  const canDelete = isHost || entry.userId === viewerUserId;
+
+                  return (
+                    <div
+                      key={entry._id}
+                      className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
+                    >
+                      <Avatar size="sm" className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15">
+                        <AvatarImage src={entry.userImage ?? undefined} alt={entry.userName} />
+                        <AvatarFallback>{getInitials(entry.userName)}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-foreground">
+                          {entry.word}
+                        </p>
+                        {entry.context ? (
+                          <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
+                            &ldquo;{entry.context}&rdquo;
+                          </p>
+                        ) : null}
+                        <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+                          {entry.userName} · {formatTimeAgo(entry.createdAt)}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(entry._id, entry.word, entry.context)}
+                        className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                      >
+                        {copiedId === entry._id
+                          ? <Check className="size-3.5 text-emerald-500" />
+                          : <Copy className="size-3.5" />}
+                      </button>
+                      {canDelete ? (
+                        <button
+                          type="button"
+                          onClick={() => { void removeWord({ wordId: entry._id }); }}
+                          className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </button>
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
         )}
 

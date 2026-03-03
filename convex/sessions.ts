@@ -361,6 +361,7 @@ export const getSessionByIdServer = query({
       hostName: host?.name,
       hostImage: host?.image,
       viewerUserId: viewer?._id,
+      viewerIsGuest: Boolean(viewer?.isGuest),
       isHost,
       isPasscodeProtected,
       hasPasscodeAccess,
