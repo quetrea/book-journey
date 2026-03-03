@@ -120,9 +120,9 @@ export function WordsList({
       setWordInput("");
       setContextInput("");
       setShowContextInput(false);
-      wordInputRef.current?.focus();
     } finally {
       setIsAdding(false);
+      setTimeout(() => wordInputRef.current?.focus(), 0);
     }
   }
 
