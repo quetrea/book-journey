@@ -38,7 +38,7 @@ export default defineSchema({
   participants: defineTable({
     sessionId: v.id("sessions"),
     userId: v.id("profiles"),
-    role: v.union(v.literal("host"), v.literal("reader")),
+    role: v.union(v.literal("host"), v.literal("moderator"), v.literal("reader")),
     joinedAt: v.number(),
   })
     .index("by_sessionId", ["sessionId"])

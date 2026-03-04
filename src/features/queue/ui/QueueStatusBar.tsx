@@ -14,7 +14,7 @@ type QueueStatusBarProps = {
   queue: QueueItem[];
   viewerUserId?: string;
   isPasscodeProtected: boolean;
-  isHost?: boolean;
+  canManageQueue?: boolean;
   onAdvance?: () => Promise<void>;
 };
 
@@ -22,7 +22,7 @@ export const QueueStatusBar = memo(function QueueStatusBar({
   queue,
   viewerUserId,
   isPasscodeProtected,
-  isHost,
+  canManageQueue,
   onAdvance,
 }: QueueStatusBarProps) {
   const { cardShadow, orb } = useThemeGlow();
@@ -61,7 +61,7 @@ export const QueueStatusBar = memo(function QueueStatusBar({
                 Protected
               </span>
             )}
-            {isHost && totalInQueue > 0 && onAdvance && (
+            {canManageQueue && totalInQueue > 0 && onAdvance && (
               <Button
                 type="button"
                 size="sm"
@@ -154,7 +154,7 @@ export const QueueStatusBar = memo(function QueueStatusBar({
         )}
 
         {/* Host: advance queue */}
-        {isHost && onAdvance && (
+        {canManageQueue && onAdvance && (
           <div className={`flex justify-end ${nextReader ? "mt-2.5" : "mt-3 border-t border-black/6 pt-2.5 dark:border-white/8"}`}>
             <Button
               type="button"

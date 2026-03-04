@@ -2,12 +2,13 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 
 export function useSessionToasts(
-  participants: Array<{ userId: string; name: string }> | undefined,
+  participants: Array<{ userId: string; name: string; role?: string }> | undefined,
   queue: Array<{ userId: string; name: string; status: string }> | undefined,
   viewerUserId: string | null | undefined,
 ) {
   const prevParticipantIds = useRef<Set<string> | null>(null);
   const prevReaderId = useRef<string | null | undefined>(undefined);
+  const prevViewerRole = useRef<string | null>(null);
   const isInitialLoad = useRef(true);
 
   // Detect new participants
@@ -28,6 +29,22 @@ export function useSessionToasts(
       }
     }
     prevParticipantIds.current = currentIds;
+  }, [participants, viewerUserId]);
+
+  // Detect viewer role change (promote/demote)
+  useEffect(() => {
+    if (participants === undefined || !viewerUserId) return;
+    const viewer = participants.find((p) => p.userId === viewerUserId);
+    const currentRole = viewer?.role ?? null;
+
+    if (prevViewerRole.current !== null && currentRole !== null && currentRole !== prevViewerRole.current) {
+      if (currentRole === "moderator") {
+        toast.success("You've been promoted to Moderator");
+      } else if (currentRole === "reader" && prevViewerRole.current === "moderator") {
+        toast("Your role has been changed to Reader");
+      }
+    }
+    prevViewerRole.current = currentRole;
   }, [participants, viewerUserId]);
 
   // Detect reader change

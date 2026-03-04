@@ -3,8 +3,6 @@ import {
   BookOpen,
   EyeOff,
   Link2,
-  ListOrdered,
-  Share2,
   ShieldCheck,
   Users,
   Zap,

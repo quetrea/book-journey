@@ -9,6 +9,7 @@ import {
   upsertViewerProfile,
 } from "./lib/authProfile";
 import { grantPasscodeAccess, hasActivePasscodeGrant } from "./lib/passcodeAccess";
+import { assertHost, assertHostOrModerator } from "./lib/permissions";
 
 function normalizeOptional(value: string | undefined) {
   const trimmed = value?.trim();
@@ -346,11 +347,14 @@ export const getSessionByIdServer = query({
     const viewerParticipant = viewer
       ? await getParticipantBySessionAndUser(ctx, args.sessionId, viewer._id)
       : null;
-    const isHost = viewerParticipant?.role === "host";
+    const viewerRole = (viewerParticipant?.role as "host" | "moderator" | "reader") ?? null;
+    const isHost = viewerRole === "host";
+    const isModerator = viewerRole === "moderator";
     const isPasscodeProtected = Boolean(session.hostPasscode);
     const hasPasscodeAccess =
       !isPasscodeProtected ||
       isHost ||
+      isModerator ||
       Boolean(
         viewer &&
           (await hasActivePasscodeGrant(ctx, args.sessionId, viewer._id)),
@@ -363,6 +367,8 @@ export const getSessionByIdServer = query({
       viewerUserId: viewer?._id,
       viewerIsGuest: Boolean(viewer?.isGuest),
       isHost,
+      isModerator,
+      viewerRole,
       isPasscodeProtected,
       hasPasscodeAccess,
     };
@@ -388,10 +394,12 @@ export const joinSessionServer = mutation({
       return existing;
     }
 
+    const role = session.createdBy === viewer._id ? "host" : "reader";
+
     const participantId = await ctx.db.insert("participants", {
       sessionId: args.sessionId,
       userId: viewer._id,
-      role: session.createdBy === viewer._id ? "host" : "reader",
+      role,
       joinedAt: Date.now(),
     });
 
@@ -399,6 +407,30 @@ export const joinSessionServer = mutation({
 
     if (!participant) {
       throw new Error("Failed to create participant.");
+    }
+
+    // Auto-queue: non-host participants are automatically added to queue
+    if (role !== "host" && session.status === "active") {
+      const existingQueueItem = await getQueueItemBySessionAndUser(
+        ctx,
+        args.sessionId,
+        viewer._id,
+      );
+
+      if (!existingQueueItem) {
+        const queue = await getQueueItemsByPosition(ctx, args.sessionId);
+        const hasActiveReaderOrWaiting = queue.some(
+          (item) => item.status === "reading" || item.status === "waiting",
+        );
+
+        await ctx.db.insert("queueItems", {
+          sessionId: args.sessionId,
+          userId: viewer._id,
+          position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
+          status: hasActiveReaderOrWaiting ? "waiting" : "reading",
+          joinedAt: Date.now(),
+        });
+      }
     }
 
     return participant;
@@ -447,8 +479,12 @@ export const listParticipantsServer = query({
       })
       .filter((item): item is NonNullable<typeof item> => item !== null)
       .sort((a, b) => {
-        if (a.role !== b.role) {
-          return a.role === "host" ? -1 : 1;
+        const roleOrder: Record<string, number> = { host: 0, moderator: 1, reader: 2 };
+        const aOrder = roleOrder[a.role] ?? 99;
+        const bOrder = roleOrder[b.role] ?? 99;
+
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
         }
 
         return a.joinedAt - b.joinedAt;
@@ -671,12 +707,12 @@ export const listJoinedSessionsServer = query({
       .filter((q) => q.eq(q.field("userId"), viewer._id))
       .collect();
 
-    const readerParticipations = participations.filter(
-      (p) => p.role === "reader",
+    const nonHostParticipations = participations.filter(
+      (p) => p.role !== "host",
     );
 
     const sessions = await Promise.all(
-      readerParticipations.map(async (p) => {
+      nonHostParticipations.map(async (p) => {
         const session = await ctx.db.get(p.sessionId);
         if (!session) return null;
         const host = await ctx.db.get(session.createdBy);
@@ -692,6 +728,129 @@ export const listJoinedSessionsServer = query({
     return sessions
       .filter((s): s is NonNullable<typeof s> => s !== null)
       .sort((a, b) => b.joinedAt - a.joinedAt);
+  },
+});
+
+export const updateSessionServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    bookTitle: v.optional(v.string()),
+    authorName: v.optional(v.string()),
+    bookCoverUrl: v.optional(v.string()),
+    title: v.optional(v.string()),
+    synopsis: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+
+    if (session.status === "ended") {
+      throw new Error("Cannot edit an ended session.");
+    }
+
+    await assertHostOrModerator(ctx, args.sessionId, viewer._id);
+
+    const updates: Record<string, string | undefined> = {};
+
+    if (args.bookTitle !== undefined) {
+      const trimmed = args.bookTitle.trim();
+      if (!trimmed) throw new Error("Book title cannot be empty.");
+      updates.bookTitle = trimmed;
+    }
+    if (args.authorName !== undefined) updates.authorName = normalizeOptional(args.authorName);
+    if (args.bookCoverUrl !== undefined) updates.bookCoverUrl = normalizeOptional(args.bookCoverUrl);
+    if (args.title !== undefined) updates.title = normalizeOptional(args.title);
+    if (args.synopsis !== undefined) updates.synopsis = normalizeOptional(args.synopsis);
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(args.sessionId, updates);
+    }
+
+    return args.sessionId;
+  },
+});
+
+export const setParticipantRoleServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    targetUserId: v.id("profiles"),
+    newRole: v.union(v.literal("moderator"), v.literal("reader")),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+
+    if (session.status === "ended") {
+      throw new Error("Cannot change roles in an ended session.");
+    }
+
+    await assertHost(ctx, args.sessionId, viewer._id);
+
+    const target = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      args.targetUserId,
+    );
+
+    if (!target) {
+      throw new Error("Target user is not a participant.");
+    }
+
+    if (target.role === "host") {
+      throw new Error("Cannot change host role.");
+    }
+
+    await ctx.db.patch(target._id, { role: args.newRole });
+    return target._id;
+  },
+});
+
+export const kickParticipantServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    targetUserId: v.id("profiles"),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+
+    if (session.status === "ended") {
+      throw new Error("Cannot kick from an ended session.");
+    }
+
+    await assertHostOrModerator(ctx, args.sessionId, viewer._id);
+
+    const target = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      args.targetUserId,
+    );
+
+    if (!target) {
+      throw new Error("Target user is not a participant.");
+    }
+
+    if (target.role === "host") {
+      throw new Error("Cannot kick the host.");
+    }
+
+    // If kicker is moderator, they cannot kick other moderators
+    const kickerParticipant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      viewer._id,
+    );
+    if (kickerParticipant?.role === "moderator" && target.role === "moderator") {
+      throw new Error("Moderators cannot kick other moderators.");
+    }
+
+    // Remove from queue first
+    await removeUserFromQueueForSession(ctx, args.sessionId, args.targetUserId);
+
+    // Remove participant
+    await ctx.db.delete(target._id);
+
+    return target._id;
   },
 });
 

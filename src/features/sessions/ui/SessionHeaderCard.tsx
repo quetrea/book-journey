@@ -1,11 +1,14 @@
 "use client";
 
 import { memo, useEffect, useMemo, useState } from "react";
+import { useMutation } from "convex/react";
+import { toast } from "sonner";
 import {
   BookOpenText,
   Clock3,
   Copy,
   Info,
+  Pencil,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -21,9 +24,13 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { getInitials } from "@/lib/formatters";
 import type { SessionListItem } from "@/features/sessions/types";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
+import { api } from "../../../../convex/_generated/api";
+import type { Id } from "../../../../convex/_generated/dataModel";
 
 type SessionHeaderCardProps = {
   session: SessionListItem;
@@ -31,6 +38,10 @@ type SessionHeaderCardProps = {
   hostImage?: string;
   memberCount: number;
   bookCoverUrl?: string;
+  isHost?: boolean;
+  isModerator?: boolean;
+  sessionId?: Id<"sessions">;
+  isSessionEnded?: boolean;
 };
 
 function formatElapsed(ms: number) {
@@ -70,11 +81,59 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
   hostImage,
   memberCount,
   bookCoverUrl,
+  isHost,
+  isModerator,
+  sessionId,
+  isSessionEnded,
 }: SessionHeaderCardProps) {
   const [now, setNow] = useState(() => Date.now());
   const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const { cardShadow } = useThemeGlow();
+
+  const canEdit = (isHost || isModerator) && !isSessionEnded && sessionId;
+  const updateSession = useMutation(api.sessions.updateSessionServer);
+
+  const [editBookTitle, setEditBookTitle] = useState(session.bookTitle);
+  const [editAuthorName, setEditAuthorName] = useState(session.authorName ?? "");
+  const [editTitle, setEditTitle] = useState(session.title ?? "");
+  const [editSynopsis, setEditSynopsis] = useState(session.synopsis ?? "");
+  const [editBookCoverUrl, setEditBookCoverUrl] = useState(session.bookCoverUrl ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (isEditOpen) {
+      setEditBookTitle(session.bookTitle);
+      setEditAuthorName(session.authorName ?? "");
+      setEditTitle(session.title ?? "");
+      setEditSynopsis(session.synopsis ?? "");
+      setEditBookCoverUrl(session.bookCoverUrl ?? "");
+    }
+  }, [isEditOpen, session]);
+
+  async function handleSaveEdit() {
+    if (!sessionId) return;
+    if (!editBookTitle.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await updateSession({
+        sessionId,
+        bookTitle: editBookTitle,
+        authorName: editAuthorName || undefined,
+        title: editTitle || undefined,
+        synopsis: editSynopsis || undefined,
+        bookCoverUrl: editBookCoverUrl || undefined,
+      });
+      toast.success("Session updated");
+      setIsEditOpen(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update session");
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
   useEffect(() => {
     if (session.status !== "active") {
@@ -126,6 +185,84 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
               <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
                 Ended
               </Badge>
+            )}
+            {canEdit && (
+              <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="ghost" size="icon" className="size-7 text-muted-foreground/50 hover:text-foreground">
+                    <Pencil className="size-3.5" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle className="flex items-center gap-2 text-base">
+                      <Pencil className="size-4 text-indigo-500" />
+                      Edit session
+                    </DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Book title *
+                      </label>
+                      <Input
+                        value={editBookTitle}
+                        onChange={(e) => setEditBookTitle(e.target.value)}
+                        placeholder="Book title"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Author
+                      </label>
+                      <Input
+                        value={editAuthorName}
+                        onChange={(e) => setEditAuthorName(e.target.value)}
+                        placeholder="Author name"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Session title
+                      </label>
+                      <Input
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        placeholder="Session title"
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Synopsis
+                      </label>
+                      <Textarea
+                        value={editSynopsis}
+                        onChange={(e) => setEditSynopsis(e.target.value)}
+                        placeholder="Synopsis"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Book cover URL
+                      </label>
+                      <Input
+                        value={editBookCoverUrl}
+                        onChange={(e) => setEditBookCoverUrl(e.target.value)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      className="w-full"
+                      onClick={() => void handleSaveEdit()}
+                      disabled={isSaving || !editBookTitle.trim()}
+                    >
+                      {isSaving ? "Saving..." : "Save changes"}
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             )}
             <Dialog open={isInfoOpen} onOpenChange={setIsInfoOpen}>
               <DialogTrigger asChild>

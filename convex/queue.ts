@@ -160,6 +160,12 @@ async function assertPasscodeGrantForQueueMutation(
     return;
   }
 
+  // Moderators bypass passcode like hosts
+  const participant = await getParticipantBySessionAndUser(ctx, sessionId, viewerId);
+  if (participant?.role === "moderator") {
+    return;
+  }
+
   const hasGrant = await hasActivePasscodeGrant(ctx, sessionId, viewerId);
 
   if (!hasGrant) {
@@ -370,8 +376,8 @@ export const advanceQueueServer = mutation({
       viewer._id,
     );
 
-    if (participant.role !== "host") {
-      throw new Error("Only host can advance queue.");
+    if (participant.role !== "host" && participant.role !== "moderator") {
+      throw new Error("Only host or moderator can advance queue.");
     }
 
     const queue = await getQueueItemsByPosition(ctx, args.sessionId);
@@ -451,8 +457,8 @@ export const addUserToQueueServer = mutation({
       actor._id,
     );
 
-    if (actorParticipant.role !== "host") {
-      throw new Error("Only host can add participants to queue.");
+    if (actorParticipant.role !== "host" && actorParticipant.role !== "moderator") {
+      throw new Error("Only host or moderator can add participants to queue.");
     }
 
     const targetParticipant = await getParticipantBySessionAndUser(
@@ -519,8 +525,8 @@ export const removeFromQueueServer = mutation({
       actor._id,
     );
 
-    if (actorParticipant.role !== "host") {
-      throw new Error("Only host can remove participants from queue.");
+    if (actorParticipant.role !== "host" && actorParticipant.role !== "moderator") {
+      throw new Error("Only host or moderator can remove participants from queue.");
     }
 
     const existing = await ctx.db
@@ -594,5 +600,51 @@ export const getQueueServer = query({
         joinedAt: item.joinedAt,
       };
     });
+  },
+});
+
+export const reorderQueueServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    orderedUserIds: v.array(v.id("profiles")),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    assertSessionActive(session);
+
+    const viewer = await upsertViewerProfile(ctx);
+    const participant = await getParticipantBySessionAndUserOrThrow(
+      ctx,
+      args.sessionId,
+      viewer._id,
+    );
+
+    if (participant.role !== "host" && participant.role !== "moderator") {
+      throw new Error("Only host or moderator can reorder queue.");
+    }
+
+    const queue = await getQueueItemsByPosition(ctx, args.sessionId);
+
+    if (args.orderedUserIds.length !== queue.length) {
+      throw new Error("Reorder list must contain all queue members.");
+    }
+
+    const queueByUser = new Map(
+      queue.map((item) => [item.userId.toString(), item]),
+    );
+
+    for (let i = 0; i < args.orderedUserIds.length; i++) {
+      const item = queueByUser.get(args.orderedUserIds[i].toString());
+
+      if (!item) {
+        throw new Error("User not found in queue.");
+      }
+
+      if (item.position !== i) {
+        await ctx.db.patch(item._id, { position: i });
+      }
+    }
+
+    return true;
   },
 });

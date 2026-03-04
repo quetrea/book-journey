@@ -4,7 +4,8 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { UsersRound } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,6 +45,9 @@ export function SessionRoomPageClient({
   const joinSession = useMutation(api.sessions.joinSessionServer);
   const advanceQueue = useMutation(api.queue.advanceQueueServer);
   const removeFromQueue = useMutation(api.queue.removeFromQueueServer);
+  const reorderQueue = useMutation(api.queue.reorderQueueServer);
+  const setParticipantRole = useMutation(api.sessions.setParticipantRoleServer);
+  const kickParticipant = useMutation(api.sessions.kickParticipantServer);
 
   const sessionIdAsConvex = sessionId as Id<"sessions">;
 
@@ -58,6 +62,17 @@ export function SessionRoomPageClient({
   const queue = useQuery(api.queue.getQueueServer, queryArgs);
 
   useSessionToasts(participants, queue, sessionDetails?.viewerUserId);
+
+  // Detect if viewer was kicked (was participant, now isn't)
+  const wasParticipant = useRef(false);
+  useEffect(() => {
+    if (isCurrentUserParticipant === undefined) return;
+    if (wasParticipant.current && !isCurrentUserParticipant) {
+      toast.error("You have been removed from this session");
+      router.replace("/dashboard");
+    }
+    wasParticipant.current = isCurrentUserParticipant;
+  }, [isCurrentUserParticipant, router]);
 
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
 
@@ -253,15 +268,16 @@ export function SessionRoomPageClient({
 
   const isSessionEnded = details.session.status === "ended";
   const currentReader = safeQueue.find((item) => item.status === "reading");
+  const isHostOrMod = details.isHost || details.isModerator;
   const showPasscodePrompt = Boolean(
     !isSessionEnded &&
     details.isPasscodeProtected &&
-    !details.isHost &&
+    !isHostOrMod &&
     !isPasscodeVerified
   );
   const canUseQueueControls = Boolean(
     !isSessionEnded &&
-    (!details.isPasscodeProtected || details.isHost || isPasscodeVerified)
+    (!details.isPasscodeProtected || isHostOrMod || isPasscodeVerified)
   );
 
   return (
@@ -303,6 +319,23 @@ export function SessionRoomPageClient({
                   participants={safeParticipants}
                   isLoading={false}
                   errorMessage={null}
+                  isHost={details.isHost}
+                  isModerator={details.isModerator}
+                  viewerUserId={details.viewerUserId}
+                  isSessionEnded={isSessionEnded}
+                  onSetRole={(targetUserId, newRole) => {
+                    void setParticipantRole({
+                      sessionId: sessionIdAsConvex,
+                      targetUserId: targetUserId as Id<"profiles">,
+                      newRole,
+                    });
+                  }}
+                  onKick={(targetUserId) => {
+                    void kickParticipant({
+                      sessionId: sessionIdAsConvex,
+                      targetUserId: targetUserId as Id<"profiles">,
+                    });
+                  }}
                 />
               </div>
             </div>
@@ -319,7 +352,7 @@ export function SessionRoomPageClient({
                     queue={safeQueue}
                     viewerUserId={details.viewerUserId}
                     isPasscodeProtected={details.isPasscodeProtected}
-                    isHost={details.isHost && canUseQueueControls}
+                    canManageQueue={isHostOrMod && canUseQueueControls}
                     onAdvance={handleAdvanceQueue}
                   />
                   <div className="animate-in fade-in slide-in-from-right-2 duration-500">
@@ -327,11 +360,18 @@ export function SessionRoomPageClient({
                       queue={safeQueue}
                       isLoading={false}
                       errorMessage={null}
-                      isHost={details.isHost}
+                      canManageQueue={isHostOrMod}
+                      canReorder={isHostOrMod && !isSessionEnded}
                       onRemove={(userId) => {
                         void removeFromQueue({
                           sessionId: sessionIdAsConvex,
                           targetUserId: userId as Id<"profiles">,
+                        });
+                      }}
+                      onReorder={(orderedUserIds) => {
+                        void reorderQueue({
+                          sessionId: sessionIdAsConvex,
+                          orderedUserIds: orderedUserIds.map((id) => id as Id<"profiles">),
                         });
                       }}
                     />
@@ -359,12 +399,17 @@ export function SessionRoomPageClient({
                   hostImage={details.hostImage}
                   memberCount={safeParticipants.length}
                   bookCoverUrl={details.session.bookCoverUrl}
+                  isHost={details.isHost}
+                  isModerator={details.isModerator}
+                  sessionId={sessionIdAsConvex}
+                  isSessionEnded={isSessionEnded}
                 />
               </div>
 
               <SessionControlsCard
                 sessionId={sessionIdAsConvex}
                 isHost={details.isHost}
+                isModerator={details.isModerator}
                 isRepeatEnabled={Boolean(details.session.isRepeatEnabled)}
                 viewerUserId={details.viewerUserId}
                 safeIsCurrentUserParticipant={safeIsCurrentUserParticipant}

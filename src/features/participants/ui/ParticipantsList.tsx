@@ -1,11 +1,29 @@
 "use client";
 
-import { ChevronUp, Crown, Users } from "lucide-react";
+import { ChevronUp, Crown, MoreVertical, Shield, UserMinus, Users } from "lucide-react";
 import { memo, useState } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatTimeAgo, getInitials } from "@/lib/formatters";
 import type { ParticipantListItem } from "@/features/participants/types";
@@ -17,19 +35,58 @@ type ParticipantsListProps = {
   participants: ParticipantListItem[];
   isLoading: boolean;
   errorMessage: string | null;
+  isHost?: boolean;
+  isModerator?: boolean;
+  viewerUserId?: string;
+  isSessionEnded?: boolean;
+  onSetRole?: (targetUserId: string, newRole: "moderator" | "reader") => void;
+  onKick?: (targetUserId: string) => void;
 };
 
 function formatJoinedAgo(joinedAt: number) {
   return `Joined ${formatTimeAgo(joinedAt)}`;
 }
 
+function RoleBadge({ role }: { role: ParticipantListItem["role"] }) {
+  if (role === "host") {
+    return (
+      <Badge className="rounded-full bg-indigo-500/90 px-2.5 text-[11px] text-white hover:bg-indigo-500/90">
+        <Crown className="mr-1 size-3" />
+        Host
+      </Badge>
+    );
+  }
+
+  if (role === "moderator") {
+    return (
+      <Badge className="rounded-full bg-amber-500/90 px-2.5 text-[11px] text-white hover:bg-amber-500/90">
+        <Shield className="mr-1 size-3" />
+        Mod
+      </Badge>
+    );
+  }
+
+  return (
+    <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
+      Reader
+    </Badge>
+  );
+}
+
 export const ParticipantsList = memo(function ParticipantsList({
   participants,
   isLoading,
   errorMessage,
+  isHost,
+  isModerator,
+  viewerUserId,
+  isSessionEnded,
+  onSetRole,
+  onKick,
 }: ParticipantsListProps) {
   const { cardShadow } = useThemeGlow();
   const [isExpanded, setIsExpanded] = useState(true);
+  const [kickTarget, setKickTarget] = useState<{ userId: string; name: string } | null>(null);
 
   const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
 
@@ -86,6 +143,15 @@ export const ParticipantsList = memo(function ParticipantsList({
   const visibleAvatars = participants.slice(0, MAX_VISIBLE_AVATARS);
   const overflowCount = participants.length - MAX_VISIBLE_AVATARS;
 
+  function canShowMenu(participant: ParticipantListItem) {
+    if (isSessionEnded) return false;
+    if (participant.userId === viewerUserId) return false;
+    if (participant.role === "host") return false;
+    if (isHost) return true;
+    if (isModerator && participant.role === "reader") return true;
+    return false;
+  }
+
   return (
     <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
@@ -117,8 +183,12 @@ export const ParticipantsList = memo(function ParticipantsList({
                 <Avatar
                   key={p.userId}
                   size="sm"
-                  title={`${p.name}${p.role === "host" ? " (Host)" : ""}`}
-                  className="ring-2 ring-white/90 dark:ring-black/50"
+                  title={`${p.name}${p.role === "host" ? " (Host)" : p.role === "moderator" ? " (Mod)" : ""}`}
+                  className={`ring-2 ${
+                    p.role === "moderator"
+                      ? "ring-amber-400/60 dark:ring-amber-500/40"
+                      : "ring-white/90 dark:ring-black/50"
+                  }`}
                 >
                   <AvatarImage src={p.image ?? undefined} alt={p.name} />
                   <AvatarFallback className="text-[10px]">{getInitials(p.name)}</AvatarFallback>
@@ -142,7 +212,9 @@ export const ParticipantsList = memo(function ParticipantsList({
               className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 ${
                 participant.role === "host"
                   ? "border-indigo-300/60 bg-indigo-50/60 dark:border-indigo-400/35 dark:bg-indigo-500/10"
-                  : "border-white/35 bg-white/56 dark:border-white/12 dark:bg-white/6"
+                  : participant.role === "moderator"
+                    ? "border-amber-300/60 bg-amber-50/60 dark:border-amber-400/35 dark:bg-amber-500/10"
+                    : "border-white/35 bg-white/56 dark:border-white/12 dark:bg-white/6"
               }`}
             >
               <div className="flex min-w-0 items-center gap-2.5">
@@ -159,20 +231,97 @@ export const ParticipantsList = memo(function ParticipantsList({
                 </div>
               </div>
 
-              {participant.role === "host" ? (
-                <Badge className="rounded-full bg-indigo-500/90 px-2.5 text-[11px] text-white hover:bg-indigo-500/90">
-                  <Crown className="mr-1 size-3" />
-                  Host
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="rounded-full px-2.5 text-[11px]">
-                  Reader
-                </Badge>
-              )}
+              <div className="flex items-center gap-1.5">
+                <RoleBadge role={participant.role} />
+
+                {canShowMenu(participant) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="size-6 shrink-0 rounded-full text-muted-foreground/40 hover:text-foreground"
+                      >
+                        <MoreVertical className="size-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      {isHost && onSetRole && (
+                        <>
+                          {participant.role === "reader" && (
+                            <DropdownMenuItem
+                              onClick={() => onSetRole(participant.userId, "moderator")}
+                            >
+                              <Shield className="mr-2 size-4 text-amber-500" />
+                              Promote to Moderator
+                            </DropdownMenuItem>
+                          )}
+                          {participant.role === "moderator" && (
+                            <DropdownMenuItem
+                              onClick={() => onSetRole(participant.userId, "reader")}
+                            >
+                              <Users className="mr-2 size-4" />
+                              Demote to Reader
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                        </>
+                      )}
+                      {onKick && (
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
+                          onClick={() =>
+                            setKickTarget({
+                              userId: participant.userId,
+                              name: participant.name,
+                            })
+                          }
+                        >
+                          <UserMinus className="mr-2 size-4" />
+                          Kick from session
+                        </DropdownMenuItem>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+              </div>
             </div>
           ))}
         </CardContent>
       )}
+
+      {/* Kick confirmation dialog */}
+      <AlertDialog
+        open={kickTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setKickTarget(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Kick {kickTarget?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove them from the session and the reading queue. They
+              can rejoin via the invite link.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (kickTarget && onKick) {
+                  onKick(kickTarget.userId);
+                }
+                setKickTarget(null);
+              }}
+            >
+              Kick
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 });

@@ -71,10 +71,10 @@ export function LandingFeedback() {
           <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
             <div>
               <p className="mb-1 text-sm font-medium text-slate-700 dark:text-white/75">
-                What's on your mind?
+                What&apos;s on your mind?
               </p>
               <p className="text-xs text-slate-400 dark:text-white/35">
-                A bug, a feature idea, or just something you'd like to see — all welcome.
+                A bug, a feature idea, or just something you&apos;d like to see — all welcome.
               </p>
             </div>
 

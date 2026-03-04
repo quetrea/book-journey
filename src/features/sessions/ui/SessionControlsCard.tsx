@@ -28,6 +28,7 @@ import type { Id } from "../../../../convex/_generated/dataModel";
 type SessionControlsCardProps = {
   sessionId: Id<"sessions">;
   isHost: boolean;
+  isModerator: boolean;
   isRepeatEnabled: boolean;
   viewerUserId: string | null | undefined;
   safeIsCurrentUserParticipant: boolean;
@@ -43,6 +44,7 @@ type SessionControlsCardProps = {
 export function SessionControlsCard({
   sessionId,
   isHost,
+  isModerator,
   isRepeatEnabled,
   viewerUserId,
   safeIsCurrentUserParticipant,
@@ -272,32 +274,34 @@ export function SessionControlsCard({
           </div>
         ) : null}
 
-        {isHost && canUseQueueControls ? (
+        {(isHost || isModerator) && canUseQueueControls ? (
           <details className="group open:space-y-3 xl:[open]" open>
             <summary className="cursor-pointer list-none text-xs font-medium text-muted-foreground transition-colors hover:text-foreground xl:hidden [&::-webkit-details-marker]:hidden">
               <span className="inline-flex items-center gap-1">
-                Host controls
+                Queue management
                 <span className="text-[10px] transition-transform group-open:rotate-180">&#9660;</span>
               </span>
             </summary>
             <div className="mt-2 space-y-3 xl:mt-0">
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-white/40 bg-white/60 px-3 py-2.5 dark:border-white/[0.14] dark:bg-white/6">
-                <div>
-                  <p className="text-xs font-medium text-foreground">
-                    Repeat queue
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">
-                    Automatically restart when everyone is done
-                  </p>
+              {isHost && (
+                <div className="flex items-center justify-between gap-3 rounded-xl border border-white/40 bg-white/60 px-3 py-2.5 dark:border-white/[0.14] dark:bg-white/6">
+                  <div>
+                    <p className="text-xs font-medium text-foreground">
+                      Repeat queue
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Automatically restart when everyone is done
+                    </p>
+                  </div>
+                  <Switch
+                    size="default"
+                    checked={Boolean(isRepeatEnabled)}
+                    onCheckedChange={() => {
+                      void toggleRepeatMode({ sessionId });
+                    }}
+                  />
                 </div>
-                <Switch
-                  size="default"
-                  checked={Boolean(isRepeatEnabled)}
-                  onCheckedChange={() => {
-                    void toggleRepeatMode({ sessionId });
-                  }}
-                />
-              </div>
+              )}
 
               <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
                 <p className="text-xs font-medium text-foreground">
@@ -319,7 +323,7 @@ export function SessionControlsCard({
                             value={participant.userId}
                           >
                             {participant.name}
-                            {participant.role === "host" ? " (Host)" : ""}
+                            {participant.role === "host" ? " (Host)" : participant.role === "moderator" ? " (Mod)" : ""}
                           </SelectItem>
                         ))}
                       </SelectContent>

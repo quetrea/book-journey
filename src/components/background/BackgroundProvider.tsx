@@ -23,17 +23,14 @@ export function useBackgroundTheme() {
 }
 
 export function BackgroundProvider({ children }: { children: ReactNode }) {
-  const [themeId, setThemeIdState] = useState(DEFAULT_THEME_ID);
+  const [themeId, setThemeIdState] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_THEME_ID;
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored && BACKGROUND_THEMES.find((t) => t.id === stored) ? stored : DEFAULT_THEME_ID;
+  });
   const spotlightRef = useRef<HTMLDivElement>(null);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme !== "light";
-
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && BACKGROUND_THEMES.find((t) => t.id === stored)) {
-      setThemeIdState(stored);
-    }
-  }, []);
 
   useEffect(() => {
     const el = spotlightRef.current;

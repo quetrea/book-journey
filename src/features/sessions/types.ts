@@ -22,6 +22,8 @@ export type SessionDetailsPayload = {
   viewerUserId?: string;
   viewerIsGuest?: boolean;
   isHost: boolean;
+  isModerator: boolean;
+  viewerRole: "host" | "moderator" | "reader" | null;
   isPasscodeProtected: boolean;
   hasPasscodeAccess: boolean;
 };
