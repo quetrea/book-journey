@@ -20,12 +20,10 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 import { Separator } from "@/components/ui/separator";
-import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../convex/_generated/api";
 
 export default function DashboardPage() {
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const { sectionShadow, cardShadow } = useThemeGlow();
   const { signOut } = useAuthActions();
   const upsertCurrentUser = useMutation(api.users.upsertCurrentUser);
   const profile = useQuery(
@@ -108,8 +106,7 @@ export default function DashboardPage() {
     <main className="relative min-h-screen overflow-hidden">
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <section
-          className="rounded-3xl border border-black/8 bg-white/52 p-5 backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35"
-          style={{ boxShadow: sectionShadow }}
+          className="rounded-3xl border border-black/8 bg-white/52 p-5 shadow-sm backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35"
         >
           <header className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -167,8 +164,7 @@ export default function DashboardPage() {
             <SessionsDashboardSection isGuest={profile === undefined ? undefined : Boolean(profile?.isGuest)} />
 
             <Card
-              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-white/45 bg-white/66 backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/7"
-              style={{ boxShadow: cardShadow }}
+              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-white/45 bg-white/66 shadow-sm backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/7"
             >
               <CardHeader>
                 <CardTitle>Quick Tips</CardTitle>

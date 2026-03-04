@@ -3,8 +3,8 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { UsersRound } from "lucide-react";
 
@@ -16,6 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ParticlesBackground } from "@/features/dashboard/ui/ParticlesBackground";
 import { ParticipantsList } from "@/features/participants/ui/ParticipantsList";
+import { buildPremidSessionState } from "@/features/presence/buildPremidSessionState";
+import type { PremidSessionState } from "@/features/presence/types";
 import { QueueList } from "@/features/queue/ui/QueueList";
 import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,9 +37,22 @@ type SessionRoomPageClientProps = {
   sessionId: string;
 };
 
+function PremidStateScript({ state }: { state: PremidSessionState }) {
+  const serializedState = JSON.stringify(state).replace(/</g, "\\u003c");
+
+  return (
+    <script
+      id="bookjourney-premid-state"
+      type="application/json"
+      dangerouslySetInnerHTML={{ __html: serializedState }}
+    />
+  );
+}
+
 export function SessionRoomPageClient({
   sessionId,
 }: SessionRoomPageClientProps) {
+  const pathname = usePathname();
   const router = useRouter();
   const { isLoading: isAuthLoading, isAuthenticated } = useConvexAuth();
   const { signIn } = useAuthActions();
@@ -114,9 +129,43 @@ export function SessionRoomPageClient({
   const safeParticipants = useMemo(() => participants ?? [], [participants]);
   const safeQueue = useMemo(() => queue ?? [], [queue]);
   const safeIsCurrentUserParticipant = Boolean(isCurrentUserParticipant);
+  const premidState = useMemo(
+    () =>
+      buildPremidSessionState({
+        routePath: pathname || `/s/${sessionId}`,
+        sessionId,
+        isAuthLoading,
+        isAuthenticated,
+        isDataLoading,
+        sessionDetails,
+        queue,
+        participantsCount: safeParticipants.length,
+        isCurrentUserParticipant: safeIsCurrentUserParticipant,
+      }),
+    [
+      isAuthLoading,
+      isAuthenticated,
+      isDataLoading,
+      pathname,
+      queue,
+      safeIsCurrentUserParticipant,
+      safeParticipants.length,
+      sessionDetails,
+      sessionId,
+    ],
+  );
+
+  function renderWithPremid(content: ReactNode) {
+    return (
+      <>
+        <PremidStateScript state={premidState} />
+        {content}
+      </>
+    );
+  }
 
   if (isAuthLoading || isDataLoading) {
-    return (
+    return renderWithPremid(
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
         <div className={BG_GRADIENT} />
@@ -137,7 +186,7 @@ export function SessionRoomPageClient({
   }
 
   if (!isAuthenticated) {
-    return (
+    return renderWithPremid(
       <main className="relative min-h-screen overflow-hidden px-4 py-10">
         <ParticlesBackground />
         <div className="fixed inset-0 -z-20 bg-[radial-gradient(70%_50%_at_50%_0%,rgba(88,101,242,0.45),transparent_70%),linear-gradient(145deg,rgba(30,41,59,0.65),rgba(56,72,148,0.42)_45%,rgba(111,76,155,0.3))]" />
@@ -194,7 +243,7 @@ export function SessionRoomPageClient({
   }
 
   if (sessionDetails === null) {
-    return (
+    return renderWithPremid(
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
         <div className={BG_GRADIENT} />
@@ -221,12 +270,12 @@ export function SessionRoomPageClient({
   }
 
   if (!sessionDetails) {
-    return null;
+    return renderWithPremid(null);
   }
 
   // Guests have no reason to view ended sessions
   if (sessionDetails.viewerIsGuest && sessionDetails.session.status === "ended") {
-    return (
+    return renderWithPremid(
       <main className="relative min-h-screen overflow-hidden">
         <ParticlesBackground />
         <div className={BG_GRADIENT} />
@@ -280,7 +329,7 @@ export function SessionRoomPageClient({
     (!details.isPasscodeProtected || isHostOrMod || isPasscodeVerified)
   );
 
-  return (
+  return renderWithPremid(
     <main className="relative min-h-screen overflow-hidden">
       <ParticlesBackground />
       <div className={BG_GRADIENT} />

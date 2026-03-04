@@ -11,6 +11,7 @@ export type SessionListItem = {
   status: "active" | "ended";
   endedAt?: number;
   isRepeatEnabled?: boolean;
+  isPrivate?: boolean;
   hostName?: string;
   hostImage?: string;
 };

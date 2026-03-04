@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schemas.premid.app/metadata/1.7",
+  "service": "BookJourney",
+  "author": {
+    "name": "BookJourney Team",
+    "id": "0"
+  },
+  "url": "bookreading.space",
+  "description": {
+    "en": "Live reading sessions with real-time queue management for book clubs."
+  },
+  "version": "1.0.0",
+  "logo": "https://bookreading.space/logo.png",
+  "thumbnail": "https://bookreading.space/logo.png",
+  "color": "#5865F2",
+  "category": "other",
+  "tags": [
+    "books",
+    "reading",
+    "productivity",
+    "community"
+  ]
+}

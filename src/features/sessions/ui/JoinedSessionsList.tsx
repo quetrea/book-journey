@@ -2,15 +2,15 @@
 
 import { useQuery } from "convex/react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, DoorOpen } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
 
 function formatDateLabel(timestamp: number) {
@@ -30,7 +30,6 @@ function formatDateLabel(timestamp: number) {
 
 export function JoinedSessionsList() {
   const sessions = useQuery(api.sessions.listJoinedSessionsServer);
-  const { itemShadow, itemHoverShadow } = useThemeGlow();
 
   if (sessions === undefined) {
     return (
@@ -38,7 +37,7 @@ export function JoinedSessionsList() {
         {Array.from({ length: 2 }).map((_, i) => (
           <Card
             key={`joined-skeleton-${i}`}
-            className="border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+            className="border-black/8 bg-white/65 px-4 py-4 shadow-sm backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           >
             <CardContent className="space-y-2 p-0">
               <Skeleton className="h-5 w-2/3" />
@@ -53,9 +52,18 @@ export function JoinedSessionsList() {
 
   if (sessions.length === 0) {
     return (
-      <Card className="border-black/8 bg-white/60 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/5 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <CardContent className="px-4 text-sm text-muted-foreground">
-          No joined sessions yet. Ask someone to share a session link.
+      <Card className="border-black/10 bg-linear-to-br from-white/80 via-white/65 to-emerald-50/40 py-8 shadow-sm backdrop-blur-md dark:border-white/15 dark:from-white/10 dark:via-white/8 dark:to-emerald-500/10">
+        <CardContent className="flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
+          <span className="inline-flex size-10 items-center justify-center rounded-full border border-emerald-200/70 bg-white/80 text-emerald-600 dark:border-emerald-300/25 dark:bg-white/10 dark:text-emerald-300">
+            <DoorOpen className="size-5" />
+          </span>
+          <p className="text-base font-semibold text-foreground">No joined sessions yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Open a live session from the home page or ask someone to share a session link.
+          </p>
+          <Button asChild size="sm" className="mt-1">
+            <Link href="/">Join session</Link>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -71,16 +79,10 @@ export function JoinedSessionsList() {
               session.status === "active"
                 ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
                 : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
+              "shadow-sm",
             )}
             style={{
               animationDelay: `${Math.min(index * 45, 180)}ms`,
-              boxShadow: itemShadow,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.boxShadow = itemHoverShadow;
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.boxShadow = itemShadow;
             }}
           >
             <span
@@ -92,15 +94,34 @@ export function JoinedSessionsList() {
             />
             <CardContent className="space-y-3 p-0">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0 space-y-0.5">
-                  <p className="line-clamp-1 text-base font-semibold tracking-tight text-foreground">
-                    {session.title ?? session.bookTitle}
-                  </p>
-                  {session.title ? (
-                    <p className="line-clamp-1 text-sm text-muted-foreground/90">
-                      Book: {session.bookTitle}
-                    </p>
+                <div
+                  className={cn(
+                    "min-w-0",
+                    session.bookCoverUrl ? "flex flex-1 items-start gap-3" : "space-y-0.5",
+                  )}
+                >
+                  {session.bookCoverUrl ? (
+                    <div
+                      aria-hidden="true"
+                      className="h-20 w-14 shrink-0 rounded-md border border-black/10 bg-black/5 bg-cover bg-center shadow-sm dark:border-white/12 dark:bg-white/10"
+                      style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
+                    />
                   ) : null}
+                  <div className={cn("min-w-0 space-y-0.5", session.bookCoverUrl ? "flex-1" : "")}>
+                    <p className="line-clamp-1 text-base font-semibold tracking-tight text-foreground">
+                      {session.title ?? session.bookTitle}
+                    </p>
+                    {session.title ? (
+                      <p className="line-clamp-1 text-sm text-muted-foreground/90">
+                        Book: {session.bookTitle}
+                      </p>
+                    ) : null}
+                    {session.authorName ? (
+                      <p className="line-clamp-1 text-sm text-muted-foreground/80">
+                        by {session.authorName}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
                 {session.status === "active" ? (
                   <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">

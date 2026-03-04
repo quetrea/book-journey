@@ -11,6 +11,7 @@ import {
   type LucideIcon,
   Rows3,
   Search,
+  Sparkles,
   StretchHorizontal,
   Trash2,
 } from "lucide-react";
@@ -34,8 +35,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { useThemeGlow } from "@/hooks/useThemeGlow";
 import type { SessionListItem } from "../types";
+import { CreateSessionModal } from "./CreateSessionModal";
 import { api } from "../../../../convex/_generated/api";
 
 type SessionsViewMode = "list" | "compact" | "grid";
@@ -151,7 +152,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
         <Card
           key={`sessions-skeleton-${index}`}
           className={cn(
-            "border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+            "border-black/8 bg-white/65 px-4 py-4 shadow-sm backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
             viewMode === "grid" ? "h-full" : "",
           )}
         >
@@ -176,11 +177,9 @@ type SessionCardProps = {
   viewMode: SessionsViewMode;
   now: number;
   index: number;
-  itemShadow: string;
-  itemHoverShadow: string;
 };
 
-function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShadow }: SessionCardProps) {
+function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
   const deleteSession = useMutation(api.sessions.deleteSessionServer);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -200,6 +199,7 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
   const elapsed = formatElapsed(finishedAt - session.createdAt);
   const isCompactView = viewMode === "compact";
   const isGridView = viewMode === "grid";
+  const hasCover = Boolean(session.bookCoverUrl) && !isCompactView;
 
   return (
     <div className="group relative">
@@ -210,21 +210,13 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
             session.status === "active"
               ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
               : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
+            "shadow-sm",
             isCompactView ? "px-3 py-3" : "px-4 py-4",
             isGridView ? "h-full" : "",
           )}
           style={{
             animationDelay: `${Math.min(index * 45, 180)}ms`,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ["--glow" as any]: itemHoverShadow,
-            boxShadow: itemShadow,
           } as React.CSSProperties}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = itemHoverShadow;
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.boxShadow = itemShadow;
-          }}
         >
           {/* Status accent bar */}
           <span
@@ -237,26 +229,70 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
 
           <CardContent className="p-0">
             <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
-              <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0 space-y-1 pr-6">
-                  <p
+              {hasCover && isGridView ? (
+                <div className="space-y-3">
+                  <div
+                    aria-hidden="true"
+                    className="aspect-[5/3] w-full rounded-xl border border-black/8 bg-black/5 bg-cover bg-center shadow-sm dark:border-white/10 dark:bg-white/10"
+                    style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
+                  />
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1 pr-6">
+                      <p
+                        className={cn(
+                          "line-clamp-1 font-semibold tracking-tight text-foreground",
+                          isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
+                        )}
+                      >
+                        {session.title ?? session.bookTitle}
+                      </p>
+                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                        {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
+                      </p>
+                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                        {session.authorName ? `by ${session.authorName}` : "Author unknown"}
+                      </p>
+                    </div>
+
+                    <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div
                     className={cn(
-                      "line-clamp-1 font-semibold tracking-tight text-foreground",
-                      isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
+                      "min-w-0 pr-6",
+                      hasCover ? "flex flex-1 items-start gap-3" : "space-y-1",
                     )}
                   >
-                    {session.title ?? session.bookTitle}
-                  </p>
-                  <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                    {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
-                  </p>
-                  <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
-                    {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-                  </p>
-                </div>
+                    {hasCover ? (
+                      <div
+                        aria-hidden="true"
+                        className="h-20 w-14 shrink-0 rounded-md border border-black/10 bg-black/5 bg-cover bg-center shadow-sm dark:border-white/12 dark:bg-white/10"
+                        style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
+                      />
+                    ) : null}
+                    <div className={cn("min-w-0 space-y-1", hasCover ? "flex-1" : "")}>
+                      <p
+                        className={cn(
+                          "line-clamp-1 font-semibold tracking-tight text-foreground",
+                          isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
+                        )}
+                      >
+                        {session.title ?? session.bookTitle}
+                      </p>
+                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                        {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
+                      </p>
+                      <p className={cn("line-clamp-1 text-muted-foreground/90", isCompactView ? "text-xs" : "text-sm")}>
+                        {session.authorName ? `by ${session.authorName}` : "Author unknown"}
+                      </p>
+                    </div>
+                  </div>
 
-                <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
-              </div>
+                  <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
+                </div>
+              )}
 
               {!isCompactView && session.synopsis ? (
                 <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/7 dark:text-foreground/80">
@@ -348,7 +384,6 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
 
 export function MySessionsList() {
   const sessions = useQuery(api.sessions.listMySessionsServer);
-  const { itemShadow, itemHoverShadow } = useThemeGlow();
 
   const [now, setNow] = useState(() => Date.now());
   const [searchQuery, setSearchQuery] = useState("");
@@ -401,9 +436,18 @@ export function MySessionsList() {
 
   if (normalizedSessions.length === 0) {
     return (
-      <Card className="border-black/8 bg-white/60 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/5 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        <CardContent className="px-4 text-sm text-muted-foreground">
-          No sessions yet. Create one to start reading live.
+      <Card className="border-black/10 bg-linear-to-br from-white/80 via-white/65 to-indigo-50/40 py-8 shadow-sm backdrop-blur-md dark:border-white/15 dark:from-white/10 dark:via-white/8 dark:to-indigo-500/10">
+        <CardContent className="flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
+          <span className="inline-flex size-10 items-center justify-center rounded-full border border-indigo-200/70 bg-white/80 text-indigo-500 dark:border-indigo-300/25 dark:bg-white/10 dark:text-indigo-300">
+            <Sparkles className="size-5" />
+          </span>
+          <p className="text-base font-semibold text-foreground">No sessions yet</p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            Create your first session and start reading live with your group.
+          </p>
+          <div className="pt-1">
+            <CreateSessionModal />
+          </div>
         </CardContent>
       </Card>
     );
@@ -472,8 +516,6 @@ export function MySessionsList() {
             viewMode={viewMode}
             now={now}
             index={index}
-            itemShadow={itemShadow}
-            itemHoverShadow={itemHoverShadow}
           />
         ))}
       </div>
