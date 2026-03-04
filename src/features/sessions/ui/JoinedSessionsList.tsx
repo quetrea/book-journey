@@ -38,7 +38,7 @@ export function JoinedSessionsList() {
         {Array.from({ length: 2 }).map((_, i) => (
           <Card
             key={`joined-skeleton-${i}`}
-            className="border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/[0.07] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+            className="border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
           >
             <CardContent className="space-y-2 p-0">
               <Skeleton className="h-5 w-2/3" />
@@ -113,7 +113,7 @@ export function JoinedSessionsList() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 px-2.5 py-2 dark:border-white/10 dark:bg-white/[0.07]">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 px-2.5 py-2 dark:border-white/10 dark:bg-white/7">
                 <div className="inline-flex min-w-0 items-center gap-2">
                   <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
                     <AvatarImage src={session.hostImage ?? undefined} alt={session.hostName ?? "Host"} />

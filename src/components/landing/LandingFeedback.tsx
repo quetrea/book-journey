@@ -40,7 +40,7 @@ export function LandingFeedback() {
 
   return (
     <section
-      className="mt-14 animate-in fade-in slide-in-from-bottom-4 [animation-duration:700ms] [animation-fill-mode:both]"
+      className="mt-14 animate-in fade-in slide-in-from-bottom-4 animation-duration-[700ms] fill-mode-[both]"
       style={{ animationDelay: "300ms" }}
     >
       {/* Section header */}
@@ -49,7 +49,7 @@ export function LandingFeedback() {
         Feedback
       </div>
 
-      <div className="rounded-2xl border border-black/8 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
+      <div className="rounded-2xl border border-black/8 bg-white/70 p-5 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/6 dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6">
         {submitted ? (
           <div className="flex flex-col items-center gap-2 py-4 text-center">
             <span className="text-2xl">🙏</span>

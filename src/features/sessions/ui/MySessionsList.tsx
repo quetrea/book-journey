@@ -151,7 +151,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
         <Card
           key={`sessions-skeleton-${index}`}
           className={cn(
-            "border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/[0.07] dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
+            "border-black/8 bg-white/65 px-4 py-4 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
             viewMode === "grid" ? "h-full" : "",
           )}
         >
@@ -259,7 +259,7 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
               </div>
 
               {!isCompactView && session.synopsis ? (
-                <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/[0.07] dark:text-foreground/80">
+                <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/60 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/7 dark:text-foreground/80">
                   {session.synopsis}
                 </p>
               ) : null}
@@ -277,7 +277,7 @@ function SessionCard({ session, viewMode, now, index, itemShadow, itemHoverShado
 
               <div
                 className={cn(
-                  "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 dark:border-white/10 dark:bg-white/[0.07]",
+                  "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 dark:border-white/10 dark:bg-white/7",
                   isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
                 )}
               >

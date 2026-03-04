@@ -83,7 +83,7 @@ export function LandingHowItWorks() {
       <section>
         {/* Header */}
         <div
-          className="animate-in fade-in slide-in-from-bottom-3 mb-8 space-y-2 [animation-fill-mode:both]"
+          className="animate-in fade-in slide-in-from-bottom-3 mb-8 space-y-2 fill-mode-[both]"
           style={{ animationDelay: "0ms", animationDuration: "600ms" }}
         >
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
@@ -103,7 +103,7 @@ export function LandingHowItWorks() {
           {steps.map((step, index) => (
             <div
               key={step.number}
-              className="animate-in fade-in slide-in-from-bottom-4 relative flex gap-5 [animation-fill-mode:both]"
+              className="animate-in fade-in slide-in-from-bottom-4 relative flex gap-5 fill-mode-[both]"
               style={{
                 animationDelay: `${80 + index * 100}ms`,
                 animationDuration: "600ms",
@@ -111,11 +111,11 @@ export function LandingHowItWorks() {
             >
               {/* Left column: number badge + connector */}
               <div className="flex flex-col items-center">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-gradient-to-br from-slate-100 to-slate-200 text-[11px] font-bold tabular-nums text-slate-500 shadow-sm dark:border-white/15 dark:from-white/10 dark:to-white/5 dark:text-white/50">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full border border-black/10 bg-linear-to-br from-slate-100 to-slate-200 text-[11px] font-bold tabular-nums text-slate-500 shadow-sm dark:border-white/15 dark:from-white/10 dark:to-white/5 dark:text-white/50">
                   {step.number}
                 </div>
                 {index < steps.length - 1 && (
-                  <div className="mt-1 h-full w-px bg-gradient-to-b from-black/10 to-transparent dark:from-white/10" />
+                  <div className="mt-1 h-full w-px bg-linear-to-b from-black/10 to-transparent dark:from-white/10" />
                 )}
               </div>
 
@@ -139,7 +139,7 @@ export function LandingHowItWorks() {
       <section>
         {/* Header */}
         <div
-          className="animate-in fade-in slide-in-from-bottom-3 mb-6 space-y-1 [animation-fill-mode:both]"
+          className="animate-in fade-in slide-in-from-bottom-3 mb-6 space-y-1 fill-mode-[both]"
           style={{ animationDelay: "0ms", animationDuration: "600ms" }}
         >
           <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-white/30">
@@ -157,7 +157,7 @@ export function LandingHowItWorks() {
             return (
               <Card
                 key={item.title}
-                className="group relative animate-in fade-in slide-in-from-bottom-4 border-black/8 bg-white/70 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl [animation-fill-mode:both] transition-all duration-300 hover:-translate-y-1 hover:border-black/12 hover:bg-white/85 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:shadow-[0_16px_48px_-8px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]"
+                className="group relative animate-in fade-in slide-in-from-bottom-4 border-black/8 bg-white/70 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl fill-mode-[both] transition-all duration-300 hover:-translate-y-1 hover:border-black/12 hover:bg-white/85 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-white/10 dark:bg-white/6 dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] dark:hover:border-white/20 dark:hover:bg-white/10 dark:hover:shadow-[0_16px_48px_-8px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]"
                 style={{
                   animationDelay: `${80 + index * 60}ms`,
                   animationDuration: "600ms",

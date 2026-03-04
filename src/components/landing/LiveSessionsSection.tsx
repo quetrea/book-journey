@@ -16,7 +16,7 @@ export function LiveSessionsSection() {
 
   return (
     <section
-      className="mt-14 animate-in fade-in slide-in-from-bottom-4 [animation-duration:700ms] [animation-fill-mode:both]"
+      className="mt-14 animate-in fade-in slide-in-from-bottom-4 animation-duration-[700ms] fill-mode-[both]"
       style={{ animationDelay: "420ms" }}
     >
       {/* Section header */}
@@ -36,16 +36,16 @@ export function LiveSessionsSection() {
           <Link
             key={session.id}
             href={`/s/${session.id}`}
-            className="group animate-in fade-in slide-in-from-bottom-4 [animation-fill-mode:both]"
+            className="group animate-in fade-in slide-in-from-bottom-4 fill-mode-[both]"
             style={{
               animationDelay: `${480 + index * 70}ms`,
               animationDuration: "600ms",
             }}
           >
-            <div className="relative overflow-hidden rounded-2xl border border-black/8 bg-white/70 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-black/12 hover:bg-white/85 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] dark:hover:border-white/18 dark:hover:bg-white/[0.09] dark:hover:shadow-[0_14px_44px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="relative overflow-hidden rounded-2xl border border-black/8 bg-white/70 shadow-[0_4px_24px_-6px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl transition-all duration-300 hover:-translate-y-1 hover:border-black/12 hover:bg-white/85 hover:shadow-[0_12px_40px_-8px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.9)] dark:border-white/10 dark:bg-white/6 dark:shadow-[0_4px_32px_-8px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] dark:hover:border-white/18 dark:hover:bg-white/9 dark:hover:shadow-[0_14px_44px_-8px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]">
 
               {/* Top accent strip */}
-              <div className="h-0.5 w-full bg-gradient-to-r from-indigo-400/60 via-purple-400/40 to-transparent dark:from-indigo-500/50 dark:via-purple-500/30" />
+              <div className="h-0.5 w-full bg-linear-to-r from-indigo-400/60 via-purple-400/40 to-transparent dark:from-indigo-500/50 dark:via-purple-500/30" />
 
               <div className="p-4">
                 {/* Book info */}

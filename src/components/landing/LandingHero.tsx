@@ -11,7 +11,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
     <section className="mt-12 space-y-8 sm:mt-20">
       {/* Eyebrow */}
       <div
-        className="animate-in fade-in slide-in-from-bottom-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/5 px-3.5 py-1.5 [animation-duration:600ms] [animation-fill-mode:both] dark:border-white/15 dark:bg-white/8"
+        className="animate-in fade-in slide-in-from-bottom-3 inline-flex items-center gap-2 rounded-full border border-black/10 bg-black/5 px-3.5 py-1.5 animation-duration-[600ms] fill-mode-[both] dark:border-white/15 dark:bg-white/8"
         style={{ animationDelay: "0ms" }}
       >
         <span className="size-1.5 animate-pulse rounded-full bg-emerald-500 dark:bg-emerald-400" />
@@ -28,7 +28,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
         >
           Book Club Sessions,
           <br />
-          <span className="bg-gradient-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-white/90 dark:to-white/60">
+          <span className="bg-linear-to-r from-slate-900 via-slate-700 to-slate-500 bg-clip-text text-transparent dark:from-white dark:via-white/90 dark:to-white/60">
             Built for Live Reading.
           </span>
         </h1>
@@ -44,7 +44,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
 
       {/* CTA row */}
       <div
-        className="animate-in fade-in slide-in-from-bottom-3 flex flex-col gap-3 [animation-duration:600ms] [animation-fill-mode:both] sm:flex-row sm:items-center"
+        className="animate-in fade-in slide-in-from-bottom-3 flex flex-col gap-3 animation-duration-[600ms] fill-mode-[both] sm:flex-row sm:items-center"
         style={{ animationDelay: "240ms" }}
       >
         {loginButton}
@@ -59,7 +59,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
 
       {/* Disclaimer */}
       <p
-        className="animate-in fade-in [animation-duration:800ms] [animation-fill-mode:both] text-xs text-slate-400 dark:text-white/30"
+        className="animate-in fade-in animation-duration-[800ms] fill-mode-[both] text-xs text-slate-400 dark:text-white/30"
         style={{ animationDelay: "320ms" }}
       >
         Create sessions with Discord, or join any session as a guest with just your name.
