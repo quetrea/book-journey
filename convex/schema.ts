@@ -42,7 +42,8 @@ export default defineSchema({
     joinedAt: v.number(),
   })
     .index("by_sessionId", ["sessionId"])
-    .index("by_sessionId_userId", ["sessionId", "userId"]),
+    .index("by_sessionId_userId", ["sessionId", "userId"])
+    .index("by_userId", ["userId"]),
 
   queueItems: defineTable({
     sessionId: v.id("sessions"),
@@ -52,14 +53,17 @@ export default defineSchema({
     joinedAt: v.number(),
   })
     .index("by_sessionId_position", ["sessionId", "position"])
-    .index("by_sessionId_userId", ["sessionId", "userId"]),
+    .index("by_sessionId_userId", ["sessionId", "userId"])
+    .index("by_userId", ["userId"]),
 
   sessionPasscodeGrants: defineTable({
     sessionId: v.id("sessions"),
     userId: v.id("profiles"),
     expiresAt: v.number(),
     createdAt: v.number(),
-  }).index("by_sessionId_userId", ["sessionId", "userId"]),
+  })
+    .index("by_sessionId_userId", ["sessionId", "userId"])
+    .index("by_userId", ["userId"]),
 
   pushSubscriptions: defineTable({
     userId: v.id("profiles"),
@@ -76,7 +80,8 @@ export default defineSchema({
     createdAt: v.number(),
   })
     .index("by_sessionId_createdAt", ["sessionId", "createdAt"])
-    .index("by_sessionId_userId", ["sessionId", "userId"]),
+    .index("by_sessionId_userId", ["sessionId", "userId"])
+    .index("by_userId", ["userId"]),
 
   feedback: defineTable({
     message: v.string(),

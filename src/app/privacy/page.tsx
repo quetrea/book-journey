@@ -117,7 +117,13 @@ export default function PrivacyPage() {
           <section>
             <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">Delete your data</h2>
             <p>
-              To request full deletion of your account and all associated data, open an issue on our{" "}
+              You can delete your account instantly from{" "}
+              <strong className="text-slate-700 dark:text-white/80">Settings &rarr; Danger Zone &rarr; Delete my account</strong>.
+              This removes your profile, all session participations, queue items, saved words, and push subscriptions.
+              If you are a host, the role is transferred to another participant or the session is ended.
+            </p>
+            <p className="mt-2">
+              Alternatively, to request manual deletion open an issue on our{" "}
               <a
                 href="https://github.com/quetrea/book-journey/issues"
                 target="_blank"

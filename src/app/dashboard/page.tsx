@@ -134,7 +134,10 @@ export default function DashboardPage() {
               >
                 {isSigningOut ? "Signing out..." : "Sign out"}
               </Button>
-              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/55 bg-white/70 px-2.5 py-1.5 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">
+              <Link
+                href="/settings"
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-white/55 bg-white/70 px-2.5 py-1.5 shadow-sm backdrop-blur-md transition-colors hover:bg-white/90 dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15"
+              >
                 <Avatar
                   size="sm"
                   className="ring-1 ring-white/70 dark:ring-white/20"
@@ -154,7 +157,7 @@ export default function DashboardPage() {
                 >
                   {profile?.isGuest ? "Guest" : "Discord"}
                 </Badge>
-              </div>
+              </Link>
             </div>
           </header>
 
