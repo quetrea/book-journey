@@ -186,7 +186,7 @@ export default function AuthPage() {
             </div>
             <ul className="space-y-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/70">
               <li>We only request Discord <strong>identify</strong> &mdash; no email, no servers, no messages.</li>
-              <li>OAuth redirects only to <code className="rounded bg-emerald-100/60 px-1 py-0.5 font-mono text-[10px] dark:bg-emerald-500/15">bookjourney.live/api/auth/callback/discord</code></li>
+              <li>OAuth redirects only to <code className="rounded bg-emerald-100/60 px-1 py-0.5 font-mono text-[10px] dark:bg-emerald-500/15">bookjourney.space/api/auth/callback/discord</code></li>
               <li>
                 <Link href="/privacy" className="underline underline-offset-2 hover:text-emerald-800 dark:hover:text-emerald-300">
                   Full privacy policy

@@ -134,10 +134,10 @@ export default function PrivacyPage() {
               </a>{" "}
               or email{" "}
               <a
-                href="mailto:privacy@bookjourney.live"
+                href="mailto:privacy@bookjourney.space"
                 className="underline underline-offset-4 hover:text-slate-700 dark:hover:text-white/60"
               >
-                privacy@bookjourney.live
+                privacy@bookjourney.space
               </a>
               . We will process deletion within 7 days.
             </p>

@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in BookJourney, please report it responsibly:
 
-- **Email:** [privacy@bookjourney.live](mailto:privacy@bookjourney.live)
+- **Email:** [privacy@bookjourney.space](mailto:privacy@bookjourney.space)
 - **GitHub:** Open a [security advisory](https://github.com/quetrea/book-journey/security/advisories/new) (private)
 
 We aim to acknowledge reports within 48 hours and resolve critical issues within 7 days.
@@ -12,7 +12,7 @@ We aim to acknowledge reports within 48 hours and resolve critical issues within
 ## OAuth & Data Scope
 
 - **Discord OAuth scope:** `identify` only — we never request `email`, `guilds`, or any other scope.
-- **Redirect URI:** All OAuth callbacks go exclusively to `bookjourney.live/api/auth/callback/discord`.
+- **Redirect URI:** All OAuth callbacks go exclusively to `bookjourney.space/api/auth/callback/discord`.
 - **No email collection:** We do not collect, store, or have access to your email address.
 - **Guest access:** Users can join sessions without any account — just a display name.
 
