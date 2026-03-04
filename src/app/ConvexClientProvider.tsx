@@ -13,8 +13,7 @@ type ConvexClientProviderProps = {
 export function ConvexClientProvider({ children }: ConvexClientProviderProps) {
   return (
     <ConvexAuthProvider client={convex}>
-      <AuthSessionGuard />
-      {children}
+      <AuthSessionGuard>{children}</AuthSessionGuard>
     </ConvexAuthProvider>
   );
 }
