@@ -21,7 +21,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mb-8 text-sm text-slate-500 dark:text-white/40">
-          Last updated: March 3, 2026
+          Last updated: March 4, 2026
         </p>
 
         <div className="space-y-8 text-sm leading-relaxed text-slate-700 dark:text-white/70">
@@ -44,7 +44,6 @@ export default function PrivacyPage() {
                 <ul className="list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
                   <li>Your Discord username and display name</li>
                   <li>Your Discord profile picture URL</li>
-                  <li>Your email address (provided by Discord via the <code className="rounded bg-black/6 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10">email</code> scope)</li>
                   <li>An internal Discord user ID (used to identify you across sessions)</li>
                 </ul>
                 <p className="mt-2 text-slate-500 dark:text-white/40">
@@ -116,7 +115,7 @@ export default function PrivacyPage() {
               <div>
                 <p className="font-medium text-slate-800 dark:text-white/90">Discord</p>
                 <p className="text-slate-500 dark:text-white/40">
-                  Used only for sign-in (OAuth). We request the following scopes: <code className="rounded bg-black/6 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10">identify</code> and <code className="rounded bg-black/6 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10">email</code> — the standard set provided by the authentication library we use.
+                  Used only for sign-in (OAuth). We request only the <code className="rounded bg-black/6 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10">identify</code> scope — this gives us your username, display name, and avatar. We do not request your email address or any other Discord data.
                   See <a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer" className="underline underline-offset-4 hover:text-slate-700 dark:hover:text-white/60">Discord&apos;s Privacy Policy</a>.
                 </p>
               </div>

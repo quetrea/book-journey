@@ -88,9 +88,7 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
   const existing = await getProfileByAuthUserId(ctx, authUserId);
   const authUser = await ctx.db.get(authUserId);
   const fallbackName =
-    authUser?.name?.trim() ||
-    authUser?.email?.trim().split("@")[0] ||
-    "Reader";
+    authUser?.name?.trim() || "Reader";
   const nextName = nameFromIdentity(identity, fallbackName);
   const nextImage = imageFromIdentity(identity, authUser?.image ?? undefined);
   const nextProvider = providerFromTokenIdentifier(identity.tokenIdentifier);
