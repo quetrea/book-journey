@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -20,6 +21,8 @@ export function LoginButton() {
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [isWorking, setIsWorking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showGuestForm, setShowGuestForm] = useState(false);
+  const [guestName, setGuestName] = useState("");
 
   async function handleDiscordSignIn() {
     setIsWorking(true);
@@ -29,6 +32,25 @@ export function LoginButton() {
       await signIn("discord");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign in.";
+      setErrorMessage(message);
+    } finally {
+      setIsWorking(false);
+    }
+  }
+
+  async function handleGuestSignIn() {
+    const name = guestName.trim();
+    if (name.length < 2) {
+      setErrorMessage("Name must be at least 2 characters.");
+      return;
+    }
+    setIsWorking(true);
+    setErrorMessage(null);
+
+    try {
+      await signIn("anonymous", { name });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to sign in as guest.";
       setErrorMessage(message);
     } finally {
       setIsWorking(false);
@@ -89,7 +111,7 @@ export function LoginButton() {
         disabled={isWorking}
         className="w-full gap-2 bg-[#5865F2] text-white shadow-[0_2px_12px_rgba(88,101,242,0.45)] hover:bg-[#4752c4] hover:shadow-[0_4px_16px_rgba(88,101,242,0.55)] sm:w-auto dark:bg-[#5865F2] dark:hover:bg-[#4752c4]"
       >
-        {isWorking ? (
+        {isWorking && !showGuestForm ? (
           "Redirecting..."
         ) : (
           <>
@@ -98,6 +120,51 @@ export function LoginButton() {
           </>
         )}
       </Button>
+
+      {showGuestForm ? (
+        <div className="flex w-full flex-col gap-2 sm:w-auto">
+          <div className="flex gap-2">
+            <Input
+              placeholder="Your name"
+              value={guestName}
+              onChange={(e) => setGuestName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void handleGuestSignIn();
+              }}
+              disabled={isWorking}
+              className="h-9 border-black/15 bg-white/80 backdrop-blur-sm dark:border-white/15 dark:bg-white/10"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void handleGuestSignIn()}
+              disabled={isWorking || guestName.trim().length < 2}
+              className="shrink-0 border-black/15 bg-black/5 text-slate-700 backdrop-blur-md hover:bg-black/10 hover:text-slate-900 dark:border-white/15 dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white"
+            >
+              {isWorking ? "Joining..." : "Join"}
+            </Button>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setShowGuestForm(false);
+              setErrorMessage(null);
+            }}
+            className="text-xs text-slate-400 underline-offset-4 hover:text-slate-600 hover:underline dark:text-white/40 dark:hover:text-white/60"
+          >
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setShowGuestForm(true)}
+          className="text-xs text-slate-400 underline-offset-4 hover:text-slate-600 hover:underline dark:text-white/40 dark:hover:text-white/60"
+        >
+          or join as guest
+        </button>
+      )}
+
       {errorMessage ? <p className="text-xs text-red-500">{errorMessage}</p> : null}
     </div>
   );
