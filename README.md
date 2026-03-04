@@ -25,6 +25,7 @@ BookJourney lets reading groups hold structured, live sessions together. Anyone 
 - **Push notifications** — get notified when it's your turn, even in a background tab
 - **Public session listing** — browse live sessions on the home page in real time
 - **Host passcode** — optional passcode to protect host controls
+- **PreMiD Rich Presence** - session activity support for Discord status (privacy-safe for private/passcode sessions)
 
 ---
 

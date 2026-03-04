@@ -78,7 +78,7 @@ declare const Presence: PresenceConstructor;
 const SCRIPT_ID = "bookjourney-premid-state";
 const SESSION_PREFIX = "/s/";
 const LOGO_URL = "https://bookreading.space/logo.png";
-const CLIENT_ID = "000000000000000000";
+const CLIENT_ID = "1476980926025044010";
 
 const presence = new Presence({ clientId: CLIENT_ID });
 
@@ -98,7 +98,9 @@ function readPremidState(): PremidSessionState | null {
   }
 
   try {
-    const parsed = JSON.parse(script.textContent) as Partial<PremidSessionState>;
+    const parsed = JSON.parse(
+      script.textContent
+    ) as Partial<PremidSessionState>;
 
     if (
       !parsed ||
