@@ -85,6 +85,18 @@ export default function PrivacyPage() {
           </section>
 
           <section>
+            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">What we store</h2>
+            <div className="rounded-xl border border-black/8 bg-black/3 p-4 dark:border-white/10 dark:bg-white/5">
+              <ul className="list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
+                <li><strong className="text-slate-700 dark:text-white/80">Discord users:</strong> username, display name, avatar URL, Discord user ID</li>
+                <li><strong className="text-slate-700 dark:text-white/80">Guest users:</strong> only the name you enter (no account link, no tracking)</li>
+                <li><strong className="text-slate-700 dark:text-white/80">Session data:</strong> book info, queue positions, words you save</li>
+                <li><strong className="text-slate-700 dark:text-white/80">Never stored:</strong> email, password, IP address, server memberships, messages</li>
+              </ul>
+            </div>
+          </section>
+
+          <section>
             <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">How data is used</h2>
             <p>
               Your data is used exclusively to operate BookJourney — displaying your name and avatar in sessions,
@@ -100,6 +112,29 @@ export default function PrivacyPage() {
               <li>Push notification subscriptions are deleted when you disable notifications or sign out.</li>
               <li>Your profile (name, avatar) persists as long as you have an account. It is deleted when your account is removed.</li>
             </ul>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">Delete your data</h2>
+            <p>
+              To request full deletion of your account and all associated data, open an issue on our{" "}
+              <a
+                href="https://github.com/quetrea/book-journey/issues"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-slate-700 dark:hover:text-white/60"
+              >
+                GitHub issue tracker
+              </a>{" "}
+              or email{" "}
+              <a
+                href="mailto:privacy@bookjourney.live"
+                className="underline underline-offset-4 hover:text-slate-700 dark:hover:text-white/60"
+              >
+                privacy@bookjourney.live
+              </a>
+              . We will process deletion within 7 days.
+            </p>
           </section>
 
           <section>
@@ -128,23 +163,6 @@ export default function PrivacyPage() {
                 </p>
               </div>
             </div>
-          </section>
-
-          <section>
-            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">Your rights</h2>
-            <p>
-              You can request deletion of your account and all associated data at any time by contacting
-              us via the{" "}
-              <a
-                href="https://github.com/quetrea/book-journey/issues"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-slate-700 dark:hover:text-white/60"
-              >
-                GitHub issue tracker
-              </a>
-              . We will process the request within 7 days.
-            </p>
           </section>
 
           <section>
