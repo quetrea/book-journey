@@ -1,8 +1,15 @@
-import { mutation, query } from "./_generated/server";
+import { internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
-import { getViewerProfile, upsertViewerProfile, requireIdentity, getAuthUserIdFromIdentity, getProfileByAuthUserId } from "./lib/authProfile";
+import {
+  getViewerProfile,
+  upsertViewerProfile,
+  requireIdentity,
+  getAuthSessionIdFromIdentity,
+  getAuthUserIdFromIdentity,
+  getProfileByAuthUserId,
+} from "./lib/authProfile";
 
 export const upsertCurrentUser = mutation({
   args: {},
@@ -16,6 +23,52 @@ export const getCurrentUser = query({
   args: {},
   handler: async (ctx) => {
     return getViewerProfile(ctx);
+  },
+});
+
+export const getSessionState = query({
+  args: {},
+  handler: async (ctx): Promise<{ isAuthenticated: boolean; valid: boolean }> => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    if (!identity) {
+      return { isAuthenticated: false, valid: false };
+    }
+
+    try {
+      const authUserId = getAuthUserIdFromIdentity(identity);
+      const sessionId = getAuthSessionIdFromIdentity(identity);
+      const session = await ctx.db.get(sessionId);
+      const valid =
+        !!session &&
+        session.userId === authUserId &&
+        session.expirationTime > Date.now();
+      return { isAuthenticated: true, valid };
+    } catch {
+      return { isAuthenticated: true, valid: false };
+    }
+  },
+});
+
+export const getAuthUserIdByDiscordAccountIdInternal = internalQuery({
+  args: {
+    discordUserId: v.string(),
+  },
+  handler: async (ctx, { discordUserId }): Promise<Id<"users"> | null> => {
+    const normalizedDiscordUserId = discordUserId.trim();
+
+    if (!normalizedDiscordUserId) {
+      return null;
+    }
+
+    const account = await ctx.db
+      .query("authAccounts")
+      .withIndex("providerAndAccountId", (q) =>
+        q.eq("provider", "discord").eq("providerAccountId", normalizedDiscordUserId),
+      )
+      .unique();
+
+    return account?.userId ?? null;
   },
 });
 

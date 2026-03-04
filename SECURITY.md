@@ -13,6 +13,7 @@ We aim to acknowledge reports within 48 hours and resolve critical issues within
 
 - **Discord OAuth scope:** `identify` only — we never request `email`, `guilds`, or any other scope.
 - **Redirect URI:** All OAuth callbacks go exclusively to `bookjourney.space/api/auth/callback/discord`.
+- **Deauthorize handling:** We verify Discord webhook signatures and revoke all active app sessions when we receive `APPLICATION_DEAUTHORIZED`.
 - **No email collection:** We do not collect, store, or have access to your email address.
 - **Guest access:** Users can join sessions without any account — just a display name.
 

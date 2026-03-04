@@ -81,8 +81,9 @@ NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
 
 **Convex environment (`npx convex env set KEY value`)**
 ```env
-AUTH_DISCORD_CLIENT_ID=...
-AUTH_DISCORD_CLIENT_SECRET=...
+AUTH_DISCORD_ID=...
+AUTH_DISCORD_SECRET=...
+DISCORD_APPLICATION_PUBLIC_KEY=...
 VAPID_PUBLIC_KEY=...
 VAPID_PRIVATE_KEY=...
 VAPID_SUBJECT=mailto:you@example.com
@@ -96,6 +97,11 @@ npx web-push generate-vapid-keys
 Discord OAuth redirect URI to add in the Discord Developer Portal:
 ```
 https://<your-convex-site-domain>/api/auth/callback/discord
+```
+
+Discord Event Webhook URL to add in the Discord Developer Portal:
+```
+https://<your-convex-site-domain>/webhooks/discord
 ```
 
 ---

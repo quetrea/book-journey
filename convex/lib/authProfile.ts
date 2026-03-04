@@ -7,14 +7,19 @@ type Identity = NonNullable<
   Awaited<ReturnType<AuthCtx["auth"]["getUserIdentity"]>>
 >;
 
-function parseAuthUserId(subject: string): Id<"users"> {
-  const [userId] = subject.split("|");
+function parseAuthSubject(
+  subject: string,
+): { userId: Id<"users">; sessionId: Id<"authSessions"> } {
+  const [userId, sessionId] = subject.split("|");
 
-  if (!userId) {
+  if (!userId || !sessionId) {
     throw new Error("Invalid authentication subject.");
   }
 
-  return userId as Id<"users">;
+  return {
+    userId: userId as Id<"users">,
+    sessionId: sessionId as Id<"authSessions">,
+  };
 }
 
 function providerFromTokenIdentifier(tokenIdentifier: string): string | undefined {
@@ -58,11 +63,26 @@ export async function requireIdentity(ctx: AuthCtx) {
     throw new Error("Not authenticated");
   }
 
+  const { userId, sessionId } = parseAuthSubject(identity.subject);
+  const session = await ctx.db.get(sessionId);
+
+  if (
+    !session ||
+    session.userId !== userId ||
+    session.expirationTime <= Date.now()
+  ) {
+    throw new Error("Not authenticated");
+  }
+
   return identity;
 }
 
 export function getAuthUserIdFromIdentity(identity: Identity): Id<"users"> {
-  return parseAuthUserId(identity.subject);
+  return parseAuthSubject(identity.subject).userId;
+}
+
+export function getAuthSessionIdFromIdentity(identity: Identity): Id<"authSessions"> {
+  return parseAuthSubject(identity.subject).sessionId;
 }
 
 export async function getProfileByAuthUserId(
