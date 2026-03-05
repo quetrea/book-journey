@@ -22,7 +22,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mb-8 text-sm text-slate-500 dark:text-white/40">
-          Last updated: March 4, 2026
+          Last updated: March 5, 2026
         </p>
 
         <div className="space-y-8 text-sm leading-relaxed text-slate-700 dark:text-white/70">
@@ -177,6 +177,10 @@ export default function PrivacyPage() {
               <li>
                 Your profile (name, avatar) persists as long as you have an
                 account. It is deleted when your account is removed.
+              </li>
+              <li>
+                Accounts that remain inactive for 14 consecutive days are
+                automatically deleted with their associated profile data.
               </li>
             </ul>
           </section>

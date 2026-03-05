@@ -18,7 +18,8 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_authUserId", ["authUserId"])
-    .index("by_tokenIdentifier", ["tokenIdentifier"]),
+    .index("by_tokenIdentifier", ["tokenIdentifier"])
+    .index("by_updatedAt", ["updatedAt"]),
 
   sessions: defineTable({
     bookTitle: v.string(),

@@ -10,4 +10,10 @@ crons.interval(
   internal.sessions.cleanupExpiredSessions,
 );
 
+crons.interval(
+  "cleanup-inactive-accounts",
+  { hours: 24 },
+  internal.users.cleanupInactiveAccounts,
+);
+
 export default crons;

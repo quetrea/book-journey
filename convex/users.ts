@@ -1,6 +1,6 @@
-import { internalQuery, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import type { Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx } from "./_generated/server";
 import {
   getViewerProfile,
@@ -10,6 +10,10 @@ import {
   getAuthUserIdFromIdentity,
   getProfileByAuthUserId,
 } from "./lib/authProfile";
+
+const INACTIVE_ACCOUNT_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+const ACTIVITY_TOUCH_MIN_INTERVAL_MS = 5 * 60 * 1000;
+const INACTIVE_CLEANUP_BATCH_SIZE = 24;
 
 export const upsertCurrentUser = mutation({
   args: {},
@@ -132,6 +136,69 @@ async function transferHostIfNeeded(
   }
 }
 
+async function deleteProfileAndRelatedData(ctx: MutationCtx, profile: Doc<"profiles">) {
+  const profileId = profile._id;
+
+  // 1. Handle host sessions — transfer or end
+  const participations = await ctx.db
+    .query("participants")
+    .withIndex("by_userId", (q) => q.eq("userId", profileId))
+    .collect();
+
+  for (const participation of participations) {
+    if (participation.role === "host") {
+      await transferHostIfNeeded(ctx, participation.sessionId, profileId);
+    }
+  }
+
+  // 2. Delete all participant records
+  await Promise.all(participations.map((participation) => ctx.db.delete(participation._id)));
+
+  // 3. Delete all queue items
+  const queueItems = await ctx.db
+    .query("queueItems")
+    .withIndex("by_userId", (q) => q.eq("userId", profileId))
+    .collect();
+  await Promise.all(queueItems.map((item) => ctx.db.delete(item._id)));
+
+  // 4. Delete all session words
+  const words = await ctx.db
+    .query("sessionWords")
+    .withIndex("by_userId", (q) => q.eq("userId", profileId))
+    .collect();
+  await Promise.all(words.map((word) => ctx.db.delete(word._id)));
+
+  // 5. Delete all passcode grants
+  const grants = await ctx.db
+    .query("sessionPasscodeGrants")
+    .withIndex("by_userId", (q) => q.eq("userId", profileId))
+    .collect();
+  await Promise.all(grants.map((grant) => ctx.db.delete(grant._id)));
+
+  // 6. Delete all private join requests made by this user
+  const joinRequests = await ctx.db
+    .query("sessionJoinRequests")
+    .withIndex("by_requesterUserId", (q) => q.eq("requesterUserId", profileId))
+    .collect();
+  await Promise.all(joinRequests.map((request) => ctx.db.delete(request._id)));
+
+  // 7. Delete push subscriptions
+  const subscriptions = await ctx.db
+    .query("pushSubscriptions")
+    .withIndex("by_userId", (q) => q.eq("userId", profileId))
+    .collect();
+  await Promise.all(subscriptions.map((subscription) => ctx.db.delete(subscription._id)));
+
+  // 8. Delete profile
+  await ctx.db.delete(profileId);
+
+  // 9. Delete auth user record
+  const authUser = await ctx.db.get(profile.authUserId);
+  if (authUser) {
+    await ctx.db.delete(profile.authUserId);
+  }
+}
+
 /**
  * Permanently delete the authenticated user's account and all associated data.
  * - Transfers host role for active sessions before removing.
@@ -150,67 +217,43 @@ export const deleteMyAccountServer = mutation({
       return { ok: true };
     }
 
-    const profileId = profile._id;
-
-    // 1. Handle host sessions — transfer or end
-    const participations = await ctx.db
-      .query("participants")
-      .withIndex("by_userId", (q) => q.eq("userId", profileId))
-      .collect();
-
-    for (const p of participations) {
-      if (p.role === "host") {
-        await transferHostIfNeeded(ctx, p.sessionId, profileId);
-      }
-    }
-
-    // 2. Delete all participant records
-    await Promise.all(participations.map((p) => ctx.db.delete(p._id)));
-
-    // 3. Delete all queue items
-    const queueItems = await ctx.db
-      .query("queueItems")
-      .withIndex("by_userId", (q) => q.eq("userId", profileId))
-      .collect();
-    await Promise.all(queueItems.map((item) => ctx.db.delete(item._id)));
-
-    // 4. Delete all session words
-    const words = await ctx.db
-      .query("sessionWords")
-      .withIndex("by_userId", (q) => q.eq("userId", profileId))
-      .collect();
-    await Promise.all(words.map((w) => ctx.db.delete(w._id)));
-
-    // 5. Delete all passcode grants
-    const grants = await ctx.db
-      .query("sessionPasscodeGrants")
-      .withIndex("by_userId", (q) => q.eq("userId", profileId))
-      .collect();
-    await Promise.all(grants.map((g) => ctx.db.delete(g._id)));
-
-    // 6. Delete all private join requests made by this user
-    const joinRequests = await ctx.db
-      .query("sessionJoinRequests")
-      .withIndex("by_requesterUserId", (q) => q.eq("requesterUserId", profileId))
-      .collect();
-    await Promise.all(joinRequests.map((request) => ctx.db.delete(request._id)));
-
-    // 7. Delete push subscriptions
-    const subs = await ctx.db
-      .query("pushSubscriptions")
-      .withIndex("by_userId", (q) => q.eq("userId", profileId))
-      .collect();
-    await Promise.all(subs.map((s) => ctx.db.delete(s._id)));
-
-    // 8. Delete profile
-    await ctx.db.delete(profileId);
-
-    // 9. Delete auth user record
-    const authUser = await ctx.db.get(authUserId);
-    if (authUser) {
-      await ctx.db.delete(authUserId);
-    }
+    await deleteProfileAndRelatedData(ctx, profile);
 
     return { ok: true };
+  },
+});
+
+export const touchActivityServer = mutation({
+  args: {},
+  handler: async (ctx): Promise<{ touched: boolean }> => {
+    const profile = await upsertViewerProfile(ctx);
+    const now = Date.now();
+
+    if (now - profile.updatedAt < ACTIVITY_TOUCH_MIN_INTERVAL_MS) {
+      return { touched: false };
+    }
+
+    await ctx.db.patch(profile._id, { updatedAt: now });
+    return { touched: true };
+  },
+});
+
+export const cleanupInactiveAccounts = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<{ deletedCount: number; reachedBatchLimit: boolean }> => {
+    const cutoff = Date.now() - INACTIVE_ACCOUNT_TTL_MS;
+    const staleProfiles = await ctx.db
+      .query("profiles")
+      .withIndex("by_updatedAt", (q) => q.lt("updatedAt", cutoff))
+      .take(INACTIVE_CLEANUP_BATCH_SIZE);
+
+    for (const staleProfile of staleProfiles) {
+      await deleteProfileAndRelatedData(ctx, staleProfile);
+    }
+
+    return {
+      deletedCount: staleProfiles.length,
+      reachedBatchLimit: staleProfiles.length >= INACTIVE_CLEANUP_BATCH_SIZE,
+    };
   },
 });

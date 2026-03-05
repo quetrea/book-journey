@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -29,6 +30,21 @@ type MoonVisual = {
   isBloodMoon: boolean;
 };
 
+type RenderStar = {
+  left: string;
+  top: string;
+  width: string;
+  height: string;
+  opacity: "0.86";
+  boxShadow: string;
+  animation: string;
+};
+
+type CelestialPosition = {
+  x: number;
+  y: number;
+};
+
 const BackgroundContext = createContext<BackgroundContextValue | null>(null);
 
 const STORAGE_KEY = "bj-bg-theme";
@@ -43,8 +59,8 @@ const SUN_ENTER_OFFSET_PX = 220;
 const MOON_ENTER_OFFSET_PX = 220;
 const CELESTIAL_ENTER_OFFSET_Y_PX = 250;
 const MODE_MORPH_MS = 680;
-const INITIAL_MOON_POSITION = { x: 0.84, y: 0.16 };
-const INITIAL_SUN_POSITION = { x: 0.84, y: 0.16 };
+const INITIAL_MOON_POSITION: CelestialPosition = { x: 0.84, y: 0.16 };
+const INITIAL_SUN_POSITION: CelestialPosition = { x: 0.84, y: 0.16 };
 const SYNODIC_MONTH_DAYS = 29.53058867;
 const MOON_REFERENCE_NEW_MOON_MS = Date.UTC(2000, 0, 6, 18, 14, 0);
 const BLOOD_MOON_UTC_DATES = new Set([
@@ -108,7 +124,7 @@ function seededUnit(index: number, salt: number) {
   return value / 4294967295;
 }
 
-const EXTRA_STAR_FIELD = Array.from({ length: 92 }, (_, index) => {
+const EXTRA_STAR_FIELD = Array.from({ length: 56 }, (_, index) => {
   const left = seededUnit(index, 1) * 100;
   const top = seededUnit(index, 2) * 86 + 4;
   const size = Number((0.8 + seededUnit(index, 3) * 2.4).toFixed(5));
@@ -129,6 +145,22 @@ const ALL_STARS = [
   ...STAR_FIELD.map((star) => ({ ...star, glow: 0.46 })),
   ...EXTRA_STAR_FIELD,
 ] as const;
+
+const RENDER_STARS: RenderStar[] = ALL_STARS.map((star) => {
+  const starSize = star.size.toFixed(5);
+  const glowPrimary = Math.max(9, star.size * 6).toFixed(5);
+  const glowSecondary = Math.max(16, star.size * 10).toFixed(5);
+  const animation = `star-twinkle ${star.duration.toFixed(5)}s ease-in-out ${star.delay.toFixed(5)}s infinite`;
+  return {
+    left: star.left,
+    top: star.top,
+    width: `${starSize}px`,
+    height: `${starSize}px`,
+    opacity: "0.86",
+    boxShadow: `0 0 ${glowPrimary}px rgba(255,255,255,${star.glow.toFixed(3)}), 0 0 ${glowSecondary}px rgba(190,220,255,0.32)`,
+    animation,
+  };
+});
 
 function getMoonPhaseName(phaseFraction: number): MoonVisual["phaseName"] {
   if (phaseFraction < 0.0625 || phaseFraction >= 0.9375) return "new";
@@ -178,10 +210,16 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const modeMorphTimerRef = useRef<number | null>(null);
   const sunEnterRafRef = useRef<number | null>(null);
   const moonEnterRafRef = useRef<number | null>(null);
+  const moonMoveRafRef = useRef<number | null>(null);
+  const sunMoveRafRef = useRef<number | null>(null);
+  const pendingMoonPositionRef = useRef<CelestialPosition | null>(null);
+  const pendingSunPositionRef = useRef<CelestialPosition | null>(null);
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = isMounted ? resolvedTheme !== "light" : true;
-  const [moonPosition, setMoonPosition] = useState(INITIAL_MOON_POSITION);
-  const [sunPosition, setSunPosition] = useState(INITIAL_SUN_POSITION);
+  const [moonPosition, setMoonPosition] = useState<CelestialPosition>(INITIAL_MOON_POSITION);
+  const [sunPosition, setSunPosition] = useState<CelestialPosition>(INITIAL_SUN_POSITION);
+  const moonPositionRef = useRef(INITIAL_MOON_POSITION);
+  const sunPositionRef = useRef(INITIAL_SUN_POSITION);
   const [isMoonDragging, setIsMoonDragging] = useState(false);
   const [isSunDragging, setIsSunDragging] = useState(false);
   const [isSunEnteringFromRight, setIsSunEnteringFromRight] = useState(false);
@@ -228,8 +266,6 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         el.style.transform = `translate(${x - 400}px, ${y - 400}px)`;
         const nx = (x / window.innerWidth - 0.5) * 2;
         const ny = (y / window.innerHeight - 0.5) * 2;
-        bg.style.setProperty("--bj-parallax-x", `${(nx * 22).toFixed(2)}px`);
-        bg.style.setProperty("--bj-parallax-y", `${(ny * 22).toFixed(2)}px`);
         bg.style.setProperty("--bj-mouse-x", `${((x / window.innerWidth) * 100).toFixed(2)}%`);
         bg.style.setProperty("--bj-mouse-y", `${((y / window.innerHeight) * 100).toFixed(2)}%`);
         document.documentElement.style.setProperty("--bj-parallax-x", `${(nx * 22).toFixed(2)}px`);
@@ -249,6 +285,14 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    moonPositionRef.current = moonPosition;
+  }, [moonPosition]);
+
+  useEffect(() => {
+    sunPositionRef.current = sunPosition;
+  }, [sunPosition]);
+
+  useEffect(() => {
     return () => {
       if (modeSwitchTimerRef.current !== null) {
         window.clearTimeout(modeSwitchTimerRef.current);
@@ -262,8 +306,48 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       if (moonEnterRafRef.current !== null) {
         window.cancelAnimationFrame(moonEnterRafRef.current);
       }
+      if (moonMoveRafRef.current !== null) {
+        window.cancelAnimationFrame(moonMoveRafRef.current);
+      }
+      if (sunMoveRafRef.current !== null) {
+        window.cancelAnimationFrame(sunMoveRafRef.current);
+      }
     };
   }, []);
+
+  function scheduleMoonPosition(nextPosition: CelestialPosition) {
+    pendingMoonPositionRef.current = nextPosition;
+    if (moonMoveRafRef.current !== null) {
+      return;
+    }
+    moonMoveRafRef.current = window.requestAnimationFrame(() => {
+      moonMoveRafRef.current = null;
+      const pendingPosition = pendingMoonPositionRef.current;
+      if (!pendingPosition) {
+        return;
+      }
+      pendingMoonPositionRef.current = null;
+      moonPositionRef.current = pendingPosition;
+      setMoonPosition(pendingPosition);
+    });
+  }
+
+  function scheduleSunPosition(nextPosition: CelestialPosition) {
+    pendingSunPositionRef.current = nextPosition;
+    if (sunMoveRafRef.current !== null) {
+      return;
+    }
+    sunMoveRafRef.current = window.requestAnimationFrame(() => {
+      sunMoveRafRef.current = null;
+      const pendingPosition = pendingSunPositionRef.current;
+      if (!pendingPosition) {
+        return;
+      }
+      pendingSunPositionRef.current = null;
+      sunPositionRef.current = pendingPosition;
+      setSunPosition(pendingPosition);
+    });
+  }
 
   function startModeMorph() {
     setIsModeMorphing(true);
@@ -285,7 +369,12 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       modeSwitchTimerRef.current = null;
     }
     moonPointerOriginRef.current = { x: event.clientX, y: event.clientY };
-    moonPositionOriginRef.current = moonPosition;
+    moonPositionOriginRef.current = moonPositionRef.current;
+    if (moonMoveRafRef.current !== null) {
+      window.cancelAnimationFrame(moonMoveRafRef.current);
+      moonMoveRafRef.current = null;
+    }
+    pendingMoonPositionRef.current = null;
     setIsMoonDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -317,7 +406,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       magnetX = nextX + (MOON_MAX_X - nextX) * influence * 0.62;
     }
 
-    setMoonPosition({
+    scheduleMoonPosition({
       x: Math.max(MOON_MIN_X, Math.min(MOON_MAX_X, magnetX)),
       y: nextY,
     });
@@ -334,14 +423,28 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
     setIsMoonDragging(false);
 
-    const nearLeftZone = moonPosition.x <= MOON_MIN_X + MOON_SWITCH_ZONE;
-    const nearRightZone = moonPosition.x >= MOON_MAX_X - MOON_SWITCH_ZONE;
+    const pendingPosition = pendingMoonPositionRef.current;
+    if (moonMoveRafRef.current !== null) {
+      window.cancelAnimationFrame(moonMoveRafRef.current);
+      moonMoveRafRef.current = null;
+    }
+    if (pendingPosition) {
+      pendingMoonPositionRef.current = null;
+      moonPositionRef.current = pendingPosition;
+      setMoonPosition(pendingPosition);
+    }
+    const releasedPosition = pendingPosition ?? moonPositionRef.current;
+
+    const nearLeftZone = releasedPosition.x <= MOON_MIN_X + MOON_SWITCH_ZONE;
+    const nearRightZone = releasedPosition.x >= MOON_MAX_X - MOON_SWITCH_ZONE;
     if (!nearLeftZone && !nearRightZone) {
       return;
     }
 
     const snappedX = nearLeftZone ? MOON_MIN_X : MOON_MAX_X;
-    setMoonPosition((prev) => ({ ...prev, x: snappedX }));
+    const snappedPosition = { x: snappedX, y: releasedPosition.y };
+    moonPositionRef.current = snappedPosition;
+    setMoonPosition(snappedPosition);
 
     if (modeSwitchTimerRef.current !== null) {
       window.clearTimeout(modeSwitchTimerRef.current);
@@ -369,7 +472,12 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       modeSwitchTimerRef.current = null;
     }
     sunPointerOriginRef.current = { x: event.clientX, y: event.clientY };
-    sunPositionOriginRef.current = sunPosition;
+    sunPositionOriginRef.current = sunPositionRef.current;
+    if (sunMoveRafRef.current !== null) {
+      window.cancelAnimationFrame(sunMoveRafRef.current);
+      sunMoveRafRef.current = null;
+    }
+    pendingSunPositionRef.current = null;
     setIsSunDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
   }
@@ -401,7 +509,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       magnetX = nextX + (MOON_MAX_X - nextX) * influence * 0.62;
     }
 
-    setSunPosition({
+    scheduleSunPosition({
       x: Math.max(MOON_MIN_X, Math.min(MOON_MAX_X, magnetX)),
       y: nextY,
     });
@@ -418,14 +526,28 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
     setIsSunDragging(false);
 
-    const nearLeftZone = sunPosition.x <= MOON_MIN_X + MOON_SWITCH_ZONE;
-    const nearRightZone = sunPosition.x >= MOON_MAX_X - MOON_SWITCH_ZONE;
+    const pendingPosition = pendingSunPositionRef.current;
+    if (sunMoveRafRef.current !== null) {
+      window.cancelAnimationFrame(sunMoveRafRef.current);
+      sunMoveRafRef.current = null;
+    }
+    if (pendingPosition) {
+      pendingSunPositionRef.current = null;
+      sunPositionRef.current = pendingPosition;
+      setSunPosition(pendingPosition);
+    }
+    const releasedPosition = pendingPosition ?? sunPositionRef.current;
+
+    const nearLeftZone = releasedPosition.x <= MOON_MIN_X + MOON_SWITCH_ZONE;
+    const nearRightZone = releasedPosition.x >= MOON_MAX_X - MOON_SWITCH_ZONE;
     if (!nearLeftZone && !nearRightZone) {
       return;
     }
 
     const snappedX = nearLeftZone ? MOON_MIN_X : MOON_MAX_X;
-    setSunPosition((prev) => ({ ...prev, x: snappedX }));
+    const snappedPosition = { x: snappedX, y: releasedPosition.y };
+    sunPositionRef.current = snappedPosition;
+    setSunPosition(snappedPosition);
 
     if (modeSwitchTimerRef.current !== null) {
       window.clearTimeout(modeSwitchTimerRef.current);
@@ -459,24 +581,34 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const moonlightStrength = isDark
     ? Math.min(1, (1 - dawnStrength) * (0.6 + (1 - moonPosition.y) * 0.4))
     : 0;
+  const sunTrackProgress = !isDark
+    ? Math.max(0, Math.min(1, (sunPosition.x - MOON_MIN_X) / (MOON_MAX_X - MOON_MIN_X)))
+    : 0;
+  const sunAltitude = !isDark
+    ? Math.max(0, Math.min(1, 1 - (sunPosition.y - MOON_MIN_Y) / (MOON_MAX_Y - MOON_MIN_Y)))
+    : 0;
+  const sunsetStrength = !isDark
+    ? Math.min(1, (1 - sunAltitude) * (0.52 + sunTrackProgress * 0.48))
+    : 0;
   const sunDawnStrength = !isDark
     ? Math.min(
         1,
-        Math.max(0, (sunPosition.x - MOON_MIN_X) / (MOON_MAX_X - MOON_MIN_X)) *
-          (0.58 + (1 - sunPosition.y) * 0.42),
+        sunTrackProgress * (0.56 + sunAltitude * 0.44),
       )
     : 0;
   const moonGlowX = `${(moonPosition.x * 100).toFixed(1)}%`;
   const moonGlowY = `${(moonPosition.y * 100).toFixed(1)}%`;
   const sunGlowX = `${(sunPosition.x * 100).toFixed(1)}%`;
   const sunGlowY = `${(sunPosition.y * 100).toFixed(1)}%`;
+  const sunHorizonX = sunGlowX;
   const base = isDark
     ? `radial-gradient(circle at ${moonGlowX} ${moonGlowY}, rgba(159,184,255,${(0.12 + moonlightStrength * 0.25).toFixed(3)}), rgba(22,28,58,0.86) 34%, rgba(8,12,30,1) 74%),
        radial-gradient(ellipse at 86% 100%, rgba(255,166,104,${(0.06 + dawnStrength * 0.5).toFixed(3)}), transparent 66%),
        linear-gradient(145deg, #030814 0%, #0a1230 44%, #2d2334 100%)`
-    : `radial-gradient(circle at ${sunGlowX} ${sunGlowY}, rgba(255,248,215,0.98), rgba(255,235,175,0.82) 24%, rgba(186,224,255,0.46) 56%, rgba(219,236,255,0.18) 74%, rgba(238,240,248,1) 100%),
-       radial-gradient(ellipse at 12% 100%, rgba(255,172,118,${(0.1 + sunDawnStrength * 0.34).toFixed(3)}), transparent 66%),
-       linear-gradient(165deg, #f8ead1 0%, #d8ecff 44%, #edf3ff 100%)`;
+    : `radial-gradient(circle at ${sunGlowX} ${sunGlowY}, rgba(255,252,223,${(0.92 - sunsetStrength * 0.08).toFixed(3)}), rgba(255,234,168,${(0.84 - sunsetStrength * 0.2).toFixed(3)}) 18%, rgba(255,193,128,${(0.36 + sunsetStrength * 0.24).toFixed(3)}) 38%, rgba(190,226,255,${(0.44 - sunsetStrength * 0.28).toFixed(3)}) 60%, rgba(230,240,255,0.18) 78%, rgba(240,244,252,1) 100%),
+       radial-gradient(ellipse 84% 50% at ${sunHorizonX} 100%, rgba(255,152,98,${(0.09 + sunsetStrength * 0.54).toFixed(3)}), rgba(255,113,84,${(0.04 + sunsetStrength * 0.3).toFixed(3)}) 34%, transparent 72%),
+       radial-gradient(ellipse 72% 54% at 22% 0%, rgba(164,214,255,${(0.22 + sunAltitude * 0.3).toFixed(3)}), transparent 74%),
+       linear-gradient(168deg, rgba(246,236,206,1) 0%, rgba(214,234,255,1) 52%, rgba(238,242,252,1) 100%)`;
   const orb1Opacity = isDark ? 0.7 - dawnStrength * 0.2 : 0.55;
   const orb2Opacity = isDark ? 0.6 - dawnStrength * 0.14 : 0.45;
   const orb3Opacity = isDark ? 0.55 + dawnStrength * 0.08 : 0.4;
@@ -499,11 +631,30 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const magnetCenterY = `${(activeDragY * 100).toFixed(1)}%`;
   const backgroundStyle: CSSProperties & Record<string, string> = {
     background: base,
-    "--bj-parallax-x": "0px",
-    "--bj-parallax-y": "0px",
     "--bj-mouse-x": "50%",
     "--bj-mouse-y": "50%",
   };
+  const starNodes = useMemo(
+    () =>
+      isMounted
+        ? RENDER_STARS.map((star, index) => (
+            <span
+              key={`star-${index}`}
+              className="absolute rounded-full bg-white"
+              style={{
+                left: star.left,
+                top: star.top,
+                width: star.width,
+                height: star.height,
+                opacity: star.opacity,
+                boxShadow: star.boxShadow,
+                animation: star.animation,
+              }}
+            />
+          ))
+        : null,
+    [isMounted],
+  );
 
   return (
     <BackgroundContext.Provider value={{ theme, setThemeId, themes: BACKGROUND_THEMES }}>
@@ -515,7 +666,19 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         style={backgroundStyle}
       >
         {/* Particle canvas — dancing nodes */}
-        <ParticleCanvas color={theme.orb1} isDark={isDark} />
+        <div className="hidden md:block">
+          <ParticleCanvas color={theme.orb1} isDark={isDark} />
+        </div>
+
+        {/* Mobile simplification layer */}
+        <div
+          className="pointer-events-none absolute inset-0 md:hidden"
+          style={{
+            background: isDark
+              ? "linear-gradient(165deg, rgba(2,7,18,0.82) 0%, rgba(8,14,32,0.9) 55%, rgba(19,24,40,0.94) 100%)"
+              : "linear-gradient(170deg, rgba(243,236,218,0.64) 0%, rgba(225,236,249,0.7) 52%, rgba(238,242,250,0.78) 100%)",
+          }}
+        />
 
         <div
           className="pointer-events-none absolute inset-0 z-25 transition-opacity duration-500"
@@ -530,27 +693,27 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
         {/* Edge magnet feedback (black-hole style) */}
         <div
-          className="pointer-events-none absolute left-0 top-0 z-8 h-full w-[28vw]"
+          className="pointer-events-none absolute left-0 top-0 z-8 hidden h-full w-[24vw] md:block md:w-[28vw]"
           style={{
-            opacity: leftMagnetStrength * 0.78,
+            opacity: leftMagnetStrength * 0.52,
             transition: "opacity 90ms linear",
             background: isDark
-              ? "linear-gradient(90deg, rgba(2,6,18,0.85), rgba(2,6,18,0.58) 24%, rgba(2,6,18,0.16) 60%, transparent 100%)"
-              : "linear-gradient(90deg, rgba(26,34,62,0.65), rgba(26,34,62,0.4) 24%, rgba(26,34,62,0.12) 60%, transparent 100%)",
+              ? "linear-gradient(90deg, rgba(2,6,18,0.72), rgba(2,6,18,0.42) 24%, rgba(2,6,18,0.1) 60%, transparent 100%)"
+              : "linear-gradient(90deg, rgba(26,34,62,0.52), rgba(26,34,62,0.3) 24%, rgba(26,34,62,0.1) 60%, transparent 100%)",
           }}
         />
         <div
-          className="pointer-events-none absolute -left-16 top-0 z-9 h-full w-56"
+          className="pointer-events-none absolute -left-14 top-0 z-9 hidden h-full w-48 md:block"
           style={{
-            opacity: leftMagnetStrength * 0.98,
+            opacity: leftMagnetStrength * 0.72,
             transition: "opacity 90ms linear",
           }}
         >
           <span
-            className="absolute left-1/2 size-56 -translate-x-1/2 rounded-full"
+            className="absolute left-1/2 size-48 -translate-x-1/2 rounded-full"
             style={{
               top: magnetCenterY,
-              transform: `translate(-50%, -50%) scale(${0.84 + leftMagnetStrength * 0.58})`,
+              transform: `translate(-50%, -50%) scale(${0.88 + leftMagnetStrength * 0.42})`,
               background: isDark
                 ? "radial-gradient(circle at 62% 50%, rgba(0,0,0,0.96) 0%, rgba(5,10,26,0.95) 26%, rgba(78,120,238,0.45) 52%, rgba(144,188,255,0.2) 68%, transparent 82%)"
                 : "radial-gradient(circle at 62% 50%, rgba(20,30,56,0.9) 0%, rgba(34,51,94,0.84) 24%, rgba(255,176,118,0.44) 52%, rgba(255,205,142,0.24) 68%, transparent 82%)",
@@ -574,27 +737,27 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
           </span>
         </div>
         <div
-          className="pointer-events-none absolute -right-[4vw] top-0 z-8 h-full w-[34vw]"
+          className="pointer-events-none absolute -right-[2vw] top-0 z-8 hidden h-full w-[28vw] md:block md:w-[34vw]"
           style={{
-            opacity: rightVisualStrength * 0.86,
+            opacity: rightVisualStrength * 0.56,
             transition: "opacity 90ms linear",
             background: isDark
-              ? "linear-gradient(270deg, rgba(2,6,18,0.92), rgba(2,6,18,0.62) 26%, rgba(2,6,18,0.18) 60%, transparent 100%)"
-              : "linear-gradient(270deg, rgba(26,34,62,0.72), rgba(26,34,62,0.46) 26%, rgba(26,34,62,0.14) 60%, transparent 100%)",
+              ? "linear-gradient(270deg, rgba(2,6,18,0.76), rgba(2,6,18,0.44) 26%, rgba(2,6,18,0.12) 60%, transparent 100%)"
+              : "linear-gradient(270deg, rgba(26,34,62,0.56), rgba(26,34,62,0.34) 26%, rgba(26,34,62,0.12) 60%, transparent 100%)",
           }}
         />
         <div
-          className="pointer-events-none absolute -right-24 top-0 z-9 h-full w-56"
+          className="pointer-events-none absolute -right-20 top-0 z-9 hidden h-full w-48 md:block"
           style={{
-            opacity: rightVisualStrength,
+            opacity: rightVisualStrength * 0.74,
             transition: "opacity 90ms linear",
           }}
         >
           <span
-            className="absolute left-1/2 size-56 -translate-x-1/2 rounded-full"
+            className="absolute left-1/2 size-48 -translate-x-1/2 rounded-full"
             style={{
               top: magnetCenterY,
-              transform: `translate(-50%, -50%) scale(${0.84 + rightVisualStrength * 0.64})`,
+              transform: `translate(-50%, -50%) scale(${0.88 + rightVisualStrength * 0.44})`,
               background: isDark
                 ? "radial-gradient(circle at 38% 50%, rgba(0,0,0,0.96) 0%, rgba(5,10,26,0.95) 26%, rgba(78,120,238,0.45) 52%, rgba(144,188,255,0.2) 68%, transparent 82%)"
                 : "radial-gradient(circle at 38% 50%, rgba(20,30,56,0.9) 0%, rgba(34,51,94,0.84) 24%, rgba(255,176,118,0.44) 52%, rgba(255,205,142,0.24) 68%, transparent 82%)",
@@ -622,44 +785,18 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
           <>
             {/* Night sky stars */}
             <div
-              className="pointer-events-none absolute inset-0"
+              className="pointer-events-none absolute inset-0 hidden md:block"
               style={{
                 transform:
                   "translate3d(calc(var(--bj-parallax-x, 0px) * 0.24), calc(var(--bj-parallax-y, 0px) * 0.24), 0)",
               }}
             >
-              {ALL_STARS.map((star, index) => {
-                const starSize = star.size.toFixed(5);
-                const glowPrimary = Math.max(9, star.size * 6).toFixed(5);
-                const glowSecondary = Math.max(16, star.size * 10).toFixed(5);
-                const starGlow = star.glow.toFixed(3);
-                const animationDuration = `${star.duration.toFixed(5)}s`;
-                const animationDelay = `${star.delay.toFixed(5)}s`;
-                return (
-                <span
-                  key={`star-${index}`}
-                  className="absolute rounded-full bg-white"
-                  style={{
-                    left: star.left,
-                    top: star.top,
-                    width: `${starSize}px`,
-                    height: `${starSize}px`,
-                    opacity: "0.86",
-                    boxShadow: `0 0 ${glowPrimary}px rgba(255,255,255,${starGlow}), 0 0 ${glowSecondary}px rgba(190,220,255,0.32)`,
-                    animationName: "star-twinkle",
-                    animationDuration,
-                    animationTimingFunction: "ease-in-out",
-                    animationDelay,
-                    animationIterationCount: "infinite",
-                  }}
-                />
-                );
-              })}
+              {starNodes}
             </div>
 
             {/* Dawn haze reacts to moon position */}
             <div
-              className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+              className="pointer-events-none absolute inset-0 hidden transition-opacity duration-300 md:block"
               style={{
                 opacity: 0.25 + dawnStrength * 0.75,
                 background: `radial-gradient(ellipse 68% 42% at 82% 100%, rgba(255,160,100,${(0.08 + dawnStrength * 0.46).toFixed(3)}), transparent 72%)`,
@@ -670,7 +807,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
             {/* Shooting stars */}
             <span
-              className="pointer-events-none absolute left-[18%] top-[19%] h-px w-28 rotate-22"
+              className="pointer-events-none absolute left-[18%] top-[19%] hidden h-px w-28 rotate-22 md:block"
               style={{
                 background:
                   "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.95), rgba(255,255,255,0))",
@@ -681,7 +818,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
               }}
             />
             <span
-              className="pointer-events-none absolute left-[58%] top-[31%] h-px w-24 rotate-16"
+              className="pointer-events-none absolute left-[58%] top-[31%] hidden h-px w-24 rotate-16 md:block"
               style={{
                 background:
                   "linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.86), rgba(255,255,255,0))",
@@ -696,21 +833,32 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
           <>
             {/* Dawn veil reacts to sun position */}
             <div
-              className="pointer-events-none absolute inset-0 transition-opacity duration-300"
+              className="pointer-events-none absolute inset-0 hidden transition-opacity duration-300 md:block"
               style={{
-                opacity: 0.24 + sunDawnStrength * 0.68,
-                background: `radial-gradient(ellipse 66% 44% at 12% 100%, rgba(255,166,108,${(0.1 + sunDawnStrength * 0.38).toFixed(3)}), transparent 72%)`,
+                opacity: 0.18 + sunDawnStrength * 0.56 + sunsetStrength * 0.2,
+                background: `radial-gradient(ellipse 66% 44% at ${sunHorizonX} 100%, rgba(255,166,108,${(0.08 + sunDawnStrength * 0.24 + sunsetStrength * 0.24).toFixed(3)}), transparent 72%)`,
                 transform:
                   "translate3d(calc(var(--bj-parallax-x, 0px) * 0.12), calc(var(--bj-parallax-y, 0px) * 0.08), 0)",
               }}
             />
 
+            {/* Sunset tint layer */}
+            <div
+              className="pointer-events-none absolute inset-0 hidden transition-opacity duration-500 md:block"
+              style={{
+                opacity: 0.06 + sunsetStrength * 0.46,
+                background: `linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,190,140,${(0.08 + sunsetStrength * 0.26).toFixed(3)}) 46%, rgba(255,136,108,${(0.04 + sunsetStrength * 0.22).toFixed(3)}) 100%)`,
+                transform:
+                  "translate3d(calc(var(--bj-parallax-x, 0px) * 0.08), calc(var(--bj-parallax-y, 0px) * 0.06), 0)",
+              }}
+            />
+
             {/* Light clouds */}
             <span
-              className="pointer-events-none absolute left-[10%] top-[12%] h-12 w-40 rounded-full"
+              className="pointer-events-none absolute left-[10%] top-[12%] hidden h-12 w-40 rounded-full md:block"
               style={{
                 background:
-                  "radial-gradient(circle at 30% 35%, rgba(255,255,255,0.78), rgba(255,255,255,0.34) 70%, rgba(255,255,255,0) 100%)",
+                  `radial-gradient(circle at 30% 35%, rgba(255,255,255,${(0.74 - sunsetStrength * 0.12).toFixed(3)}), rgba(255,236,216,${(0.32 + sunsetStrength * 0.14).toFixed(3)}) 70%, rgba(255,255,255,0) 100%)`,
                 filter: "blur(1px)",
                 animation: "cloud-drift 22s ease-in-out infinite",
                 transform:
@@ -718,10 +866,10 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
               }}
             />
             <span
-              className="pointer-events-none absolute left-[55%] top-[22%] h-10 w-32 rounded-full"
+              className="pointer-events-none absolute left-[55%] top-[22%] hidden h-10 w-32 rounded-full md:block"
               style={{
                 background:
-                  "radial-gradient(circle at 38% 36%, rgba(255,255,255,0.72), rgba(255,255,255,0.3) 72%, rgba(255,255,255,0) 100%)",
+                  `radial-gradient(circle at 38% 36%, rgba(255,255,255,${(0.7 - sunsetStrength * 0.1).toFixed(3)}), rgba(255,228,200,${(0.28 + sunsetStrength * 0.14).toFixed(3)}) 72%, rgba(255,255,255,0) 100%)`,
                 filter: "blur(1px)",
                 animation: "cloud-drift 28s ease-in-out 1.4s infinite",
                 transform:
@@ -733,7 +881,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
         {/* Orb 1 — top-left anchor, breathe-1 */}
         <div
-          className="absolute -left-48 -top-48 size-[750px] transition-opacity duration-700"
+          className="absolute -left-32 -top-32 size-[460px] transition-opacity duration-700 md:-left-48 md:-top-48 md:size-[750px]"
           style={{
             opacity: orb1Opacity,
             animation: "orb-breathe-1 7s ease-in-out infinite",
@@ -752,7 +900,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
         {/* Orb 2 — top-right anchor, breathe-2 */}
         <div
-          className="absolute -right-48 top-8 size-[650px] transition-opacity duration-700"
+          className="absolute -right-48 top-8 hidden size-[650px] transition-opacity duration-700 md:block"
           style={{
             opacity: orb2Opacity,
             animation: "orb-breathe-2 9s ease-in-out infinite",
@@ -771,7 +919,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
         {/* Orb 3 — bottom-center anchor, breathe-3 */}
         <div
-          className="absolute bottom-0 left-1/2 size-[700px] -translate-x-1/2 transition-opacity duration-700"
+          className="absolute bottom-0 left-1/2 hidden size-[700px] -translate-x-1/2 transition-opacity duration-700 md:block"
           style={{
             opacity: orb3Opacity,
             animation: "orb-breathe-3 11s ease-in-out infinite",
@@ -790,7 +938,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
 
         {/* Orb 4 — center depth, breathe-4 */}
         <div
-          className="absolute left-1/4 top-1/3 size-[450px] transition-opacity duration-700"
+          className="absolute left-1/4 top-1/3 hidden size-[450px] transition-opacity duration-700 md:block"
           style={{
             opacity: orb4Opacity,
             animation: "orb-breathe-4 13s ease-in-out infinite",
@@ -816,7 +964,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         {/* Dot grid */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute inset-0"
+          className="pointer-events-none absolute inset-0 hidden md:block"
           style={{
             backgroundImage: `radial-gradient(circle, ${isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.022)"} 1px, transparent 1px)`,
             backgroundSize: "28px 28px",
@@ -831,7 +979,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         {/* Animated grain texture */}
         <div
           aria-hidden="true"
-          className="pointer-events-none absolute will-change-transform"
+          className="pointer-events-none absolute hidden will-change-transform md:block"
           style={{
             inset: "-150%",
             width: "400%",
@@ -851,7 +999,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         {/* Mouse spotlight */}
         <div
           ref={spotlightRef}
-          className="pointer-events-none absolute top-0 left-0 size-[800px] rounded-full will-change-transform"
+          className="pointer-events-none absolute top-0 left-0 hidden size-[800px] rounded-full will-change-transform md:block"
           style={{
             background: `radial-gradient(circle, ${theme.orb1}${isDark ? "1c" : "14"} 0%, ${theme.orb1}08 50%, transparent 70%)`,
           }}
