@@ -195,3 +195,42 @@
 .font-display {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), sans-serif;
 }
+
+/* Star field + moon animations (dark mode ambient layer) */
+@keyframes star-twinkle {
+  0%, 100% { opacity: 0.12; transform: scale(0.82); filter: brightness(0.85); }
+  50% { opacity: 1; transform: scale(1.38); filter: brightness(1.45); }
+}
+@keyframes moon-float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-6px) translateX(4px); }
+}
+@keyframes shooting-star {
+  0%, 86% { opacity: 0; transform: translateX(0px) translateY(0px) scaleX(0.72); }
+  90% { opacity: 1; transform: translateX(14px) translateY(-4px) scaleX(1); }
+  100% { opacity: 0; transform: translateX(32px) translateY(-9px) scaleX(1.08); }
+}
+@keyframes sun-float {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-5px) translateX(3px); }
+}
+@keyframes sun-glow {
+  0%, 100% { filter: brightness(1) saturate(1); }
+  50% { filter: brightness(1.15) saturate(1.08); }
+}
+@keyframes sun-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0px) translateY(0px); opacity: 0.9; }
+  50% { transform: translateX(26px) translateY(-4px); opacity: 0.74; }
+}
+@keyframes gravity-pulse {
+  0%, 100% { filter: saturate(0.9) brightness(0.92); }
+  50% { filter: saturate(1.18) brightness(1.1); }
+}
+@keyframes gravity-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

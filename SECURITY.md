@@ -4,7 +4,7 @@
 
 If you discover a security vulnerability in BookJourney, please report it responsibly:
 
-- **Email:** [privacy@bookjourney.space](mailto:privacy@bookjourney.space)
+- **Email:** [quetrea@hotmail.com](mailto:quetrea@hotmail.com)
 - **GitHub:** Open a [security advisory](https://github.com/quetrea/book-journey/security/advisories/new) (private)
 
 We aim to acknowledge reports within 48 hours and resolve critical issues within 7 days.
@@ -12,22 +12,22 @@ We aim to acknowledge reports within 48 hours and resolve critical issues within
 ## OAuth & Data Scope
 
 - **Discord OAuth scope:** `identify` only — we never request `email`, `guilds`, or any other scope.
-- **Redirect URI:** All OAuth callbacks go exclusively to `bookjourney.space/api/auth/callback/discord`.
+- **Redirect URI:** All OAuth callbacks go exclusively to `bookreading.space/api/auth/callback/discord`.
 - **Deauthorize handling:** We verify Discord webhook signatures and revoke all active app sessions when we receive `APPLICATION_DEAUTHORIZED`.
 - **No email collection:** We do not collect, store, or have access to your email address.
 - **Guest access:** Users can join sessions without any account — just a display name.
 
 ## What We Store
 
-| Data | Discord Users | Guest Users |
-|------|--------------|-------------|
-| Display name | Yes | Yes |
-| Avatar URL | Yes | No |
-| Discord user ID | Yes | No |
-| Email | **No** | No |
-| Password | **No** | No |
-| IP address | **No** | No |
-| Server memberships | **No** | No |
+| Data               | Discord Users | Guest Users |
+| ------------------ | ------------- | ----------- |
+| Display name       | Yes           | Yes         |
+| Avatar URL         | Yes           | No          |
+| Discord user ID    | Yes           | No          |
+| Email              | **No**        | No          |
+| Password           | **No**        | No          |
+| IP address         | **No**        | No          |
+| Server memberships | **No**        | No          |
 
 ## Data Retention
 
