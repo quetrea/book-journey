@@ -79,8 +79,22 @@ const SCRIPT_ID = "bookjourney-premid-state";
 const SESSION_PREFIX = "/s/";
 const LOGO_URL = "https://bookreading.space/logo.png";
 const CLIENT_ID = "1476980926025044010";
+const SITE_URL = "https://bookreading.space";
 
 const presence = new Presence({ clientId: CLIENT_ID });
+
+function buildButtons(sessionId: string): PresenceButton[] {
+  return [
+    {
+      label: "Join Session",
+      url: `${SITE_URL}/s/${sessionId}`,
+    },
+    {
+      label: "Open BookJourney",
+      url: SITE_URL,
+    },
+  ];
+}
 
 function asUnixSeconds(timestampMs: number | undefined): number | undefined {
   if (!timestampMs || Number.isNaN(timestampMs)) {
@@ -119,6 +133,7 @@ function readPremidState(): PremidSessionState | null {
 
 function buildPresenceData(state: PremidSessionState): PresenceData | null {
   const startedAt = asUnixSeconds(state.sessionStartedAt);
+  const buttons = buildButtons(state.sessionId);
 
   if (state.privacyMode === "private_hidden") {
     return {
@@ -126,6 +141,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
       state: "BookJourney",
       startTimestamp: startedAt,
       largeImageKey: LOGO_URL,
+      buttons,
     };
   }
 
@@ -134,6 +150,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
       details: "Joining a reading session",
       state: "BookJourney",
       largeImageKey: LOGO_URL,
+      buttons,
     };
   }
 
@@ -142,6 +159,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
       details: "Loading session",
       state: "BookJourney",
       largeImageKey: LOGO_URL,
+      buttons,
     };
   }
 
@@ -159,6 +177,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
       state: endedState,
       startTimestamp: startedAt,
       largeImageKey: LOGO_URL,
+      buttons,
     };
   }
 
@@ -188,6 +207,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
     state: stateLine,
     startTimestamp: startedAt,
     largeImageKey: LOGO_URL,
+    buttons,
   };
 }
 
