@@ -206,7 +206,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
       <Link href={`/s/${session._id}`} className="block">
         <Card
           className={cn(
-            "relative gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
+            "relative isolate gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
             session.status === "active"
               ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
               : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
@@ -226,8 +226,16 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
                 : "bg-linear-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
             }`}
           />
+          <span
+            className={cn(
+              "pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100",
+              session.status === "active"
+                ? "bg-[radial-gradient(130%_80%_at_50%_0%,rgba(16,185,129,0.22),rgba(255,255,255,0.02)_60%)] dark:bg-[radial-gradient(130%_80%_at_50%_0%,rgba(16,185,129,0.2),rgba(255,255,255,0.02)_60%)]"
+                : "bg-[radial-gradient(120%_75%_at_50%_0%,rgba(148,163,184,0.18),rgba(255,255,255,0.01)_62%)] dark:bg-[radial-gradient(120%_75%_at_50%_0%,rgba(148,163,184,0.15),rgba(255,255,255,0.01)_62%)]",
+            )}
+          />
 
-          <CardContent className="p-0">
+          <CardContent className="relative z-10 p-0">
             <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
               {hasCover && isGridView ? (
                 <div className="space-y-3">
@@ -436,8 +444,10 @@ export function MySessionsList() {
 
   if (normalizedSessions.length === 0) {
     return (
-      <Card className="border-black/10 bg-linear-to-br from-white/80 via-white/65 to-indigo-50/40 py-8 shadow-sm backdrop-blur-md dark:border-white/15 dark:from-white/10 dark:via-white/8 dark:to-indigo-500/10">
-        <CardContent className="flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
+      <Card className="relative overflow-hidden border-white/45 bg-linear-to-br from-white/82 via-white/62 to-indigo-100/38 py-8 shadow-[0_20px_60px_rgba(79,70,229,0.14),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl dark:border-white/15 dark:from-white/12 dark:via-white/7 dark:to-indigo-500/16 dark:shadow-[0_20px_60px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <CardContent className="relative flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
+          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_-20%,rgba(99,102,241,0.18),transparent_60%)]" />
+          <span className="pointer-events-none absolute -top-20 left-1/2 size-56 -translate-x-1/2 rounded-full bg-indigo-200/30 blur-3xl dark:bg-indigo-400/20" />
           <span className="inline-flex size-10 items-center justify-center rounded-full border border-indigo-200/70 bg-white/80 text-indigo-500 dark:border-indigo-300/25 dark:bg-white/10 dark:text-indigo-300">
             <Sparkles className="size-5" />
           </span>
@@ -501,7 +511,7 @@ export function MySessionsList() {
       </div>
 
       {filteredSessions.length === 0 ? (
-        <Card className="border-black/8 bg-white/60 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/5 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        <Card className="border-white/45 bg-white/58 py-4 shadow-[0_10px_35px_rgba(148,163,184,0.12),inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-xl dark:border-white/14 dark:bg-white/6 dark:shadow-[0_10px_35px_rgba(15,23,42,0.35),inset_0_1px_0_rgba(255,255,255,0.06)]">
           <CardContent className="px-4 text-sm text-muted-foreground">
             No sessions match <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
           </CardContent>
