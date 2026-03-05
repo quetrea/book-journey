@@ -58,6 +58,8 @@ export function SessionRoomPageClient({
   const { signIn } = useAuthActions();
 
   const joinSession = useMutation(api.sessions.joinSessionServer);
+  const verifySessionPasscode = useMutation(api.sessions.verifySessionPasscodeServer);
+  const requestPrivateJoin = useMutation(api.sessions.requestPrivateSessionJoinServer);
   const advanceQueue = useMutation(api.queue.advanceQueueServer);
   const removeFromQueue = useMutation(api.queue.removeFromQueueServer);
   const reorderQueue = useMutation(api.queue.reorderQueueServer);
@@ -80,6 +82,9 @@ export function SessionRoomPageClient({
 
   // Detect if viewer was kicked (was participant, now isn't)
   const wasParticipant = useRef(false);
+  const previousJoinRequestStatus = useRef<
+    "pending" | "approved" | "rejected" | null
+  >(null);
   useEffect(() => {
     if (isCurrentUserParticipant === undefined) return;
     if (wasParticipant.current && !isCurrentUserParticipant) {
@@ -90,6 +95,10 @@ export function SessionRoomPageClient({
   }, [isCurrentUserParticipant, router]);
 
   const [isPasscodeVerified, setIsPasscodeVerified] = useState(false);
+  const [previewUnlocked, setPreviewUnlocked] = useState(false);
+  const [entryPasscode, setEntryPasscode] = useState("");
+  const [entryErrorMessage, setEntryErrorMessage] = useState<string | null>(null);
+  const [isEntrySubmitting, setIsEntrySubmitting] = useState(false);
 
   const [guestName, setGuestName] = useState("");
   const [isJoiningAsGuest, setIsJoiningAsGuest] = useState(false);
@@ -99,6 +108,10 @@ export function SessionRoomPageClient({
 
   useEffect(() => {
     setIsPasscodeVerified(false);
+    setPreviewUnlocked(false);
+    setEntryPasscode("");
+    setEntryErrorMessage(null);
+    previousJoinRequestStatus.current = null;
   }, [sessionId]);
 
 
@@ -117,6 +130,30 @@ export function SessionRoomPageClient({
     }
 
     setIsPasscodeVerified(false);
+  }, [sessionDetails]);
+
+  useEffect(() => {
+    if (!sessionDetails) {
+      return;
+    }
+
+    if (sessionDetails.accessType !== "private") {
+      previousJoinRequestStatus.current = sessionDetails.viewerJoinRequestStatus;
+      return;
+    }
+
+    const previousStatus = previousJoinRequestStatus.current;
+    const currentStatus = sessionDetails.viewerJoinRequestStatus;
+
+    if (previousStatus === "pending" && currentStatus === "approved") {
+      toast.success("Host approved your request. You can join now.");
+    }
+
+    if (previousStatus === "pending" && currentStatus === "rejected") {
+      toast.error("Host rejected your request.");
+    }
+
+    previousJoinRequestStatus.current = currentStatus;
   }, [sessionDetails]);
 
   const isDataLoading =
@@ -226,7 +263,7 @@ export function SessionRoomPageClient({
                 onClick={() => void handleGuestJoin()}
                 disabled={isJoiningAsGuest || guestName.trim().length < 2}
               >
-                {isJoiningAsGuest ? "Joining..." : "Join session"}
+                {isJoiningAsGuest ? "Continuing..." : "Continue"}
               </Button>
               {guestJoinError && (
                 <p className="text-xs text-red-400">{guestJoinError}</p>
@@ -301,10 +338,9 @@ export function SessionRoomPageClient({
     setGuestJoinError(null);
     try {
       await signIn("anonymous", { name });
-      await joinSession({ sessionId: sessionIdAsConvex });
     } catch (error) {
       setGuestJoinError(
-        error instanceof Error ? error.message : "Failed to join as guest."
+        error instanceof Error ? error.message : "Failed to sign in as guest."
       );
     } finally {
       setIsJoiningAsGuest(false);
@@ -315,9 +351,71 @@ export function SessionRoomPageClient({
     await advanceQueue({ sessionId: sessionIdAsConvex });
   }
 
+  async function handleJoinFromEntryLayer() {
+    setIsEntrySubmitting(true);
+    setEntryErrorMessage(null);
+    try {
+      await joinSession({ sessionId: sessionIdAsConvex });
+    } catch (error) {
+      setEntryErrorMessage(
+        error instanceof Error ? error.message : "Failed to join session.",
+      );
+    } finally {
+      setIsEntrySubmitting(false);
+    }
+  }
+
+  async function handleJoinWithPasscodeFromEntryLayer() {
+    const passcode = entryPasscode.trim();
+    if (!passcode) {
+      setEntryErrorMessage("Passcode is required.");
+      return;
+    }
+
+    setIsEntrySubmitting(true);
+    setEntryErrorMessage(null);
+    try {
+      const result = await verifySessionPasscode({
+        sessionId: sessionIdAsConvex,
+        passcode,
+      });
+      if (!result.verified) {
+        setEntryErrorMessage("Invalid passcode.");
+        return;
+      }
+      await joinSession({ sessionId: sessionIdAsConvex });
+    } catch (error) {
+      setEntryErrorMessage(
+        error instanceof Error ? error.message : "Failed to verify passcode.",
+      );
+    } finally {
+      setIsEntrySubmitting(false);
+    }
+  }
+
+  async function handleRequestPrivateAccessFromEntryLayer() {
+    setIsEntrySubmitting(true);
+    setEntryErrorMessage(null);
+    try {
+      await requestPrivateJoin({ sessionId: sessionIdAsConvex });
+      toast.success("Access request sent to host.");
+    } catch (error) {
+      setEntryErrorMessage(
+        error instanceof Error ? error.message : "Failed to send join request.",
+      );
+    } finally {
+      setIsEntrySubmitting(false);
+    }
+  }
+
   const isSessionEnded = details.session.status === "ended";
   const currentReader = safeQueue.find((item) => item.status === "reading");
   const isHostOrMod = details.isHost || details.isModerator;
+  const isPublicSession = details.accessType === "public";
+  const isPasscodeSession = details.accessType === "passcode";
+  const isPrivateSession = details.accessType === "private";
+  const shouldShowEntryLayer =
+    !isSessionEnded && !safeIsCurrentUserParticipant && !previewUnlocked;
   const showPasscodePrompt = Boolean(
     !isSessionEnded &&
     details.isPasscodeProtected &&
@@ -328,6 +426,132 @@ export function SessionRoomPageClient({
     !isSessionEnded &&
     (!details.isPasscodeProtected || isHostOrMod || isPasscodeVerified)
   );
+
+  if (shouldShowEntryLayer) {
+    return renderWithPremid(
+      <main className="relative min-h-screen overflow-hidden">
+        <ParticlesBackground />
+        <div className={BG_GRADIENT} />
+        <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-xl items-center px-4 py-8 sm:px-6 sm:py-12">
+          <Card
+            className="w-full border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8"
+            style={{ boxShadow: cardShadow }}
+          >
+            <CardHeader className="space-y-2">
+              <CardTitle className="text-xl">
+                {details.session.title ?? details.session.bookTitle}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {isPublicSession
+                  ? "Public session: you can preview or join."
+                  : isPasscodeSession
+                    ? "Passcode required before joining."
+                    : "Private session: host approval required before joining."}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isPublicSession ? (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleJoinFromEntryLayer();
+                    }}
+                    disabled={isEntrySubmitting}
+                    className="w-full sm:w-auto"
+                  >
+                    {isEntrySubmitting ? "Joining..." : "Join session"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setPreviewUnlocked(true);
+                    }}
+                    disabled={isEntrySubmitting}
+                    className="w-full sm:w-auto"
+                  >
+                    Preview session
+                  </Button>
+                </div>
+              ) : null}
+
+              {isPasscodeSession ? (
+                <div className="space-y-3">
+                  <Input
+                    value={entryPasscode}
+                    onChange={(event) => setEntryPasscode(event.target.value)}
+                    placeholder="Enter session passcode"
+                    type="password"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        void handleJoinWithPasscodeFromEntryLayer();
+                      }
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      void handleJoinWithPasscodeFromEntryLayer();
+                    }}
+                    disabled={isEntrySubmitting}
+                    className="w-full sm:w-auto"
+                  >
+                    {isEntrySubmitting ? "Checking..." : "Verify and join"}
+                  </Button>
+                </div>
+              ) : null}
+
+              {isPrivateSession ? (
+                <div className="space-y-3">
+                  {details.viewerJoinRequestStatus === "approved" ? (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleJoinFromEntryLayer();
+                      }}
+                      disabled={isEntrySubmitting}
+                      className="w-full sm:w-auto"
+                    >
+                      {isEntrySubmitting ? "Joining..." : "Join session"}
+                    </Button>
+                  ) : details.viewerJoinRequestStatus === "pending" ? (
+                    <p className="text-sm text-muted-foreground">
+                      Your request is pending host approval.
+                    </p>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => {
+                        void handleRequestPrivateAccessFromEntryLayer();
+                      }}
+                      disabled={isEntrySubmitting}
+                      className="w-full sm:w-auto"
+                    >
+                      {isEntrySubmitting ? "Sending..." : "Request access"}
+                    </Button>
+                  )}
+                </div>
+              ) : null}
+
+              {entryErrorMessage ? (
+                <p className="text-xs text-red-500">{entryErrorMessage}</p>
+              ) : null}
+              {isPrivateSession &&
+              details.viewerJoinRequestStatus === "rejected" ? (
+                <p className="text-xs text-muted-foreground">
+                  Host rejected your previous request. You can send a new one.
+                </p>
+              ) : null}
+              <Button asChild variant="ghost">
+                <Link href="/dashboard">Back to dashboard</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </main>,
+    );
+  }
 
   return renderWithPremid(
     <main className="relative min-h-screen overflow-hidden">
@@ -459,6 +683,7 @@ export function SessionRoomPageClient({
                 sessionId={sessionIdAsConvex}
                 isHost={details.isHost}
                 isModerator={details.isModerator}
+                sessionAccessType={details.accessType}
                 isRepeatEnabled={Boolean(details.session.isRepeatEnabled)}
                 viewerUserId={details.viewerUserId}
                 safeIsCurrentUserParticipant={safeIsCurrentUserParticipant}

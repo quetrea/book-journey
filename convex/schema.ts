@@ -27,6 +27,9 @@ export default defineSchema({
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
+    accessType: v.optional(
+      v.union(v.literal("public"), v.literal("passcode"), v.literal("private")),
+    ),
     isRepeatEnabled: v.optional(v.boolean()),
     isPrivate: v.optional(v.boolean()),
     createdBy: v.id("profiles"),
@@ -64,6 +67,22 @@ export default defineSchema({
   })
     .index("by_sessionId_userId", ["sessionId", "userId"])
     .index("by_userId", ["userId"]),
+
+  sessionJoinRequests: defineTable({
+    sessionId: v.id("sessions"),
+    requesterUserId: v.id("profiles"),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("approved"),
+      v.literal("rejected"),
+    ),
+    requestedAt: v.number(),
+    respondedAt: v.optional(v.number()),
+    respondedBy: v.optional(v.id("profiles")),
+  })
+    .index("by_sessionId_requesterUserId", ["sessionId", "requesterUserId"])
+    .index("by_sessionId_status_requestedAt", ["sessionId", "status", "requestedAt"])
+    .index("by_requesterUserId", ["requesterUserId"]),
 
   pushSubscriptions: defineTable({
     userId: v.id("profiles"),

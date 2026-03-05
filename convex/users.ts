@@ -135,7 +135,7 @@ async function transferHostIfNeeded(
 /**
  * Permanently delete the authenticated user's account and all associated data.
  * - Transfers host role for active sessions before removing.
- * - Deletes all participants, queue items, words, subscriptions, passcode grants.
+ * - Deletes all participants, queue items, words, subscriptions, passcode grants, join requests.
  * - Deletes the profile and the underlying auth user record.
  * - Idempotent: returns { ok: true } even if profile is already gone.
  */
@@ -188,17 +188,24 @@ export const deleteMyAccountServer = mutation({
       .collect();
     await Promise.all(grants.map((g) => ctx.db.delete(g._id)));
 
-    // 6. Delete push subscriptions
+    // 6. Delete all private join requests made by this user
+    const joinRequests = await ctx.db
+      .query("sessionJoinRequests")
+      .withIndex("by_requesterUserId", (q) => q.eq("requesterUserId", profileId))
+      .collect();
+    await Promise.all(joinRequests.map((request) => ctx.db.delete(request._id)));
+
+    // 7. Delete push subscriptions
     const subs = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_userId", (q) => q.eq("userId", profileId))
       .collect();
     await Promise.all(subs.map((s) => ctx.db.delete(s._id)));
 
-    // 7. Delete profile
+    // 8. Delete profile
     await ctx.db.delete(profileId);
 
-    // 8. Delete auth user record
+    // 9. Delete auth user record
     const authUser = await ctx.db.get(authUserId);
     if (authUser) {
       await ctx.db.delete(authUserId);

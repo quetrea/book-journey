@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import {
@@ -9,6 +9,7 @@ import {
   Copy,
   Info,
   Pencil,
+  Shuffle,
   Sparkles,
   Users,
 } from "lucide-react";
@@ -25,6 +26,13 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { getInitials } from "@/lib/formatters";
 import type { SessionListItem } from "@/features/sessions/types";
@@ -43,6 +51,28 @@ type SessionHeaderCardProps = {
   sessionId?: Id<"sessions">;
   isSessionEnded?: boolean;
 };
+
+type SessionAccessType = "public" | "passcode" | "private";
+const PASSCODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+function resolveSessionAccessType(session: SessionListItem): SessionAccessType {
+  if (session.accessType) {
+    return session.accessType;
+  }
+  if (session.isPrivate) {
+    return "private";
+  }
+  return "public";
+}
+
+function buildRandomPasscode(length = 6) {
+  let result = "";
+  for (let index = 0; index < length; index += 1) {
+    const randomIndex = Math.floor(Math.random() * PASSCODE_CHARS.length);
+    result += PASSCODE_CHARS[randomIndex];
+  }
+  return result;
+}
 
 function formatElapsed(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -100,6 +130,12 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
   const [editTitle, setEditTitle] = useState(session.title ?? "");
   const [editSynopsis, setEditSynopsis] = useState(session.synopsis ?? "");
   const [editBookCoverUrl, setEditBookCoverUrl] = useState(session.bookCoverUrl ?? "");
+  const [editAccessType, setEditAccessType] = useState<SessionAccessType>(
+    resolveSessionAccessType(session),
+  );
+  const [editSessionPasscode, setEditSessionPasscode] = useState("");
+  const [isGeneratingPasscode, setIsGeneratingPasscode] = useState(false);
+  const passcodeAnimationTimerRef = useRef<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -109,12 +145,65 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
       setEditTitle(session.title ?? "");
       setEditSynopsis(session.synopsis ?? "");
       setEditBookCoverUrl(session.bookCoverUrl ?? "");
+      setEditAccessType(resolveSessionAccessType(session));
+      setEditSessionPasscode("");
     }
   }, [isEditOpen, session]);
+
+  useEffect(() => {
+    if (editAccessType !== "passcode") {
+      setEditSessionPasscode("");
+    }
+  }, [editAccessType]);
+
+  useEffect(() => {
+    return () => {
+      if (passcodeAnimationTimerRef.current !== null) {
+        window.clearInterval(passcodeAnimationTimerRef.current);
+      }
+    };
+  }, []);
+
+  function handleGeneratePasscode() {
+    if (isGeneratingPasscode) {
+      return;
+    }
+
+    setIsGeneratingPasscode(true);
+    let ticks = 0;
+
+    if (passcodeAnimationTimerRef.current !== null) {
+      window.clearInterval(passcodeAnimationTimerRef.current);
+    }
+
+    passcodeAnimationTimerRef.current = window.setInterval(() => {
+      ticks += 1;
+      setEditSessionPasscode(buildRandomPasscode());
+
+      if (ticks >= 12) {
+        if (passcodeAnimationTimerRef.current !== null) {
+          window.clearInterval(passcodeAnimationTimerRef.current);
+          passcodeAnimationTimerRef.current = null;
+        }
+        setEditSessionPasscode(buildRandomPasscode());
+        setIsGeneratingPasscode(false);
+      }
+    }, 45);
+  }
 
   async function handleSaveEdit() {
     if (!sessionId) return;
     if (!editBookTitle.trim()) return;
+
+    const currentAccessType = resolveSessionAccessType(session);
+    const didAccessTypeChange = currentAccessType !== editAccessType;
+    const nextPasscode =
+      editAccessType === "passcode" ? editSessionPasscode.trim() : "";
+
+    if (editAccessType === "passcode" && didAccessTypeChange && !nextPasscode) {
+      toast.error("Passcode is required when switching to passcode mode.");
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -125,6 +214,8 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
         title: editTitle || undefined,
         synopsis: editSynopsis || undefined,
         bookCoverUrl: editBookCoverUrl || undefined,
+        accessType: didAccessTypeChange ? editAccessType : undefined,
+        sessionPasscode: nextPasscode || undefined,
       });
       toast.success("Session updated");
       setIsEditOpen(false);
@@ -252,6 +343,58 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
                         placeholder="https://..."
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">
+                        Session access
+                      </label>
+                      <Select
+                        value={editAccessType}
+                        onValueChange={(value) =>
+                          setEditAccessType(value as SessionAccessType)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="public">Public</SelectItem>
+                          <SelectItem value="passcode">Passcode</SelectItem>
+                          <SelectItem value="private">
+                            Private (host approval)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {editAccessType === "passcode" ? (
+                      <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-foreground">
+                            New passcode
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleGeneratePasscode}
+                            disabled={isGeneratingPasscode || isSaving}
+                            className="h-7 gap-1.5 px-2.5 text-[11px]"
+                          >
+                            <Shuffle
+                              className={`size-3 ${isGeneratingPasscode ? "animate-spin" : ""}`}
+                            />
+                            {isGeneratingPasscode ? "Generating..." : "Random"}
+                          </Button>
+                        </div>
+                        <Input
+                          value={editSessionPasscode}
+                          onChange={(e) => setEditSessionPasscode(e.target.value)}
+                          placeholder="Leave empty to keep current passcode"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Fill this field only if you want to rotate the passcode.
+                        </p>
+                      </div>
+                    ) : null}
                     <Button
                       type="button"
                       className="w-full"

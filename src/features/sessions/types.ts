@@ -10,6 +10,7 @@ export type SessionListItem = {
   createdAt: number;
   status: "active" | "ended";
   endedAt?: number;
+  accessType?: "public" | "passcode" | "private";
   isRepeatEnabled?: boolean;
   isPrivate?: boolean;
   hostName?: string;
@@ -25,6 +26,8 @@ export type SessionDetailsPayload = {
   isHost: boolean;
   isModerator: boolean;
   viewerRole: "host" | "moderator" | "reader" | null;
+  accessType: "public" | "passcode" | "private";
   isPasscodeProtected: boolean;
   hasPasscodeAccess: boolean;
+  viewerJoinRequestStatus: "pending" | "approved" | "rejected" | null;
 };

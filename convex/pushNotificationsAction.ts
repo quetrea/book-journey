@@ -78,3 +78,57 @@ export const sendTurnNotification = internalAction({
     );
   },
 });
+
+export const sendSessionJoinRequestNotification = internalAction({
+  args: {
+    hostUserId: v.id("profiles"),
+    requesterName: v.string(),
+    sessionTitle: v.string(),
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    if (!vapidPublicKey || !vapidPrivateKey || !vapidSubject) {
+      return;
+    }
+
+    const subscriptions = await ctx.runQuery(
+      internal.pushSubscriptions.getSubscriptionsForUser,
+      { userId: args.hostUserId },
+    );
+
+    if (subscriptions.length === 0) {
+      return;
+    }
+
+    const payload = JSON.stringify({
+      title: "New private join request",
+      body: `${args.requesterName} requested access to "${args.sessionTitle}"`,
+      url: `/s/${args.sessionId}`,
+    });
+
+    await Promise.all(
+      subscriptions.map(async (sub) => {
+        try {
+          await webpush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.p256dh,
+                auth: sub.auth,
+              },
+            },
+            payload,
+          );
+        } catch (error: unknown) {
+          const status = (error as { statusCode?: number })?.statusCode;
+          if (status === 410 || status === 404) {
+            await ctx.runMutation(
+              internal.pushSubscriptions.removeStaleSubscription,
+              { endpoint: sub.endpoint },
+            );
+          }
+        }
+      }),
+    );
+  },
+});

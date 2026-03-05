@@ -11,9 +11,32 @@ import {
 import { grantPasscodeAccess, hasActivePasscodeGrant } from "./lib/passcodeAccess";
 import { assertHost, assertHostOrModerator } from "./lib/permissions";
 
+type SessionAccessType = "public" | "passcode" | "private";
+type JoinRequestStatus = "pending" | "approved" | "rejected";
+
 function normalizeOptional(value: string | undefined) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+function resolveSessionAccessType(session: {
+  accessType?: SessionAccessType;
+  isPrivate?: boolean;
+  hostPasscode?: string;
+}): SessionAccessType {
+  if (session.accessType) {
+    return session.accessType;
+  }
+
+  if (session.isPrivate) {
+    return "private";
+  }
+
+  if (session.hostPasscode) {
+    return "passcode";
+  }
+
+  return "public";
 }
 
 function normalizePasscode(value: string | undefined) {
@@ -67,6 +90,45 @@ async function getParticipantBySessionAndUser(
       q.eq("sessionId", sessionId).eq("userId", userId),
     )
     .unique();
+}
+
+async function getJoinRequestBySessionAndRequester(
+  ctx: MutationCtx | QueryCtx,
+  sessionId: Id<"sessions">,
+  requesterUserId: Id<"profiles">,
+) {
+  return ctx.db
+    .query("sessionJoinRequests")
+    .withIndex("by_sessionId_requesterUserId", (q) =>
+      q.eq("sessionId", sessionId).eq("requesterUserId", requesterUserId),
+    )
+    .unique();
+}
+
+async function clearJoinRequestsForSession(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+) {
+  const requests = await ctx.db
+    .query("sessionJoinRequests")
+    .withIndex("by_sessionId_status_requestedAt", (q) =>
+      q.eq("sessionId", sessionId),
+    )
+    .collect();
+
+  await Promise.all(requests.map((request) => ctx.db.delete(request._id)));
+}
+
+async function clearPasscodeGrantsForSession(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+) {
+  const grants = await ctx.db
+    .query("sessionPasscodeGrants")
+    .withIndex("by_sessionId_userId", (q) => q.eq("sessionId", sessionId))
+    .collect();
+
+  await Promise.all(grants.map((grant) => ctx.db.delete(grant._id)));
 }
 
 async function getQueueItemBySessionAndUser(
@@ -169,10 +231,12 @@ function sanitizeSession(session: {
   status: "active" | "ended";
   endedAt?: number;
   hostPasscode?: string;
+  accessType?: SessionAccessType;
   isRepeatEnabled?: boolean;
   isPrivate?: boolean;
 }) {
   const safeSession = { ...session };
+  safeSession.accessType = resolveSessionAccessType(session);
   delete safeSession.hostPasscode;
   return safeSession;
 }
@@ -183,6 +247,46 @@ async function getViewerProfileForQuery(ctx: QueryCtx) {
   return getProfileByAuthUserId(ctx, authUserId);
 }
 
+async function assertJoinAccessForViewer(
+  ctx: MutationCtx,
+  sessionId: Id<"sessions">,
+  viewerId: Id<"profiles">,
+  session: {
+    createdBy: Id<"profiles">;
+    hostPasscode?: string;
+    accessType?: SessionAccessType;
+    isPrivate?: boolean;
+  },
+) {
+  if (viewerId === session.createdBy) {
+    return;
+  }
+
+  const participant = await getParticipantBySessionAndUser(ctx, sessionId, viewerId);
+  if (participant?.role === "moderator") {
+    return;
+  }
+
+  const accessType = resolveSessionAccessType(session);
+
+  if (accessType === "public") {
+    return;
+  }
+
+  if (accessType === "passcode") {
+    const hasPasscodeAccess = await hasActivePasscodeGrant(ctx, sessionId, viewerId);
+    if (!hasPasscodeAccess) {
+      throw new Error("Passcode verification required before joining.");
+    }
+    return;
+  }
+
+  const request = await getJoinRequestBySessionAndRequester(ctx, sessionId, viewerId);
+  if (request?.status !== "approved") {
+    throw new Error("Host approval is required before joining this private session.");
+  }
+}
+
 export const createSessionServer = mutation({
   args: {
     bookTitle: v.string(),
@@ -190,6 +294,10 @@ export const createSessionServer = mutation({
     bookCoverUrl: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
+    accessType: v.optional(
+      v.union(v.literal("public"), v.literal("passcode"), v.literal("private")),
+    ),
+    sessionPasscode: v.optional(v.string()),
     hostPasscode: v.optional(v.string()),
     isPrivate: v.optional(v.boolean()),
   },
@@ -206,7 +314,16 @@ export const createSessionServer = mutation({
       throw new Error("Guests cannot create sessions. Please sign in with Discord.");
     }
 
-    const hostPasscode = normalizePasscode(args.hostPasscode);
+    const normalizedPasscode = normalizePasscode(
+      args.sessionPasscode ?? args.hostPasscode,
+    );
+    const requestedAccessType: SessionAccessType =
+      args.accessType ??
+      (args.isPrivate ? "private" : normalizedPasscode ? "passcode" : "public");
+
+    if (requestedAccessType === "passcode" && !normalizedPasscode) {
+      throw new Error("Passcode is required for passcode sessions.");
+    }
 
     const sessionId = await ctx.db.insert("sessions", {
       bookTitle,
@@ -214,8 +331,12 @@ export const createSessionServer = mutation({
       bookCoverUrl: normalizeOptional(args.bookCoverUrl),
       title: normalizeOptional(args.title),
       synopsis: normalizeOptional(args.synopsis),
-      hostPasscode: hostPasscode ? hashPasscode(hostPasscode) : undefined,
-      isPrivate: args.isPrivate || undefined,
+      hostPasscode:
+        requestedAccessType === "passcode" && normalizedPasscode
+          ? hashPasscode(normalizedPasscode)
+          : undefined,
+      accessType: requestedAccessType,
+      isPrivate: requestedAccessType === "private" ? true : undefined,
       createdBy: viewer._id,
       createdAt: Date.now(),
       status: "active",
@@ -347,10 +468,15 @@ export const getSessionByIdServer = query({
     const viewerParticipant = viewer
       ? await getParticipantBySessionAndUser(ctx, args.sessionId, viewer._id)
       : null;
+    const viewerJoinRequest = viewer
+      ? await getJoinRequestBySessionAndRequester(ctx, args.sessionId, viewer._id)
+      : null;
     const viewerRole = (viewerParticipant?.role as "host" | "moderator" | "reader") ?? null;
     const isHost = viewerRole === "host";
     const isModerator = viewerRole === "moderator";
-    const isPasscodeProtected = Boolean(session.hostPasscode);
+    const sessionAccessType = resolveSessionAccessType(session);
+    const isPasscodeProtected =
+      sessionAccessType === "passcode" && Boolean(session.hostPasscode);
     const hasPasscodeAccess =
       !isPasscodeProtected ||
       isHost ||
@@ -369,8 +495,11 @@ export const getSessionByIdServer = query({
       isHost,
       isModerator,
       viewerRole,
+      accessType: sessionAccessType,
       isPasscodeProtected,
       hasPasscodeAccess,
+      viewerJoinRequestStatus:
+        (viewerJoinRequest?.status as JoinRequestStatus | undefined) ?? null,
     };
   },
 });
@@ -393,6 +522,8 @@ export const joinSessionServer = mutation({
     if (existing) {
       return existing;
     }
+
+    await assertJoinAccessForViewer(ctx, args.sessionId, viewer._id, session);
 
     const role = session.createdBy === viewer._id ? "host" : "reader";
 
@@ -560,6 +691,134 @@ export const verifySessionPasscodeServer = mutation({
   },
 });
 
+export const requestPrivateSessionJoinServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    const accessType = resolveSessionAccessType(session);
+
+    if (session.status === "ended") {
+      throw new Error("Session has ended.");
+    }
+
+    if (accessType !== "private") {
+      throw new Error("This session does not require host approval.");
+    }
+
+    const existingParticipant = await getParticipantBySessionAndUser(
+      ctx,
+      args.sessionId,
+      viewer._id,
+    );
+
+    if (existingParticipant) {
+      return { status: "approved" as JoinRequestStatus };
+    }
+
+    const existing = await getJoinRequestBySessionAndRequester(
+      ctx,
+      args.sessionId,
+      viewer._id,
+    );
+
+    if (existing?.status === "pending" || existing?.status === "approved") {
+      return { status: existing.status as JoinRequestStatus };
+    }
+
+    const now = Date.now();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        status: "pending",
+        requestedAt: now,
+        respondedAt: undefined,
+        respondedBy: undefined,
+      });
+    } else {
+      await ctx.db.insert("sessionJoinRequests", {
+        sessionId: args.sessionId,
+        requesterUserId: viewer._id,
+        status: "pending",
+        requestedAt: now,
+      });
+    }
+
+    return { status: "pending" as JoinRequestStatus };
+  },
+});
+
+export const listPendingSessionJoinRequestsServer = query({
+  args: {
+    sessionId: v.id("sessions"),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await getViewerProfileForQuery(ctx);
+
+    if (!viewer) {
+      throw new Error("Authentication required.");
+    }
+
+    await assertHost(ctx, args.sessionId, viewer._id);
+
+    const requests = await ctx.db
+      .query("sessionJoinRequests")
+      .withIndex("by_sessionId_status_requestedAt", (q) =>
+        q.eq("sessionId", args.sessionId).eq("status", "pending"),
+      )
+      .collect();
+
+    const enriched = await Promise.all(
+      requests.map(async (request) => {
+        const requester = await ctx.db.get(request.requesterUserId);
+        if (!requester) return null;
+        return {
+          requesterUserId: request.requesterUserId,
+          requesterName: requester.name,
+          requesterImage: requester.image,
+          requestedAt: request.requestedAt,
+        };
+      }),
+    );
+
+    return enriched
+      .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
+      .sort((a, b) => b.requestedAt - a.requestedAt);
+  },
+});
+
+export const respondToSessionJoinRequestServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    requesterUserId: v.id("profiles"),
+    decision: v.union(v.literal("approved"), v.literal("rejected")),
+  },
+  handler: async (ctx, args) => {
+    const viewer = await upsertViewerProfile(ctx);
+    await assertHost(ctx, args.sessionId, viewer._id);
+
+    const request = await getJoinRequestBySessionAndRequester(
+      ctx,
+      args.sessionId,
+      args.requesterUserId,
+    );
+
+    if (!request) {
+      throw new Error("Join request not found.");
+    }
+
+    await ctx.db.patch(request._id, {
+      status: args.decision,
+      respondedAt: Date.now(),
+      respondedBy: viewer._id,
+    });
+
+    return request._id;
+  },
+});
+
 export const getSessionMetadataPublic = query({
   args: { sessionId: v.id("sessions") },
   handler: async (ctx, args) => {
@@ -590,7 +849,10 @@ export const listPublicSessionsServer = query({
       .take(50);
 
     const publicActive = sessions
-      .filter((s) => s.status === "active" && !s.isPrivate)
+      .filter(
+        (s) =>
+          s.status === "active" && resolveSessionAccessType(s) !== "private",
+      )
       .slice(0, 8);
 
     return Promise.all(
@@ -649,6 +911,16 @@ export const deleteSessionServer = mutation({
       .withIndex("by_sessionId_userId", (q) => q.eq("sessionId", args.sessionId))
       .collect();
     for (const row of grants) {
+      await ctx.db.delete(row._id);
+    }
+
+    const joinRequests = await ctx.db
+      .query("sessionJoinRequests")
+      .withIndex("by_sessionId_status_requestedAt", (q) =>
+        q.eq("sessionId", args.sessionId),
+      )
+      .collect();
+    for (const row of joinRequests) {
       await ctx.db.delete(row._id);
     }
 
@@ -739,6 +1011,10 @@ export const updateSessionServer = mutation({
     bookCoverUrl: v.optional(v.string()),
     title: v.optional(v.string()),
     synopsis: v.optional(v.string()),
+    accessType: v.optional(
+      v.union(v.literal("public"), v.literal("passcode"), v.literal("private")),
+    ),
+    sessionPasscode: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const viewer = await upsertViewerProfile(ctx);
@@ -750,7 +1026,18 @@ export const updateSessionServer = mutation({
 
     await assertHostOrModerator(ctx, args.sessionId, viewer._id);
 
-    const updates: Record<string, string | undefined> = {};
+    const updates: {
+      bookTitle?: string;
+      authorName?: string;
+      bookCoverUrl?: string;
+      title?: string;
+      synopsis?: string;
+      accessType?: SessionAccessType;
+      hostPasscode?: string;
+      isPrivate?: boolean;
+    } = {};
+    const currentAccessType = resolveSessionAccessType(session);
+    const desiredAccessType = args.accessType ?? currentAccessType;
 
     if (args.bookTitle !== undefined) {
       const trimmed = args.bookTitle.trim();
@@ -762,8 +1049,57 @@ export const updateSessionServer = mutation({
     if (args.title !== undefined) updates.title = normalizeOptional(args.title);
     if (args.synopsis !== undefined) updates.synopsis = normalizeOptional(args.synopsis);
 
+    if (args.accessType !== undefined) {
+      updates.accessType = desiredAccessType;
+
+      if (desiredAccessType === "public") {
+        updates.hostPasscode = undefined;
+        updates.isPrivate = undefined;
+      }
+
+      if (desiredAccessType === "private") {
+        updates.hostPasscode = undefined;
+        updates.isPrivate = true;
+      }
+
+      if (desiredAccessType === "passcode") {
+        const normalizedPasscode = normalizePasscode(args.sessionPasscode);
+        const hasCurrentPasscode =
+          currentAccessType === "passcode" && Boolean(session.hostPasscode);
+        if (!normalizedPasscode && !hasCurrentPasscode) {
+          throw new Error("Passcode is required when switching to passcode mode.");
+        }
+        if (normalizedPasscode) {
+          updates.hostPasscode = hashPasscode(normalizedPasscode);
+        }
+        updates.isPrivate = undefined;
+      }
+    } else if (args.sessionPasscode !== undefined) {
+      if (currentAccessType !== "passcode") {
+        throw new Error("Passcode can only be changed in passcode mode.");
+      }
+      const normalizedPasscode = normalizePasscode(args.sessionPasscode);
+      if (!normalizedPasscode) {
+        throw new Error("Passcode cannot be empty.");
+      }
+      updates.hostPasscode = hashPasscode(normalizedPasscode);
+    }
+
     if (Object.keys(updates).length > 0) {
       await ctx.db.patch(args.sessionId, updates);
+    }
+
+    const didTypeChange = desiredAccessType !== currentAccessType;
+    const didRotatePasscode = updates.hostPasscode !== undefined;
+
+    if (didTypeChange && (currentAccessType === "private" || desiredAccessType !== "private")) {
+      await clearJoinRequestsForSession(ctx, args.sessionId);
+    }
+    if (didTypeChange && currentAccessType === "passcode") {
+      await clearPasscodeGrantsForSession(ctx, args.sessionId);
+    }
+    if (didRotatePasscode) {
+      await clearPasscodeGrantsForSession(ctx, args.sessionId);
     }
 
     return args.sessionId;
@@ -897,6 +1233,17 @@ export const cleanupExpiredSessions = internalMutation({
         .collect();
 
       for (const row of grants) {
+        await ctx.db.delete(row._id);
+      }
+
+      const joinRequests = await ctx.db
+        .query("sessionJoinRequests")
+        .withIndex("by_sessionId_status_requestedAt", (q) =>
+          q.eq("sessionId", session._id),
+        )
+        .collect();
+
+      for (const row of joinRequests) {
         await ctx.db.delete(row._id);
       }
 
