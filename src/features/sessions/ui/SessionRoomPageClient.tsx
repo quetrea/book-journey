@@ -562,6 +562,7 @@ export function SessionRoomPageClient({
           sessionId={sessionIdAsConvex}
           isHost={details.isHost}
           isParticipant={safeIsCurrentUserParticipant}
+          sessionAccessType={details.accessType}
           isSessionEnded={isSessionEnded}
           cardShadow={cardShadow}
         />
@@ -683,7 +684,6 @@ export function SessionRoomPageClient({
                 sessionId={sessionIdAsConvex}
                 isHost={details.isHost}
                 isModerator={details.isModerator}
-                sessionAccessType={details.accessType}
                 isRepeatEnabled={Boolean(details.session.isRepeatEnabled)}
                 viewerUserId={details.viewerUserId}
                 safeIsCurrentUserParticipant={safeIsCurrentUserParticipant}

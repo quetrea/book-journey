@@ -39,7 +39,7 @@ export const QueueStatusBar = memo(function QueueStatusBar({
   }
   const { currentReader, nextReader, viewerQueueItem, totalInQueue, isViewerReading } = useMemo(() => {
     const cr = queue.find((item) => item.status === "reading");
-    const nr = queue.find((item) => item.status === "waiting");
+    const nr = queue.find((item) => item.status === "waiting" && !item.isSkipped);
     const vqi = viewerUserId ? queue.find((item) => item.userId === viewerUserId) : undefined;
     const total = queue.filter((item) => item.status !== "done").length;
     return { currentReader: cr, nextReader: nr, viewerQueueItem: vqi, totalInQueue: total, isViewerReading: vqi?.status === "reading" };
@@ -132,6 +132,10 @@ export const QueueStatusBar = memo(function QueueStatusBar({
             {isViewerReading ? (
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 It&apos;s your turn to read!
+              </p>
+            ) : viewerQueueItem?.isSkipped ? (
+              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                Skip tag active{viewerQueueItem.skipReason ? `: ${viewerQueueItem.skipReason}` : ""}
               </p>
             ) : viewerQueueItem?.status === "waiting" ? (
               <p className="text-xs text-muted-foreground">

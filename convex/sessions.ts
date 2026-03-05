@@ -559,6 +559,8 @@ export const joinSessionServer = mutation({
           userId: viewer._id,
           position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
           status: hasActiveReaderOrWaiting ? "waiting" : "reading",
+          isSkipped: false,
+          skipReason: undefined,
           joinedAt: Date.now(),
         });
       }

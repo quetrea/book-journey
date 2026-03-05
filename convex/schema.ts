@@ -54,6 +54,8 @@ export default defineSchema({
     userId: v.id("profiles"),
     position: v.number(),
     status: v.union(v.literal("waiting"), v.literal("reading"), v.literal("done")),
+    isSkipped: v.optional(v.boolean()),
+    skipReason: v.optional(v.string()),
     joinedAt: v.number(),
   })
     .index("by_sessionId_position", ["sessionId", "position"])

@@ -234,3 +234,103 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+@keyframes landing-aurora-drift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, -6%, 0) scale(1.08);
+  }
+}
+
+@keyframes landing-aurora-drift-alt {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-4%, 5%, 0) scale(1.04);
+  }
+}
+
+@keyframes landing-grid-pulse {
+  0%, 100% {
+    opacity: 0.42;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes writing-caret-blink {
+  0%, 44% {
+    opacity: 1;
+  }
+  45%, 100% {
+    opacity: 0;
+  }
+}
+
+.landing-aurora {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.42;
+  will-change: transform;
+}
+
+.landing-aurora-one {
+  top: -14rem;
+  right: -8rem;
+  height: 26rem;
+  width: 26rem;
+  background: radial-gradient(circle at 35% 35%, rgba(99, 102, 241, 0.35), rgba(56, 189, 248, 0.1), transparent 70%);
+  animation: landing-aurora-drift 12s ease-in-out infinite;
+}
+
+.landing-aurora-two {
+  bottom: -16rem;
+  left: -10rem;
+  height: 30rem;
+  width: 30rem;
+  background: radial-gradient(circle at 50% 55%, rgba(56, 189, 248, 0.32), rgba(129, 140, 248, 0.12), transparent 72%);
+  animation: landing-aurora-drift-alt 16s ease-in-out infinite;
+}
+
+.landing-grid-fade {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 42px 42px;
+  mask-image: radial-gradient(circle at 50% 25%, black 5%, transparent 78%);
+  animation: landing-grid-pulse 7s ease-in-out infinite;
+}
+
+.dark .landing-grid-fade {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+}
+
+.writing-caret {
+  display: inline-block;
+  width: 0.7ch;
+  color: rgba(99, 102, 241, 0.95);
+  vertical-align: baseline;
+}
+
+.writing-caret::before {
+  content: "|";
+  animation: writing-caret-blink 0.95s steps(1, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-aurora-one,
+  .landing-aurora-two,
+  .landing-grid-fade,
+  .writing-caret::before {
+    animation: none !important;
+  }
+}

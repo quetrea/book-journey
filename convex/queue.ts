@@ -11,6 +11,12 @@ import {
 } from "./lib/authProfile";
 import { hasActivePasscodeGrant } from "./lib/passcodeAccess";
 
+const SKIP_REASON_MAX_LENGTH = 240;
+
+function canBeSelectedAsReader(item: { status: "waiting" | "reading" | "done"; isSkipped?: boolean }) {
+  return item.status === "waiting" && !item.isSkipped;
+}
+
 async function getSessionByIdOrThrow(
   ctx: MutationCtx | QueryCtx,
   sessionId: Id<"sessions">,
@@ -76,8 +82,8 @@ async function setNextReader(
   const queue = await getQueueItemsByPosition(ctx, sessionId);
   const nextReader =
     queue.find(
-      (item) => item.status === "waiting" && item.position > minPositionExclusive,
-    ) ?? queue.find((item) => item.status === "waiting");
+      (item) => canBeSelectedAsReader(item) && item.position > minPositionExclusive,
+    ) ?? queue.find((item) => canBeSelectedAsReader(item));
 
   if (!nextReader) {
     return null;
@@ -98,7 +104,7 @@ async function clearExtraReaders(
   const readingItems = queue.filter((item) => item.status === "reading");
 
   if (readingItems.length === 0) {
-    const nextWaiting = queue.find((item) => item.status === "waiting");
+    const nextWaiting = queue.find((item) => canBeSelectedAsReader(item));
 
     if (nextWaiting) {
       await ctx.db.patch(nextWaiting._id, {
@@ -222,6 +228,8 @@ export const joinQueueServer = mutation({
       userId: viewer._id,
       position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
       status: hasActiveReaderOrWaiting ? "waiting" : "reading",
+      isSkipped: false,
+      skipReason: undefined,
       joinedAt: Date.now(),
     });
 
@@ -494,6 +502,8 @@ export const addUserToQueueServer = mutation({
       userId: args.targetUserId,
       position: queue.length > 0 ? queue[queue.length - 1].position + 1 : 0,
       status: hasActiveReaderOrWaiting ? "waiting" : "reading",
+      isSkipped: false,
+      skipReason: undefined,
       joinedAt: Date.now(),
     });
 
@@ -570,6 +580,89 @@ export const removeFromQueueServer = mutation({
   },
 });
 
+export const setMySkipTagServer = mutation({
+  args: {
+    sessionId: v.id("sessions"),
+    isSkipped: v.boolean(),
+    reason: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSessionByIdOrThrow(ctx, args.sessionId);
+    assertSessionActive(session);
+
+    const viewer = await upsertViewerProfile(ctx);
+    await getParticipantBySessionAndUserOrThrow(ctx, args.sessionId, viewer._id);
+
+    if (session.hostPasscode) {
+      await assertPasscodeGrantForQueueMutation(
+        ctx,
+        args.sessionId,
+        session.createdBy,
+        viewer._id,
+      );
+    }
+
+    const queueItem = await ctx.db
+      .query("queueItems")
+      .withIndex("by_sessionId_userId", (q) =>
+        q.eq("sessionId", args.sessionId).eq("userId", viewer._id),
+      )
+      .unique();
+
+    if (!queueItem) {
+      throw new Error("Join queue first.");
+    }
+
+    const normalizedReason = args.reason?.trim();
+    const nextReason = args.isSkipped
+      ? (normalizedReason ? normalizedReason.slice(0, SKIP_REASON_MAX_LENGTH) : undefined)
+      : undefined;
+
+    if (args.isSkipped && queueItem.status === "reading") {
+      await ctx.db.patch(queueItem._id, {
+        status: "done",
+        isSkipped: true,
+        skipReason: nextReason,
+      });
+
+      let nextReaderId = await setNextReader(ctx, args.sessionId, queueItem.position);
+      await normalizeQueuePositions(ctx, args.sessionId);
+      await clearExtraReaders(ctx, args.sessionId);
+
+      if (!nextReaderId && session.isRepeatEnabled) {
+        await resetQueueForRepeat(ctx, args.sessionId);
+        nextReaderId = await setNextReader(ctx, args.sessionId);
+        await clearExtraReaders(ctx, args.sessionId);
+      }
+
+      if (nextReaderId) {
+        const nextItem = await ctx.db.get(nextReaderId);
+        if (nextItem) {
+          await ctx.scheduler.runAfter(0, internal.pushNotificationsAction.sendTurnNotification, {
+            userId: nextItem.userId,
+            bookTitle: session.bookTitle,
+            sessionId: args.sessionId,
+          });
+        }
+      }
+
+      return { isSkipped: true, reason: nextReason };
+    }
+
+    await ctx.db.patch(queueItem._id, {
+      isSkipped: args.isSkipped,
+      skipReason: nextReason,
+    });
+
+    await clearExtraReaders(ctx, args.sessionId);
+
+    return {
+      isSkipped: args.isSkipped,
+      reason: nextReason,
+    };
+  },
+});
+
 export const getQueueServer = query({
   args: {
     sessionId: v.id("sessions"),
@@ -597,6 +690,8 @@ export const getQueueServer = query({
         image: user?.image,
         position: item.position,
         status: item.status,
+        isSkipped: Boolean(item.isSkipped),
+        skipReason: item.skipReason,
         joinedAt: item.joinedAt,
       };
     });

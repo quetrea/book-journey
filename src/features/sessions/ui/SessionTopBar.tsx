@@ -17,6 +17,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { SessionNotificationsPopover } from "./SessionNotificationsPopover";
 import { WordsQuickPanel } from "./WordsQuickPanel";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -25,6 +26,7 @@ type SessionTopBarProps = {
   sessionId: Id<"sessions">;
   isHost: boolean;
   isParticipant: boolean;
+  sessionAccessType: "public" | "passcode" | "private";
   isSessionEnded: boolean;
   cardShadow: string;
 };
@@ -33,6 +35,7 @@ export function SessionTopBar({
   sessionId,
   isHost,
   isParticipant,
+  sessionAccessType,
   isSessionEnded,
   cardShadow,
 }: SessionTopBarProps) {
@@ -81,6 +84,12 @@ export function SessionTopBar({
               isParticipant={isParticipant}
             />
           ) : null}
+          <SessionNotificationsPopover
+            sessionId={sessionId}
+            isHost={isHost}
+            sessionAccessType={sessionAccessType}
+            isSessionEnded={isSessionEnded}
+          />
           {isHost && !isSessionEnded ? (
             <AlertDialog>
               <AlertDialogTrigger asChild>

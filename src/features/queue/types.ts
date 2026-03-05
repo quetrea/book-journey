@@ -5,5 +5,7 @@ export type QueueItem = {
   image?: string;
   position: number;
   status: "waiting" | "reading" | "done";
+  isSkipped?: boolean;
+  skipReason?: string;
   joinedAt: number;
 };

@@ -3,6 +3,7 @@ import { LandingFeatures } from "@/components/landing/LandingFeatures";
 import { LandingFeedback } from "@/components/landing/LandingFeedback";
 import { LandingHero } from "@/components/landing/LandingHero";
 import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
+import { MouseSpotlight } from "@/components/landing/MouseSpotlight";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
 import { LiveSessionsSection } from "@/components/landing/LiveSessionsSection";
 import { Separator } from "@/components/ui/separator";
@@ -10,7 +11,13 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden text-foreground">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_14%_6%,rgba(99,102,241,0.12),transparent_38%),radial-gradient(circle_at_86%_18%,rgba(56,189,248,0.11),transparent_42%),radial-gradient(circle_at_80%_88%,rgba(129,140,248,0.08),transparent_42%)] text-foreground">
+      <MouseSpotlight />
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        <div className="landing-aurora landing-aurora-one" />
+        <div className="landing-aurora landing-aurora-two" />
+        <div className="landing-grid-fade" />
+      </div>
       <main className="relative z-10 mx-auto w-full max-w-3xl px-4 py-6 sm:px-6 sm:py-10">
         <LandingTopBar />
         <LandingHero loginButton={<LoginButton />} />

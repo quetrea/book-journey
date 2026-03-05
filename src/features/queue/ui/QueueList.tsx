@@ -7,6 +7,7 @@ import {
   Clock3,
   GripVertical,
   Radio,
+  Tag,
   UserRoundCheck,
   X,
 } from "lucide-react";
@@ -146,6 +147,11 @@ function SortableQueueItem({
               </>
             )}
           </div>
+          {item.isSkipped ? (
+            <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-700 dark:text-amber-400">
+              {item.skipReason ? `Skip reason: ${item.skipReason}` : "Skip tagged"}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -155,6 +161,12 @@ function SortableQueueItem({
         ) : null}
         {item.status === "done" ? (
           <CircleCheckBig className="size-4 text-slate-500" />
+        ) : null}
+        {item.isSkipped ? (
+          <Badge className="rounded-full bg-amber-500/90 px-2.5 text-[11px] text-white hover:bg-amber-500/90">
+            <Tag className="mr-1 size-3" />
+            Skip
+          </Badge>
         ) : null}
         <QueueStatusBadge status={item.status} />
         {canManageQueue && onRemove ? (

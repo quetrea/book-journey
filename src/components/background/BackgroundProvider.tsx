@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -59,6 +60,7 @@ const SUN_ENTER_OFFSET_PX = 220;
 const MOON_ENTER_OFFSET_PX = 220;
 const CELESTIAL_ENTER_OFFSET_Y_PX = 250;
 const MODE_MORPH_MS = 680;
+const CELESTIAL_HIT_RADIUS_PX = 92;
 const INITIAL_MOON_POSITION: CelestialPosition = { x: 0.84, y: 0.16 };
 const INITIAL_SUN_POSITION: CelestialPosition = { x: 0.84, y: 0.16 };
 const SYNODIC_MONTH_DAYS = 29.53058867;
@@ -191,6 +193,18 @@ function getMoonVisual(date: Date): MoonVisual {
   };
 }
 
+function isInteractiveTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest(
+      "a,button,input,textarea,select,summary,label,[role='button'],[role='link'],[role='switch'],[role='checkbox'],[contenteditable='true'],[data-slot='dialog-content'],[data-slot='alert-dialog-content'],[data-slot='dropdown-menu-content'],[data-slot='popover-content']",
+    ),
+  );
+}
+
 export function useBackgroundTheme() {
   const ctx = useContext(BackgroundContext);
   if (!ctx) throw new Error("useBackgroundTheme must be used within BackgroundProvider");
@@ -222,6 +236,8 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   const sunPositionRef = useRef(INITIAL_SUN_POSITION);
   const [isMoonDragging, setIsMoonDragging] = useState(false);
   const [isSunDragging, setIsSunDragging] = useState(false);
+  const globalDragPointerIdRef = useRef<number | null>(null);
+  const globalDragModeRef = useRef<"moon" | "sun" | null>(null);
   const [isSunEnteringFromRight, setIsSunEnteringFromRight] = useState(false);
   const [isMoonEnteringFromLeft, setIsMoonEnteringFromLeft] = useState(false);
   const [isModeMorphing, setIsModeMorphing] = useState(false);
@@ -349,7 +365,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  function startModeMorph() {
+  const startModeMorph = useCallback(() => {
     setIsModeMorphing(true);
     if (modeMorphTimerRef.current !== null) {
       window.clearTimeout(modeMorphTimerRef.current);
@@ -357,18 +373,26 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
     modeMorphTimerRef.current = window.setTimeout(() => {
       setIsModeMorphing(false);
     }, MODE_MORPH_MS);
+  }, []);
+
+  function isPointNearCelestial(clientX: number, clientY: number, position: CelestialPosition) {
+    const centerX = position.x * window.innerWidth;
+    const centerY = position.y * window.innerHeight;
+    const dx = clientX - centerX;
+    const dy = clientY - centerY;
+    return Math.hypot(dx, dy) <= CELESTIAL_HIT_RADIUS_PX;
   }
 
-  function handleMoonPointerDown(event: PointerEvent<HTMLDivElement>) {
+  const beginMoonDrag = useCallback((clientX: number, clientY: number) => {
     if (!isDark) {
-      return;
+      return false;
     }
 
     if (modeSwitchTimerRef.current !== null) {
       window.clearTimeout(modeSwitchTimerRef.current);
       modeSwitchTimerRef.current = null;
     }
-    moonPointerOriginRef.current = { x: event.clientX, y: event.clientY };
+    moonPointerOriginRef.current = { x: clientX, y: clientY };
     moonPositionOriginRef.current = moonPositionRef.current;
     if (moonMoveRafRef.current !== null) {
       window.cancelAnimationFrame(moonMoveRafRef.current);
@@ -376,18 +400,18 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
     }
     pendingMoonPositionRef.current = null;
     setIsMoonDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
+    return true;
+  }, [isDark]);
 
-  function handleMoonPointerMove(event: PointerEvent<HTMLDivElement>) {
+  const moveMoonDrag = useCallback((clientX: number, clientY: number) => {
     if (!isMoonDragging) {
       return;
     }
 
     const viewportWidth = Math.max(1, window.innerWidth);
     const viewportHeight = Math.max(1, window.innerHeight);
-    const deltaX = event.clientX - moonPointerOriginRef.current.x;
-    const deltaY = event.clientY - moonPointerOriginRef.current.y;
+    const deltaX = clientX - moonPointerOriginRef.current.x;
+    const deltaY = clientY - moonPointerOriginRef.current.y;
     const nextX = Math.max(
       MOON_MIN_X,
       Math.min(MOON_MAX_X, moonPositionOriginRef.current.x + deltaX / viewportWidth),
@@ -410,15 +434,11 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       x: Math.max(MOON_MIN_X, Math.min(MOON_MAX_X, magnetX)),
       y: nextY,
     });
-  }
+  }, [isMoonDragging]);
 
-  function handleMoonPointerUp(event: PointerEvent<HTMLDivElement>) {
+  const finishMoonDrag = useCallback(() => {
     if (!isMoonDragging) {
       return;
-    }
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
     setIsMoonDragging(false);
@@ -460,18 +480,37 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         });
       });
     }, MOON_SNAP_DELAY_MS);
+  }, [isMoonDragging, setTheme, startModeMorph]);
+
+  function handleMoonPointerDown(event: PointerEvent<HTMLDivElement>) {
+    const didBeginDrag = beginMoonDrag(event.clientX, event.clientY);
+    if (!didBeginDrag) {
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
-  function handleSunPointerDown(event: PointerEvent<HTMLDivElement>) {
+  function handleMoonPointerMove(event: PointerEvent<HTMLDivElement>) {
+    moveMoonDrag(event.clientX, event.clientY);
+  }
+
+  function handleMoonPointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    finishMoonDrag();
+  }
+
+  const beginSunDrag = useCallback((clientX: number, clientY: number) => {
     if (isDark) {
-      return;
+      return false;
     }
 
     if (modeSwitchTimerRef.current !== null) {
       window.clearTimeout(modeSwitchTimerRef.current);
       modeSwitchTimerRef.current = null;
     }
-    sunPointerOriginRef.current = { x: event.clientX, y: event.clientY };
+    sunPointerOriginRef.current = { x: clientX, y: clientY };
     sunPositionOriginRef.current = sunPositionRef.current;
     if (sunMoveRafRef.current !== null) {
       window.cancelAnimationFrame(sunMoveRafRef.current);
@@ -479,18 +518,18 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
     }
     pendingSunPositionRef.current = null;
     setIsSunDragging(true);
-    event.currentTarget.setPointerCapture(event.pointerId);
-  }
+    return true;
+  }, [isDark]);
 
-  function handleSunPointerMove(event: PointerEvent<HTMLDivElement>) {
+  const moveSunDrag = useCallback((clientX: number, clientY: number) => {
     if (!isSunDragging) {
       return;
     }
 
     const viewportWidth = Math.max(1, window.innerWidth);
     const viewportHeight = Math.max(1, window.innerHeight);
-    const deltaX = event.clientX - sunPointerOriginRef.current.x;
-    const deltaY = event.clientY - sunPointerOriginRef.current.y;
+    const deltaX = clientX - sunPointerOriginRef.current.x;
+    const deltaY = clientY - sunPointerOriginRef.current.y;
     const nextX = Math.max(
       MOON_MIN_X,
       Math.min(MOON_MAX_X, sunPositionOriginRef.current.x + deltaX / viewportWidth),
@@ -513,15 +552,11 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       x: Math.max(MOON_MIN_X, Math.min(MOON_MAX_X, magnetX)),
       y: nextY,
     });
-  }
+  }, [isSunDragging]);
 
-  function handleSunPointerUp(event: PointerEvent<HTMLDivElement>) {
+  const finishSunDrag = useCallback(() => {
     if (!isSunDragging) {
       return;
-    }
-
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
     setIsSunDragging(false);
@@ -563,7 +598,115 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
         });
       });
     }, MOON_SNAP_DELAY_MS);
+  }, [isSunDragging, setTheme, startModeMorph]);
+
+  function handleSunPointerDown(event: PointerEvent<HTMLDivElement>) {
+    const didBeginDrag = beginSunDrag(event.clientX, event.clientY);
+    if (!didBeginDrag) {
+      return;
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
+
+  function handleSunPointerMove(event: PointerEvent<HTMLDivElement>) {
+    moveSunDrag(event.clientX, event.clientY);
+  }
+
+  function handleSunPointerUp(event: PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    finishSunDrag();
+  }
+
+  useEffect(() => {
+    function handleGlobalPointerDown(event: globalThis.PointerEvent) {
+      if (globalDragPointerIdRef.current !== null) {
+        return;
+      }
+
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-celestial-handle='moon'], [data-celestial-handle='sun']")
+      ) {
+        return;
+      }
+
+      if (isInteractiveTarget(event.target)) {
+        return;
+      }
+
+      if (isDark) {
+        if (!isPointNearCelestial(event.clientX, event.clientY, moonPositionRef.current)) {
+          return;
+        }
+        const didBeginDrag = beginMoonDrag(event.clientX, event.clientY);
+        if (!didBeginDrag) {
+          return;
+        }
+        globalDragModeRef.current = "moon";
+      } else {
+        if (!isPointNearCelestial(event.clientX, event.clientY, sunPositionRef.current)) {
+          return;
+        }
+        const didBeginDrag = beginSunDrag(event.clientX, event.clientY);
+        if (!didBeginDrag) {
+          return;
+        }
+        globalDragModeRef.current = "sun";
+      }
+
+      globalDragPointerIdRef.current = event.pointerId;
+      event.preventDefault();
+    }
+
+    function handleGlobalPointerMove(event: globalThis.PointerEvent) {
+      if (globalDragPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      if (globalDragModeRef.current === "moon") {
+        moveMoonDrag(event.clientX, event.clientY);
+      } else if (globalDragModeRef.current === "sun") {
+        moveSunDrag(event.clientX, event.clientY);
+      }
+    }
+
+    function handleGlobalPointerUp(event: globalThis.PointerEvent) {
+      if (globalDragPointerIdRef.current !== event.pointerId) {
+        return;
+      }
+
+      if (globalDragModeRef.current === "moon") {
+        finishMoonDrag();
+      } else if (globalDragModeRef.current === "sun") {
+        finishSunDrag();
+      }
+
+      globalDragPointerIdRef.current = null;
+      globalDragModeRef.current = null;
+    }
+
+    window.addEventListener("pointerdown", handleGlobalPointerDown, { passive: false });
+    window.addEventListener("pointermove", handleGlobalPointerMove, { passive: true });
+    window.addEventListener("pointerup", handleGlobalPointerUp, { passive: true });
+    window.addEventListener("pointercancel", handleGlobalPointerUp, { passive: true });
+
+    return () => {
+      window.removeEventListener("pointerdown", handleGlobalPointerDown);
+      window.removeEventListener("pointermove", handleGlobalPointerMove);
+      window.removeEventListener("pointerup", handleGlobalPointerUp);
+      window.removeEventListener("pointercancel", handleGlobalPointerUp);
+    };
+  }, [
+    beginMoonDrag,
+    beginSunDrag,
+    finishMoonDrag,
+    finishSunDrag,
+    isDark,
+    moveMoonDrag,
+    moveSunDrag,
+  ]);
 
   const theme = BACKGROUND_THEMES.find((t) => t.id === themeId) ?? BACKGROUND_THEMES[0]!;
 
@@ -1009,6 +1152,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       {isDark ? (
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div
+            data-celestial-handle="moon"
             className="pointer-events-auto absolute select-none"
             style={{
               left: `${(moonPosition.x * 100).toFixed(2)}%`,
@@ -1069,6 +1213,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       ) : (
         <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div
+            data-celestial-handle="sun"
             className="pointer-events-auto absolute select-none"
             style={{
               left: `${(sunPosition.x * 100).toFixed(2)}%`,
