@@ -1,3 +1,5 @@
+"use client";
+
 import type { ReactNode } from "react";
 
 import { WritingTicker } from "@/components/landing/WritingAnimations";
@@ -8,6 +10,15 @@ type LandingHeroProps = {
 };
 
 export function LandingHero({ loginButton }: LandingHeroProps) {
+  function handleScrollToFeatures() {
+    const features = document.getElementById("features");
+    if (!features) {
+      return;
+    }
+
+    features.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   return (
     <section className="mt-12 space-y-8 sm:mt-20">
       <div
@@ -68,11 +79,12 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
       >
         {loginButton}
         <Button
-          asChild
+          type="button"
           variant="outline"
+          onClick={handleScrollToFeatures}
           className="border-black/15 bg-black/5 text-slate-700 backdrop-blur-md transition-all hover:bg-black/10 hover:text-slate-900 dark:border-white/15 dark:bg-white/8 dark:text-white/80 dark:hover:bg-white/15 dark:hover:text-white"
         >
-          <a href="#features">See how it works</a>
+          See how it works
         </Button>
       </div>
 

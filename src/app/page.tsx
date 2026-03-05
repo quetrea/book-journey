@@ -11,9 +11,9 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 
 export default function Home() {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_14%_6%,rgba(99,102,241,0.12),transparent_38%),radial-gradient(circle_at_86%_18%,rgba(56,189,248,0.11),transparent_42%),radial-gradient(circle_at_80%_88%,rgba(129,140,248,0.08),transparent_42%)] text-foreground">
+    <div className="relative min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_14%_6%,rgba(99,102,241,0.12),transparent_38%),radial-gradient(circle_at_86%_18%,rgba(56,189,248,0.11),transparent_42%),radial-gradient(circle_at_80%_88%,rgba(129,140,248,0.08),transparent_42%)] text-foreground">
       <MouseSpotlight />
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         <div className="landing-aurora landing-aurora-one" />
         <div className="landing-aurora landing-aurora-two" />
         <div className="landing-grid-fade" />
