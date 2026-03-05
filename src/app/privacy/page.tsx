@@ -1,10 +1,24 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { buildDefaultOg, buildDefaultTwitter, toAbsoluteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy — BookJourney",
-  description:
-    "What data BookJourney collects, how it's used, and how you can delete it.",
+  title: "Privacy Policy",
+  description: "Learn what BookJourney collects, how data is used, and how to request deletion.",
+  alternates: {
+    canonical: "/privacy",
+  },
+  openGraph: buildDefaultOg({
+    url: toAbsoluteUrl("/privacy"),
+    title: "Privacy Policy | BookJourney",
+    description:
+      "Learn what BookJourney collects, how data is used, and how to request deletion.",
+  }),
+  twitter: buildDefaultTwitter({
+    title: "Privacy Policy | BookJourney",
+    description:
+      "Learn what BookJourney collects, how data is used, and how to request deletion.",
+  }),
 };
 
 export default function PrivacyPage() {

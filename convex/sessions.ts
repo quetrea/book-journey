@@ -824,6 +824,7 @@ export const getSessionMetadataPublic = query({
   handler: async (ctx, args) => {
     const session = await getSessionById(ctx, args.sessionId);
     if (!session) return null;
+    const accessType = resolveSessionAccessType(session);
     const host = await ctx.db.get(session.createdBy);
     const participants = await ctx.db
       .query("participants")
@@ -836,6 +837,8 @@ export const getSessionMetadataPublic = query({
       status: session.status,
       hostName: host?.name,
       memberCount: participants.length,
+      accessType,
+      isPasscodeProtected: accessType === "passcode" && Boolean(session.hostPasscode),
     };
   },
 });

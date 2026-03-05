@@ -1007,7 +1007,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
       </div>
 
       {isDark ? (
-        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-20">
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div
             className="pointer-events-auto absolute select-none"
             style={{
@@ -1067,7 +1067,7 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
           </div>
         </div>
       ) : (
-        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-20">
+        <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0">
           <div
             className="pointer-events-auto absolute select-none"
             style={{

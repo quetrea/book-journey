@@ -7,6 +7,12 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConvexClientProvider } from "@/app/ConvexClientProvider";
+import {
+  SITE_DESCRIPTION,
+  SITE_URL,
+  buildDefaultOg,
+  buildDefaultTwitter,
+} from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -26,28 +32,31 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://bookreading.space"),
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "BookJourney — Live Reading Sessions",
-    template: "%s · BookJourney",
+    default: "BookJourney - Live Reading Sessions",
+    template: "%s | BookJourney",
   },
-  description:
-    "Create real-time reading sessions for your book club. Queue-based turns, synced timers, and live updates — no page refresh needed.",
+  description: SITE_DESCRIPTION,
   keywords: ["book club", "reading sessions", "live reading", "queue", "realtime"],
-  openGraph: {
-    type: "website",
-    url: "https://bookreading.space",
-    siteName: "BookJourney",
-    title: "BookJourney — Live Reading Sessions",
-    description:
-      "Create real-time reading sessions for your book club. Queue-based turns, synced timers, and live updates.",
+  alternates: {
+    canonical: "/",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "BookJourney — Live Reading Sessions",
-    description:
-      "Queue-based live reading sessions for your book club. Real-time. No refresh needed.",
+  icons: {
+    icon: "/favicon.ico",
+    shortcut: "/favicon.ico",
+    apple: "/logo.png",
   },
+  openGraph: buildDefaultOg({
+    url: SITE_URL,
+    title: "BookJourney - Live Reading Sessions",
+    description: SITE_DESCRIPTION,
+  }),
+  twitter: buildDefaultTwitter({
+    title: "BookJourney - Live Reading Sessions",
+    description:
+      "Queue-based live reading sessions for your book club. Real-time and collaborative.",
+  }),
 };
 
 export default function RootLayout({

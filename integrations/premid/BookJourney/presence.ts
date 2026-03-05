@@ -53,6 +53,8 @@ type PresenceButton = {
 };
 
 type PresenceData = {
+  name?: string;
+  type?: number;
   details?: string;
   state?: string;
   startTimestamp?: number;
@@ -80,6 +82,8 @@ const SESSION_PREFIX = "/s/";
 const LOGO_URL = "https://bookreading.space/logo.png";
 const CLIENT_ID = "1476980926025044010";
 const SITE_URL = "https://bookreading.space";
+const ACTIVITY_NAME = "BookJourney";
+const ACTIVITY_TYPE_WATCHING = 3;
 
 const presence = new Presence({ clientId: CLIENT_ID });
 
@@ -134,9 +138,14 @@ function readPremidState(): PremidSessionState | null {
 function buildPresenceData(state: PremidSessionState): PresenceData | null {
   const startedAt = asUnixSeconds(state.sessionStartedAt);
   const buttons = buildButtons(state.sessionId);
+  const baseActivity = {
+    name: ACTIVITY_NAME,
+    type: ACTIVITY_TYPE_WATCHING,
+  };
 
   if (state.privacyMode === "private_hidden") {
     return {
+      ...baseActivity,
       details: "In a private reading session",
       state: "BookJourney",
       startTimestamp: startedAt,
@@ -147,6 +156,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
 
   if (state.stateKind === "join_screen") {
     return {
+      ...baseActivity,
       details: "Joining a reading session",
       state: "BookJourney",
       largeImageKey: LOGO_URL,
@@ -156,6 +166,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
 
   if (state.stateKind === "loading") {
     return {
+      ...baseActivity,
       details: "Loading session",
       state: "BookJourney",
       largeImageKey: LOGO_URL,
@@ -173,6 +184,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
       : "BookJourney";
 
     return {
+      ...baseActivity,
       details: "Viewing an ended session",
       state: endedState,
       startTimestamp: startedAt,
@@ -203,6 +215,7 @@ function buildPresenceData(state: PremidSessionState): PresenceData | null {
   }
 
   return {
+    ...baseActivity,
     details,
     state: stateLine,
     startTimestamp: startedAt,
