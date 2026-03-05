@@ -106,80 +106,82 @@ function SortableQueueItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 shadow-sm transition-shadow ${
+      className={`rounded-xl border px-3 py-2.5 shadow-sm transition-shadow ${
         item.status === "reading"
           ? "border-emerald-300/60 bg-emerald-50/62 dark:border-emerald-400/35 dark:bg-emerald-500/12"
           : "border-white/35 bg-white/56 dark:border-white/12 dark:bg-white/6"
       } ${isDragging ? "shadow-lg ring-2 ring-indigo-400/30" : ""}`}
     >
-      <div className="flex min-w-0 items-center gap-2.5">
-        {canReorder && (
-          <button
-            type="button"
-            className="cursor-grab touch-none text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
-          >
-            <GripVertical className="size-4" />
-          </button>
-        )}
-        <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-white/65 bg-white/75 text-[11px] font-semibold text-muted-foreground dark:border-white/15 dark:bg-white/12">
-          {item.position}
-        </div>
-        <Avatar className="ring-1 ring-white/70 dark:ring-white/20">
-          <AvatarImage src={item.image ?? undefined} alt={item.name} />
-          <AvatarFallback>{getInitials(item.name)}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-foreground">
-            {item.name}
-          </p>
-          <div className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            {item.status === "reading" ? (
-              <>
-                <UserRoundCheck className="size-3.5 text-emerald-600" />
-                Current reader
-              </>
-            ) : (
-              <>
-                <Clock3 className="size-3.5" />
-                {formatJoinedAgo(item.joinedAt)}
-              </>
-            )}
+      <div className="flex w-full flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 items-center gap-2.5">
+          {canReorder && (
+            <button
+              type="button"
+              className="cursor-grab touch-none text-muted-foreground/40 transition-colors hover:text-muted-foreground active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="size-4" />
+            </button>
+          )}
+          <div className="inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-white/65 bg-white/75 text-[11px] font-semibold text-muted-foreground dark:border-white/15 dark:bg-white/12">
+            {item.position}
           </div>
-          {item.isSkipped ? (
-            <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-700 dark:text-amber-400">
-              {item.skipReason ? `Skip reason: ${item.skipReason}` : "Skip tagged"}
+          <Avatar className="ring-1 ring-white/70 dark:ring-white/20">
+            <AvatarImage src={item.image ?? undefined} alt={item.name} />
+            <AvatarFallback>{getInitials(item.name)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-foreground">
+              {item.name}
             </p>
+            <div className="inline-flex max-w-full items-center gap-1 text-xs text-muted-foreground">
+              {item.status === "reading" ? (
+                <>
+                  <UserRoundCheck className="size-3.5 shrink-0 text-emerald-600" />
+                  <span className="truncate">Current reader</span>
+                </>
+              ) : (
+                <>
+                  <Clock3 className="size-3.5 shrink-0" />
+                  <span className="truncate">{formatJoinedAgo(item.joinedAt)}</span>
+                </>
+              )}
+            </div>
+            {item.isSkipped ? (
+              <p className="mt-0.5 line-clamp-2 text-[11px] text-amber-700 dark:text-amber-400">
+                {item.skipReason ? `Skip reason: ${item.skipReason}` : "Skip tagged"}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5 sm:max-w-[46%] sm:justify-end">
+          {item.status === "reading" ? (
+            <CircleDot className="size-4 shrink-0 text-emerald-600" />
+          ) : null}
+          {item.status === "done" ? (
+            <CircleCheckBig className="size-4 shrink-0 text-slate-500" />
+          ) : null}
+          {item.isSkipped ? (
+            <Badge className="rounded-full bg-amber-500/90 px-2.5 text-[11px] text-white hover:bg-amber-500/90">
+              <Tag className="mr-1 size-3" />
+              Skip
+            </Badge>
+          ) : null}
+          <QueueStatusBadge status={item.status} />
+          {canManageQueue && onRemove ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-6 shrink-0 rounded-full text-muted-foreground/50 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+              onClick={() => onRemove(item.userId)}
+            >
+              <X className="size-3.5" />
+            </Button>
           ) : null}
         </div>
-      </div>
-
-      <div className="flex items-center gap-2">
-        {item.status === "reading" ? (
-          <CircleDot className="size-4 text-emerald-600" />
-        ) : null}
-        {item.status === "done" ? (
-          <CircleCheckBig className="size-4 text-slate-500" />
-        ) : null}
-        {item.isSkipped ? (
-          <Badge className="rounded-full bg-amber-500/90 px-2.5 text-[11px] text-white hover:bg-amber-500/90">
-            <Tag className="mr-1 size-3" />
-            Skip
-          </Badge>
-        ) : null}
-        <QueueStatusBadge status={item.status} />
-        {canManageQueue && onRemove ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="size-6 shrink-0 rounded-full text-muted-foreground/50 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-            onClick={() => onRemove(item.userId)}
-          >
-            <X className="size-3.5" />
-          </Button>
-        ) : null}
       </div>
     </div>
   );
