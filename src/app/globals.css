@@ -334,3 +334,11 @@
     animation: none !important;
   }
 }
+
+html.celestial-pointer-hold,
+html.celestial-pointer-hold body,
+html.celestial-pointer-hold * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}

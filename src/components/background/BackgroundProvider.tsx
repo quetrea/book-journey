@@ -309,6 +309,25 @@ export function BackgroundProvider({ children }: { children: ReactNode }) {
   }, [sunPosition]);
 
   useEffect(() => {
+    const isDragging = isMoonDragging || isSunDragging;
+    const root = document.documentElement;
+    const body = document.body;
+
+    if (isDragging) {
+      root.classList.add("celestial-pointer-hold");
+      body.classList.add("celestial-pointer-hold");
+    } else {
+      root.classList.remove("celestial-pointer-hold");
+      body.classList.remove("celestial-pointer-hold");
+    }
+
+    return () => {
+      root.classList.remove("celestial-pointer-hold");
+      body.classList.remove("celestial-pointer-hold");
+    };
+  }, [isMoonDragging, isSunDragging]);
+
+  useEffect(() => {
     return () => {
       if (modeSwitchTimerRef.current !== null) {
         window.clearTimeout(modeSwitchTimerRef.current);
