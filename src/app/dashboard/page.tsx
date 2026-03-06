@@ -15,6 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { ThemePicker } from "@/components/background/ThemePicker";
+import { SupportBookJourneyCard } from "@/components/support/SupportBookJourneyCard";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
@@ -200,6 +201,10 @@ export default function DashboardPage() {
                   : "Realtime sync active"}
               </CardFooter>
             </Card>
+
+            <div className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:240ms] animation-duration-[500ms] fill-mode-[both] md:col-span-2">
+              <SupportBookJourneyCard compact />
+            </div>
           </div>
         </section>
       </div>

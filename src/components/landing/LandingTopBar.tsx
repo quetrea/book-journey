@@ -1,6 +1,6 @@
 "use client";
 
-import { Moon, Sun } from "lucide-react";
+import { Coffee, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { ThemePicker } from "@/components/background/ThemePicker";
@@ -18,12 +18,23 @@ export function LandingTopBar() {
         <p className="font-display text-base font-semibold tracking-tight text-slate-900 sm:text-lg dark:text-white">
           bookjourney
         </p>
-        <Badge
-          variant="secondary"
-          className="border-black/12 bg-black/8 text-[10px] text-slate-500 sm:text-[11px] dark:border-white/15 dark:bg-white/10 dark:text-white/60"
-        >
-          Realtime reading sessions
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            variant="secondary"
+            className="border-black/12 bg-black/8 text-[10px] text-slate-500 sm:text-[11px] dark:border-white/15 dark:bg-white/10 dark:text-white/60"
+          >
+            Realtime reading sessions
+          </Badge>
+          <a
+            href="https://buymeacoffee.com/codewithilb"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#ffdd95]/60 bg-[#fff1cc]/80 px-3 py-1 text-[10px] font-medium text-[#6b4d00] backdrop-blur-md transition-all hover:bg-[#ffe6a8] sm:text-[11px] dark:border-[#f6c55c]/25 dark:bg-[#f6c55c]/14 dark:text-[#ffe2a1] dark:hover:bg-[#f6c55c]/20"
+          >
+            <Coffee className="size-3" />
+            Buy me a coffee
+          </a>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">

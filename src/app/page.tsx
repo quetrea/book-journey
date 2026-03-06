@@ -6,6 +6,7 @@ import { LandingHowItWorks } from "@/components/landing/LandingHowItWorks";
 import { MouseSpotlight } from "@/components/landing/MouseSpotlight";
 import { LandingTopBar } from "@/components/landing/LandingTopBar";
 import { LiveSessionsSection } from "@/components/landing/LiveSessionsSection";
+import { SupportBookJourneyCard } from "@/components/support/SupportBookJourneyCard";
 import { Separator } from "@/components/ui/separator";
 import { LoginButton } from "@/features/auth/ui/LoginButton";
 
@@ -25,6 +26,9 @@ export default function Home() {
         <LandingFeatures />
         <LandingHowItWorks />
         <LandingFeedback />
+        <div className="mt-8 animate-in fade-in slide-in-from-bottom-3 [animation-delay:540ms] animation-duration-[700ms] fill-mode-[both]">
+          <SupportBookJourneyCard />
+        </div>
 
         <Separator className="mt-10 animate-in fade-in slide-in-from-bottom-2 [animation-delay:580ms] animation-duration-[700ms] fill-mode-[both] bg-black/10 dark:bg-white/10" />
 

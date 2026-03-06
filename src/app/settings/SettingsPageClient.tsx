@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportBookJourneyCard } from "@/components/support/SupportBookJourneyCard";
 import {
   Dialog,
   DialogContent,
@@ -419,6 +420,8 @@ export default function SettingsPageClient() {
               </p>
             </CardContent>
           </Card>
+
+          <SupportBookJourneyCard compact />
 
           <Separator className="bg-white/55 dark:bg-white/10" />
 
