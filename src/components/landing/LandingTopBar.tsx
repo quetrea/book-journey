@@ -4,7 +4,6 @@ import { Coffee, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 
 import { ThemePicker } from "@/components/background/ThemePicker";
-import { ProfileModal } from "@/components/profile/ProfileModal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +38,6 @@ export function LandingTopBar() {
 
       <div className="flex items-center gap-2">
         <ThemePicker />
-        <ProfileModal />
 
         <Button
           type="button"
