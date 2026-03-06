@@ -20,10 +20,12 @@ import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 import { Separator } from "@/components/ui/separator";
 import { useSignOutAction } from "@/features/auth/hooks/useSignOutAction";
+import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../convex/_generated/api";
 
 export default function DashboardPage() {
   const { isLoading, isAuthenticated } = useConvexAuth();
+  const { sectionShadow, cardShadow, orb, isDark } = useThemeGlow();
   const upsertCurrentUser = useMutation(api.users.upsertCurrentUser);
   const { signOutCurrentUser } = useSignOutAction();
   const profile = useQuery(
@@ -100,13 +102,20 @@ export default function DashboardPage() {
   }
 
   const userName = (profile?.displayName || profile?.name) ?? "reader";
+  const userImage = profile?.displayImage || profile?.image;
   const initials = userName.slice(0, 1).toUpperCase();
 
   return (
     <main className="relative min-h-screen overflow-hidden">
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <section
-          className="animate-in fade-in zoom-in-95 rounded-[2rem] border border-cyan-200/45 bg-[rgba(226,255,252,0.38)] p-5 shadow-[0_18px_45px_rgba(6,182,212,0.10),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-3xl duration-500 sm:p-7 dark:border-cyan-300/18 dark:bg-[rgba(8,32,40,0.50)] dark:shadow-[0_22px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]"
+          className="animate-in fade-in zoom-in-95 rounded-[2rem] border border-black/8 bg-white/18 p-4 backdrop-blur-[28px] duration-500 sm:p-7 dark:border-white/12 dark:bg-black/18"
+          style={{
+            boxShadow: sectionShadow,
+            backgroundColor: isDark
+              ? hexToRgba(orb, 0.16)
+              : "rgba(255,255,255,0.24)",
+          }}
         >
           <header className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -118,7 +127,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               <ThemePicker />
               <ThemeToggle />
               <Button
@@ -133,14 +142,15 @@ export default function DashboardPage() {
               </Button>
               <Link
                 href="/settings"
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-200/55 bg-[rgba(236,255,252,0.54)] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl transition-colors hover:bg-[rgba(245,255,254,0.72)] dark:border-cyan-300/16 dark:bg-[rgba(255,255,255,0.08)] dark:hover:bg-[rgba(255,255,255,0.12)]"
+                className="inline-flex min-w-0 flex-1 items-center gap-2 rounded-full border border-black/10 bg-white/26 px-2.5 py-1.5 backdrop-blur-xl transition-colors hover:bg-white/34 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12 sm:w-fit sm:flex-none"
+                style={{ boxShadow: cardShadow }}
               >
                 <Avatar
                   size="sm"
                   className="ring-1 ring-white/70 dark:ring-white/20"
                 >
                   <AvatarImage
-                    src={profile?.image ?? undefined}
+                    src={userImage ?? undefined}
                     alt={userName}
                   />
                   <AvatarFallback>{initials}</AvatarFallback>
@@ -158,13 +168,19 @@ export default function DashboardPage() {
             </div>
           </header>
 
-          <Separator className="my-5 bg-cyan-200/45 dark:bg-cyan-300/12" />
+          <Separator className="my-5 bg-black/8 dark:bg-white/10" />
 
           <div className="grid gap-4 md:grid-cols-2">
             <SessionsDashboardSection isGuest={profile === undefined ? undefined : Boolean(profile?.isGuest)} />
 
             <Card
-              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-cyan-200/45 bg-[rgba(232,255,251,0.44)] shadow-[0_14px_35px_rgba(20,184,166,0.10),inset_0_1px_0_rgba(255,255,255,0.68)] backdrop-blur-2xl transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-cyan-300/14 dark:bg-[rgba(255,255,255,0.06)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.05)]"
+              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border border-black/8 bg-white/18 backdrop-blur-[24px] transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/12 dark:bg-black/18"
+              style={{
+                boxShadow: cardShadow,
+                backgroundColor: isDark
+                  ? hexToRgba(orb, 0.12)
+                  : "rgba(255,255,255,0.22)",
+              }}
             >
               <CardHeader>
                 <CardTitle>Quick Tips</CardTitle>

@@ -5,6 +5,8 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import { internal } from "./_generated/api";
 import {
   getAuthUserIdFromIdentity,
+  getProfileDisplayImage,
+  getProfileDisplayName,
   getProfileByAuthUserId,
   requireIdentity,
   upsertViewerProfile,
@@ -686,8 +688,8 @@ export const getQueueServer = query({
       return {
         queueItemId: item._id,
         userId: item.userId,
-        name: user?.name ?? "Unknown reader",
-        image: user?.image,
+        name: getProfileDisplayName(user) ?? "Unknown reader",
+        image: getProfileDisplayImage(user),
         position: item.position,
         status: item.status,
         isSkipped: Boolean(item.isSkipped),

@@ -79,9 +79,10 @@ export const getAuthUserIdByDiscordAccountIdInternal = internalQuery({
 export const updateProfile = mutation({
   args: {
     displayName: v.optional(v.string()),
+    displayImage: v.optional(v.string()),
     bio: v.optional(v.string()),
   },
-  handler: async (ctx, { displayName, bio }) => {
+  handler: async (ctx, { displayName, displayImage, bio }) => {
     const identity = await requireIdentity(ctx);
     const authUserId = getAuthUserIdFromIdentity(identity);
     const profile = await getProfileByAuthUserId(ctx, authUserId);
@@ -92,6 +93,7 @@ export const updateProfile = mutation({
 
     await ctx.db.patch(profile._id, {
       displayName: displayName?.trim() || undefined,
+      displayImage: displayImage?.trim() || undefined,
       bio: bio?.trim() || undefined,
       updatedAt: Date.now(),
     });
@@ -174,6 +176,20 @@ async function deleteAuthUserAndRelatedData(
   if (authUser) {
     await ctx.db.delete(authUserId);
   }
+}
+
+async function isGuestOnlyAuthUser(ctx: MutationCtx, authUserId: Id<"users">) {
+  const authAccounts = await ctx.db
+    .query("authAccounts")
+    .withIndex("userIdAndProvider", (q) => q.eq("userId", authUserId))
+    .collect();
+
+  if (authAccounts.length > 0) {
+    return authAccounts.every((account) => account.provider === "anonymous");
+  }
+
+  const authUser = await ctx.db.get(authUserId);
+  return authUser?.isAnonymous === true;
 }
 
 async function deleteProfileAndRelatedData(ctx: MutationCtx, profile: Doc<"profiles">) {
@@ -265,9 +281,8 @@ export const deleteGuestAccountOnSignOutServer = mutation({
   handler: async (ctx): Promise<{ deletedGuest: boolean }> => {
     const identity = await requireIdentity(ctx);
     const authUserId = getAuthUserIdFromIdentity(identity);
-    const authUser = await ctx.db.get(authUserId);
 
-    if (!authUser || authUser.isAnonymous !== true) {
+    if (!(await isGuestOnlyAuthUser(ctx, authUserId))) {
       return { deletedGuest: false };
     }
 

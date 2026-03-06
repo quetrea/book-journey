@@ -40,6 +40,7 @@ export function ProfileModal() {
   if (!isAuthenticated || !profile) return null;
 
   const userName = profile.displayName || profile.name;
+  const userImage = profile.displayImage || profile.image;
   const initials = userName.slice(0, 1).toUpperCase();
 
   async function handleSave() {
@@ -80,7 +81,7 @@ export function ProfileModal() {
           {/* Avatar + Discord info */}
           <div className="flex items-center gap-4">
             <Avatar className="size-14 ring-2 ring-white/20">
-              <AvatarImage src={profile.image ?? undefined} alt={userName} />
+              <AvatarImage src={userImage ?? undefined} alt={userName} />
               <AvatarFallback className="bg-white/10 text-lg text-white">
                 {initials}
               </AvatarFallback>

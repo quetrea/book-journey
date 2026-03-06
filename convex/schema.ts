@@ -11,6 +11,7 @@ export default defineSchema({
     provider: v.optional(v.string()),
     name: v.string(),
     displayName: v.optional(v.string()),
+    displayImage: v.optional(v.string()),
     bio: v.optional(v.string()),
     image: v.optional(v.string()),
     isGuest: v.optional(v.boolean()),

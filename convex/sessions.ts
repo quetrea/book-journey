@@ -4,6 +4,8 @@ import type { Id } from "./_generated/dataModel";
 import { internalMutation, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import {
   getAuthUserIdFromIdentity,
+  getProfileDisplayImage,
+  getProfileDisplayName,
   getProfileByAuthUserId,
   requireIdentity,
   upsertViewerProfile,
@@ -370,8 +372,8 @@ export const listMySessionsServer = query({
 
         return {
           ...sanitizeSession(session),
-          hostName: host?.name,
-          hostImage: host?.image,
+          hostName: getProfileDisplayName(host),
+          hostImage: getProfileDisplayImage(host),
         };
       }),
     );
@@ -484,8 +486,8 @@ export const getSessionByIdServer = query({
 
     return {
       session: sanitizeSession(session),
-      hostName: host?.name,
-      hostImage: host?.image,
+      hostName: getProfileDisplayName(host),
+      hostImage: getProfileDisplayImage(host),
       viewerUserId: viewer?._id,
       viewerIsGuest: Boolean(viewer?.isGuest),
       isHost,
@@ -600,8 +602,8 @@ export const listParticipantsServer = query({
 
         return {
           userId: participant.userId,
-          name: user.name,
-          image: user.image,
+          name: getProfileDisplayName(user) ?? "Unknown reader",
+          image: getProfileDisplayImage(user),
           role: participant.role,
           joinedAt: participant.joinedAt,
         };
@@ -774,8 +776,8 @@ export const listPendingSessionJoinRequestsServer = query({
         if (!requester) return null;
         return {
           requesterUserId: request.requesterUserId,
-          requesterName: requester.name,
-          requesterImage: requester.image,
+          requesterName: getProfileDisplayName(requester) ?? "Unknown reader",
+          requesterImage: getProfileDisplayImage(requester),
           requestedAt: request.requestedAt,
         };
       }),
@@ -868,8 +870,8 @@ export const listPublicSessionsServer = query({
           bookTitle: session.bookTitle,
           authorName: session.authorName,
           title: session.title,
-          hostName: host?.name ?? "Unknown",
-          hostImage: host?.image,
+          hostName: getProfileDisplayName(host) ?? "Unknown",
+          hostImage: getProfileDisplayImage(host),
           memberCount: participants.length,
           isPasscodeProtected: !!session.hostPasscode,
           createdAt: session.createdAt,
@@ -991,8 +993,8 @@ export const listJoinedSessionsServer = query({
         const host = await ctx.db.get(session.createdBy);
         return {
           ...sanitizeSession(session),
-          hostName: host?.name,
-          hostImage: host?.image,
+          hostName: getProfileDisplayName(host),
+          hostImage: getProfileDisplayImage(host),
           joinedAt: p.joinedAt,
         };
       }),

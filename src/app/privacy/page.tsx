@@ -1,10 +1,12 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+
 import { buildDefaultOg, buildDefaultTwitter, toAbsoluteUrl } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Learn what BookJourney collects, how data is used, and how to request deletion.",
+  description:
+    "Learn what BookJourney collects, how anonymous access works, and how optional Discord connections are handled.",
   alternates: {
     canonical: "/privacy",
   },
@@ -12,12 +14,12 @@ export const metadata: Metadata = {
     url: toAbsoluteUrl("/privacy"),
     title: "Privacy Policy | BookJourney",
     description:
-      "Learn what BookJourney collects, how data is used, and how to request deletion.",
+      "Learn what BookJourney collects, how anonymous access works, and how optional Discord connections are handled.",
   }),
   twitter: buildDefaultTwitter({
     title: "Privacy Policy | BookJourney",
     description:
-      "Learn what BookJourney collects, how data is used, and how to request deletion.",
+      "Learn what BookJourney collects, how anonymous access works, and how optional Discord connections are handled.",
   }),
 };
 
@@ -29,7 +31,7 @@ export default function PrivacyPage() {
           href="/"
           className="mb-8 inline-flex text-sm text-slate-500 underline underline-offset-4 hover:text-slate-800 dark:text-white/40 dark:hover:text-white/70"
         >
-          ← Back to home
+          &larr; Back to home
         </Link>
 
         <h1 className="mb-2 font-display text-3xl font-semibold tracking-tight text-slate-900 dark:text-white">
@@ -45,10 +47,11 @@ export default function PrivacyPage() {
               Overview
             </h2>
             <p>
-              BookJourney is a small, open-source tool for managing reading
-              queues in group sessions. We collect only the minimum data needed
-              to make the app work. We do not sell, share, or monetize your data
-              in any way.
+              BookJourney is a small, open-source space for reading together in a
+              way that feels comfortable and low-pressure. We collect only the
+              minimum data needed to make the app work, and we try to give you a
+              clear choice between staying anonymous and connecting a persistent
+              account later. We do not sell, share, or monetize your data.
             </p>
           </section>
 
@@ -59,21 +62,42 @@ export default function PrivacyPage() {
             <div className="space-y-4">
               <div>
                 <h3 className="mb-1 font-medium text-slate-800 dark:text-white/90">
-                  From Discord (when you sign in)
+                  Anonymous usage
                 </h3>
-                <ul className="list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
+                <p className="text-slate-600 dark:text-white/60">
+                  You can use BookJourney anonymously. Anonymous access does not
+                  require Discord login, a Discord account, or a Discord ID.
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
+                  <li>A temporary guest name generated for your session</li>
+                  <li>A temporary guest avatar generated for your session</li>
+                  <li>The session activity you create while using the app</li>
+                </ul>
+                <p className="mt-2 text-slate-500 dark:text-white/40">
+                  This anonymous option exists to support privacy, control, and
+                  comfort in community reading spaces.
+                </p>
+              </div>
+
+              <div>
+                <h3 className="mb-1 font-medium text-slate-800 dark:text-white/90">
+                  Optional Discord connection
+                </h3>
+                <p className="text-slate-600 dark:text-white/60">
+                  Discord is no longer the main login method. It is an optional
+                  connection for people who want a persistent identity, and users
+                  connect it by choice.
+                </p>
+                <ul className="mt-2 list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
                   <li>Your Discord username and display name</li>
                   <li>Your Discord profile picture URL</li>
                   <li>
-                    An internal Discord user ID (used to identify you across
-                    sessions)
+                    A Discord account identifier used to recognize your connected
+                    account across sessions
                   </li>
                 </ul>
                 <p className="mt-2 text-slate-500 dark:text-white/40">
-                  We do{" "}
-                  <strong className="text-slate-700 dark:text-white/70">
-                    not
-                  </strong>{" "}
+                  We do <strong className="text-slate-700 dark:text-white/70">not</strong>{" "}
                   receive your password, server memberships, messages, or any
                   other Discord data beyond the fields above.
                 </p>
@@ -89,8 +113,8 @@ export default function PrivacyPage() {
                     enter when creating a session
                   </li>
                   <li>
-                    Session passcode (stored as a one-way hash — we cannot read
-                    the original)
+                    Session passcode (stored as a one-way hash; we cannot read the
+                    original)
                   </li>
                   <li>Queue positions and reading status</li>
                   <li>Words and phrases you save during a reading session</li>
@@ -134,15 +158,17 @@ export default function PrivacyPage() {
               <ul className="list-inside list-disc space-y-1 text-slate-600 dark:text-white/60">
                 <li>
                   <strong className="text-slate-700 dark:text-white/80">
-                    Discord users:
+                    Anonymous users:
                   </strong>{" "}
-                  username, display name, avatar URL, Discord user ID
+                  a temporary guest name, a temporary guest avatar, and the
+                  session data created while using the app
                 </li>
                 <li>
                   <strong className="text-slate-700 dark:text-white/80">
-                    Guest users:
+                    Connected Discord accounts:
                   </strong>{" "}
-                  a temporary guest name and avatar with no persistent account link
+                  username, display name, avatar URL, and a Discord account
+                  identifier for persistent account recognition
                 </li>
                 <li>
                   <strong className="text-slate-700 dark:text-white/80">
@@ -162,12 +188,40 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">
+              Your privacy choices and control
+            </h2>
+            <div className="space-y-3">
+              <p>
+                Privacy on BookJourney is built around choice. You can stay
+                anonymous, or you can connect Discord later if you want your
+                account to persist across sessions.
+              </p>
+              <p>
+                If you stay anonymous, your account remains temporary. If you
+                choose to connect Discord under{" "}
+                <strong className="text-slate-700 dark:text-white/80">
+                  Connections
+                </strong>
+                , that account is no longer considered anonymous.
+              </p>
+              <p>
+                We keep this distinction clear because different readers want
+                different levels of privacy and continuity. Some prefer to join
+                quietly and casually. Others want a stable identity they can keep
+                over time. BookJourney is designed to support both.
+              </p>
+            </div>
+          </section>
+
+          <section>
+            <h2 className="mb-3 text-base font-semibold text-slate-900 dark:text-white">
               How data is used
             </h2>
             <p>
-              Your data is used exclusively to operate BookJourney — displaying
-              your name and avatar in sessions, managing reading queues, and
-              sending turn notifications if you opt in. Nothing else.
+              Your data is used only to operate BookJourney: showing your chosen
+              or generated identity in sessions, managing reading queues,
+              keeping your session state consistent, and sending turn
+              notifications if you opt in.
             </p>
           </section>
 
@@ -182,19 +236,24 @@ export default function PrivacyPage() {
               </li>
               <li>
                 Hosts can manually delete a session at any time from the
-                dashboard — this instantly removes all associated data.
+                dashboard; this instantly removes all associated data.
               </li>
               <li>
                 Push notification subscriptions are deleted when you disable
                 notifications or sign out.
               </li>
               <li>
-                Your profile (name, avatar) persists as long as you have an
-                account. It is deleted when your account is removed.
+                Your profile persists as long as you have a persistent account.
+                It is deleted when that account is removed.
               </li>
               <li>
                 Guest sessions are temporary and all of their data is deleted
                 immediately when you sign out.
+              </li>
+              <li>
+                If you choose to connect Discord, that account is no longer
+                treated as anonymous and is no longer deleted on sign out as a
+                guest session would be.
               </li>
               <li>
                 Accounts that remain inactive for 14 consecutive days are
@@ -266,11 +325,12 @@ export default function PrivacyPage() {
                   Discord
                 </p>
                 <p className="text-slate-500 dark:text-white/40">
-                  Used only for sign-in (OAuth). We request only the{" "}
+                  Used only when you choose to connect Discord for a persistent
+                  account. We request only the{" "}
                   <code className="rounded bg-black/6 px-1 py-0.5 font-mono text-[12px] dark:bg-white/10">
                     identify
                   </code>{" "}
-                  scope — this gives us your username, display name, and avatar.
+                  scope. This gives us your username, display name, and avatar.
                   We do not request your email address or any other Discord
                   data. See{" "}
                   <a
@@ -290,9 +350,9 @@ export default function PrivacyPage() {
                 </p>
                 <p className="text-slate-500 dark:text-white/40">
                   Turn notifications are delivered through your browser&apos;s
-                  built-in push infrastructure (e.g. Google FCM for Chrome). We
-                  do not control this infrastructure and only send the
-                  notification payload.
+                  built-in push infrastructure (for example, Google FCM for
+                  Chrome). We do not control this infrastructure and only send
+                  the notification payload.
                 </p>
               </div>
             </div>
@@ -334,7 +394,7 @@ export default function PrivacyPage() {
             href="/"
             className="underline-offset-4 hover:text-slate-600 hover:underline dark:hover:text-white/50"
           >
-            ← Back to BookJourney
+            &larr; Back to BookJourney
           </Link>
         </div>
       </main>

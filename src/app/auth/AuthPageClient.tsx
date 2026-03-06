@@ -175,11 +175,8 @@ export default function AuthPageClient() {
               <li>Your Discord name and avatar become your persistent BookJourney identity.</li>
               <li>Your guest data is temporary, but Discord sign-in keeps your identity across sessions.</li>
               <li>
-                OAuth returns only through{" "}
-                <code className="rounded bg-black/5 px-1 py-0.5 font-mono text-[11px] dark:bg-white/10">
-                  bookreading.space/api/auth/callback/discord
-                </code>
-                .
+                OAuth returns only through BookJourney&apos;s configured auth
+                callback route.
               </li>
             </ul>
           </div>

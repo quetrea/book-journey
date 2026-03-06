@@ -4,6 +4,8 @@ import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/s
 import type { Id } from "./_generated/dataModel";
 import {
   getAuthUserIdFromIdentity,
+  getProfileDisplayImage,
+  getProfileDisplayName,
   getProfileByAuthUserId,
   requireIdentity,
   upsertViewerProfile,
@@ -144,8 +146,8 @@ export const listWordsServer = query({
         word: w.word,
         context: w.context,
         userId: w.userId,
-        userName: profile?.displayName ?? profile?.name ?? "Unknown",
-        userImage: profile?.image,
+        userName: getProfileDisplayName(profile) ?? "Unknown",
+        userImage: getProfileDisplayImage(profile),
         createdAt: w.createdAt,
       };
     });

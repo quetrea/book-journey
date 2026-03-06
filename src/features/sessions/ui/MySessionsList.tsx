@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { SessionListItem } from "../types";
@@ -91,6 +92,7 @@ function ViewToggleButton({
   icon: Icon,
   label,
 }: ViewToggleButtonProps) {
+  const { itemShadow } = useThemeGlow();
   const isActive = mode === activeMode;
 
   return (
@@ -100,11 +102,12 @@ function ViewToggleButton({
       variant={isActive ? "secondary" : "ghost"}
       onClick={() => onSelect(mode)}
       className={cn(
-        "h-8 gap-1.5 rounded-lg px-2.5 text-xs",
+        "h-8 flex-1 gap-1.5 rounded-lg px-2.5 text-xs sm:flex-none",
         isActive
-          ? "border border-cyan-200/40 bg-[rgba(238,255,253,0.74)] text-foreground hover:bg-[rgba(246,255,254,0.88)] dark:border-cyan-300/16 dark:bg-[rgba(255,255,255,0.10)] dark:hover:bg-[rgba(255,255,255,0.14)]"
+          ? "border border-black/10 bg-white/48 text-foreground hover:bg-white/60 dark:border-white/12 dark:bg-white/10 dark:hover:bg-white/14"
           : "text-muted-foreground hover:text-foreground",
       )}
+      style={isActive ? { boxShadow: itemShadow } : undefined}
     >
       <Icon className="size-3.5" />
       {label}
@@ -115,9 +118,15 @@ function ViewToggleButton({
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function StatusBadge({ status, endedAt, now }: { status: SessionListItem["status"]; endedAt?: number; now: number }) {
+  const { orb } = useThemeGlow();
+
   if (status === "active") {
     return (
-      <Badge className="rounded-full border border-emerald-300/45 bg-emerald-400/15 px-2.5 text-[11px] text-emerald-800 hover:bg-emerald-400/15 dark:border-emerald-300/20 dark:bg-emerald-400/12 dark:text-emerald-200">
+      <Badge className="rounded-full border border-black/10 bg-white/48 px-2.5 text-[11px] text-foreground hover:bg-white/48 dark:border-white/12 dark:bg-white/10 dark:text-white">
+        <span
+          className="size-1.5 rounded-full"
+          style={{ backgroundColor: hexToRgba(orb, 0.85) }}
+        />
         Active
       </Badge>
     );
@@ -152,7 +161,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
         <Card
           key={`sessions-skeleton-${index}`}
           className={cn(
-            "border-cyan-200/35 bg-[rgba(239,255,253,0.40)] px-4 py-4 shadow-[0_12px_30px_rgba(14,165,233,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_14px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]",
+            "border-black/8 bg-white/18 px-4 py-4 backdrop-blur-xl dark:border-white/12 dark:bg-white/6",
             viewMode === "grid" ? "h-full" : "",
           )}
         >
@@ -181,6 +190,7 @@ type SessionCardProps = {
 
 function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
   const deleteSession = useMutation(api.sessions.deleteSessionServer);
+  const { itemShadow, orb, isDark } = useThemeGlow();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -208,23 +218,35 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
           className={cn(
             "relative isolate gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
             session.status === "active"
-              ? "border-emerald-200/45 bg-[rgba(234,255,248,0.42)] hover:bg-[rgba(241,255,251,0.54)] dark:border-emerald-300/16 dark:bg-[rgba(255,255,255,0.06)] dark:hover:bg-[rgba(255,255,255,0.10)]"
-              : "border-cyan-200/35 bg-[rgba(238,255,252,0.36)] hover:bg-[rgba(245,255,254,0.48)] dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.05)] dark:hover:bg-[rgba(255,255,255,0.09)]",
-            "shadow-[0_14px_34px_rgba(8,145,178,0.06),inset_0_1px_0_rgba(255,255,255,0.68)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]",
+              ? "border-black/10 bg-white/26 hover:bg-white/34 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12"
+              : "border-black/8 bg-white/18 hover:bg-white/26 dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/10",
             isCompactView ? "px-3 py-3" : "px-4 py-4",
             isGridView ? "h-full" : "",
           )}
           style={{
             animationDelay: `${Math.min(index * 45, 180)}ms`,
+            boxShadow: itemShadow,
+            backgroundColor:
+              session.status === "active"
+                ? isDark
+                  ? hexToRgba(orb, 0.14)
+                  : hexToRgba(orb, 0.08)
+                : undefined,
           } as React.CSSProperties}
         >
           {/* Status accent bar */}
           <span
             className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
               session.status === "active"
-                ? "bg-emerald-300/70 opacity-90 group-hover:opacity-100 dark:bg-emerald-300/40"
-                : "bg-cyan-200/70 opacity-70 group-hover:opacity-90 dark:bg-cyan-300/22"
+                ? "opacity-90 group-hover:opacity-100"
+                : "opacity-70 group-hover:opacity-90"
             }`}
+            style={{
+              backgroundColor: hexToRgba(
+                orb,
+                session.status === "active" ? 0.58 : 0.36,
+              ),
+            }}
           />
 
           <CardContent className="relative z-10 p-0">
@@ -233,11 +255,11 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
                 <div className="space-y-3">
                     <div
                       aria-hidden="true"
-                      className="aspect-[5/3] w-full rounded-xl border border-cyan-200/35 bg-white/20 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:border-cyan-300/10 dark:bg-white/8"
+                      className="aspect-[5/3] w-full rounded-xl border border-black/8 bg-white/18 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:border-white/10 dark:bg-white/8"
                       style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
                     />
                   <div className="flex flex-wrap items-start justify-between gap-2">
-                    <div className="min-w-0 space-y-1 pr-6">
+                    <div className="min-w-0 space-y-1 pr-4 sm:pr-6">
                       <p
                         className={cn(
                           "line-clamp-1 font-semibold tracking-tight text-foreground",
@@ -261,14 +283,14 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div
                     className={cn(
-                      "min-w-0 pr-6",
+                      "min-w-0 pr-4 sm:pr-6",
                       hasCover ? "flex flex-1 items-start gap-3" : "space-y-1",
                     )}
                   >
                     {hasCover ? (
                       <div
                         aria-hidden="true"
-                        className="h-20 w-14 shrink-0 rounded-md border border-cyan-200/35 bg-white/20 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:border-cyan-300/10 dark:bg-white/8"
+                        className="h-20 w-14 shrink-0 rounded-md border border-black/8 bg-white/18 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:border-white/10 dark:bg-white/8"
                         style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
                       />
                     ) : null}
@@ -295,17 +317,17 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
               )}
 
               {!isCompactView && session.synopsis ? (
-                <p className="line-clamp-3 rounded-xl border border-cyan-200/32 bg-[rgba(249,255,254,0.44)] px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-cyan-300/10 dark:bg-[rgba(255,255,255,0.05)] dark:text-foreground/80">
+                <p className="line-clamp-3 rounded-xl border border-black/8 bg-white/26 px-3 py-2 text-sm leading-relaxed text-foreground/85 dark:border-white/10 dark:bg-white/8 dark:text-foreground/80">
                   {session.synopsis}
                 </p>
               ) : null}
 
               <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200/34 bg-[rgba(248,255,254,0.48)] px-2.5 py-1.5 text-xs text-muted-foreground dark:border-cyan-300/10 dark:bg-[rgba(255,255,255,0.05)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/30 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
                   <Clock3 className="size-3.5 shrink-0" />
                   Elapsed: {elapsed}
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/34 bg-[rgba(244,255,251,0.48)] px-2.5 py-1.5 text-xs text-muted-foreground dark:border-emerald-300/10 dark:bg-[rgba(255,255,255,0.05)]">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/30 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
                   <CalendarDays className="size-3.5 shrink-0" />
                   {formatDateLabel(session.createdAt)} at {formatTimeLabel(session.createdAt)}
                 </span>
@@ -313,7 +335,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
 
               <div
                 className={cn(
-                  "flex items-center justify-between gap-2 rounded-xl border border-cyan-200/34 bg-[rgba(248,255,254,0.44)] dark:border-cyan-300/10 dark:bg-[rgba(255,255,255,0.05)]",
+                  "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/26 dark:border-white/10 dark:bg-white/8",
                   isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
                 )}
               >
@@ -436,9 +458,9 @@ export function MySessionsList() {
 
   if (normalizedSessions.length === 0) {
     return (
-      <Card className="border-cyan-200/40 bg-[rgba(235,255,252,0.42)] py-8 shadow-[0_18px_40px_rgba(20,184,166,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-2xl dark:border-cyan-300/14 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <Card className="border-black/8 bg-white/18 py-8 backdrop-blur-[24px] dark:border-white/12 dark:bg-black/18">
         <CardContent className="relative flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
-          <span className="inline-flex size-10 items-center justify-center rounded-full border border-cyan-200/55 bg-[rgba(255,255,255,0.58)] text-cyan-700 dark:border-cyan-300/22 dark:bg-[rgba(255,255,255,0.08)] dark:text-cyan-200">
+          <span className="inline-flex size-10 items-center justify-center rounded-full border border-black/10 bg-white/46 text-foreground dark:border-white/12 dark:bg-white/10 dark:text-white">
             <Sparkles className="size-5" />
           </span>
           <p className="text-base font-semibold text-foreground">No sessions yet</p>
@@ -458,7 +480,7 @@ export function MySessionsList() {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-cyan-200/35 bg-[rgba(236,255,252,0.38)] p-2.5 shadow-[0_12px_28px_rgba(8,145,178,0.05),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex flex-col gap-2.5 rounded-2xl border border-black/8 bg-white/18 p-2.5 backdrop-blur-xl dark:border-white/12 dark:bg-white/6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -466,11 +488,11 @@ export function MySessionsList() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search by title, book, author, host, or session ID..."
-              className="h-9 border-cyan-200/40 bg-[rgba(248,255,254,0.72)] pl-9 text-sm dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.06)]"
+              className="h-9 border-black/10 bg-white/42 pl-9 text-sm dark:border-white/12 dark:bg-white/8"
             />
           </div>
 
-          <div className="inline-flex items-center rounded-xl border border-cyan-200/40 bg-[rgba(248,255,254,0.74)] p-1 dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.06)]">
+          <div className="grid w-full grid-cols-3 items-center rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8 sm:inline-flex sm:w-auto">
             <ViewToggleButton
               mode="list"
               activeMode={viewMode}
@@ -501,7 +523,7 @@ export function MySessionsList() {
       </div>
 
       {filteredSessions.length === 0 ? (
-        <Card className="border-cyan-200/35 bg-[rgba(237,255,252,0.36)] py-4 shadow-[0_12px_28px_rgba(34,197,94,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.04)] dark:shadow-[0_12px_28px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <Card className="border-black/8 bg-white/18 py-4 backdrop-blur-xl dark:border-white/12 dark:bg-white/6">
           <CardContent className="px-4 text-sm text-muted-foreground">
             No sessions match <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
           </CardContent>

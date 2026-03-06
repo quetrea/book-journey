@@ -102,6 +102,38 @@ export async function getViewerProfile(ctx: AuthCtx) {
   return getProfileByAuthUserId(ctx, authUserId);
 }
 
+async function isGuestAuthUser(ctx: AuthCtx, authUserId: Id<"users">) {
+  const authAccounts = await ctx.db
+    .query("authAccounts")
+    .withIndex("userIdAndProvider", (q) => q.eq("userId", authUserId))
+    .collect();
+
+  if (authAccounts.length === 0) {
+    const authUser = await ctx.db.get(authUserId);
+    return authUser?.isAnonymous === true;
+  }
+
+  return authAccounts.every((account) => account.provider === "anonymous");
+}
+
+export function getProfileDisplayName(
+  profile:
+    | Pick<Doc<"profiles">, "displayName" | "name">
+    | null
+    | undefined,
+) {
+  return profile?.displayName ?? profile?.name;
+}
+
+export function getProfileDisplayImage(
+  profile:
+    | Pick<Doc<"profiles">, "displayImage" | "image">
+    | null
+    | undefined,
+) {
+  return profile?.displayImage ?? profile?.image;
+}
+
 export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profiles">> {
   const identity = await requireIdentity(ctx);
   const authUserId = getAuthUserIdFromIdentity(identity);
@@ -114,7 +146,7 @@ export async function upsertViewerProfile(ctx: MutationCtx): Promise<Doc<"profil
   const nextProvider = providerFromTokenIdentifier(identity.tokenIdentifier);
   const now = Date.now();
 
-  const isGuest = authUser?.isAnonymous === true ? (true as const) : undefined;
+  const isGuest = (await isGuestAuthUser(ctx, authUserId)) ? (true as const) : undefined;
 
   if (existing) {
     const updates: Partial<

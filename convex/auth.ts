@@ -2,6 +2,8 @@ import Discord from "@auth/core/providers/discord";
 import { Anonymous } from "@convex-dev/auth/providers/Anonymous";
 import { convexAuth } from "@convex-dev/auth/server";
 
+import type { Id } from "./_generated/dataModel";
+
 const GUEST_ADJECTIVES = [
   "Amber",
   "Bright",
@@ -115,6 +117,40 @@ function buildGuestAvatarDataUrl(seed: string) {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
+function parseAuthUserId(subject: string): Id<"users"> | null {
+  const [userId] = subject.split("|");
+  return userId ? (userId as Id<"users">) : null;
+}
+
+function pickOptionalString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
+}
+
+function buildAuthUserPatch(
+  profile: Record<string, unknown> & {
+    email?: string;
+    phone?: string;
+    emailVerified?: boolean;
+    phoneVerified?: boolean;
+  },
+  isAnonymous: boolean | undefined,
+) {
+  const name = pickOptionalString(profile.name);
+  const image = pickOptionalString(profile.image);
+  const email = pickOptionalString(profile.email);
+  const phone = pickOptionalString(profile.phone);
+
+  return {
+    ...(name ? { name } : {}),
+    ...(image ? { image } : {}),
+    ...(email ? { email } : {}),
+    ...(phone ? { phone } : {}),
+    ...(profile.emailVerified ? { emailVerificationTime: Date.now() } : {}),
+    ...(profile.phoneVerified ? { phoneVerificationTime: Date.now() } : {}),
+    isAnonymous,
+  };
+}
+
 /**
  * TODO(convex-auth-discord): Discord is not currently listed in Convex Auth's
  * official provider setup docs. This uses the Auth.js Discord provider in
@@ -142,4 +178,51 @@ export const { auth, signIn, signOut, store, isAuthenticated } = convexAuth({
       },
     }),
   ],
+  callbacks: {
+    async createOrUpdateUser(ctx, args) {
+      const identity = await ctx.auth.getUserIdentity();
+      const currentAuthUserId =
+        identity !== null ? parseAuthUserId(identity.subject) : null;
+      const isAnonymousProvider = args.provider.id === "anonymous";
+      const nextUserPatch = buildAuthUserPatch(
+        args.profile,
+        isAnonymousProvider ? true : undefined,
+      );
+
+      if (currentAuthUserId !== null) {
+        if (
+          args.existingUserId !== null &&
+          args.existingUserId !== currentAuthUserId
+        ) {
+          const currentAccounts = await ctx.db
+            .query("authAccounts")
+            .filter((q) => q.eq(q.field("userId"), currentAuthUserId))
+            .collect();
+
+          const isGuestOnlyAccount =
+            currentAccounts.length > 0 &&
+            currentAccounts.every((account) => account.provider === "anonymous");
+
+          if (isGuestOnlyAccount) {
+            throw new Error(
+              "This Discord account is already connected to another BookJourney account.",
+            );
+          }
+
+          await ctx.db.patch(args.existingUserId, nextUserPatch);
+          return args.existingUserId;
+        }
+
+        await ctx.db.patch(currentAuthUserId, nextUserPatch);
+        return currentAuthUserId;
+      }
+
+      if (args.existingUserId !== null) {
+        await ctx.db.patch(args.existingUserId, nextUserPatch);
+        return args.existingUserId;
+      }
+
+      return ctx.db.insert("users", nextUserPatch);
+    },
+  },
 });
