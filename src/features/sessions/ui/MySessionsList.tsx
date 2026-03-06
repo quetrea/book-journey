@@ -5,15 +5,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUpDown,
-  CalendarDays,
   ChevronRight,
-  Clock3,
   Globe2,
   Grid3X3,
-  ListOrdered,
   LockKeyhole,
+  MoreVertical,
+  Pencil,
   Radio,
-  Repeat2,
   type LucideIcon,
   Rows3,
   Search,
@@ -21,9 +19,9 @@ import {
   Sparkles,
   StretchHorizontal,
   Trash2,
-  Users,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   AlertDialog,
@@ -34,17 +32,30 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import { buildSessionInviteCodeFromSessionId, buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
-import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import type { SessionListItem } from "../types";
 import { CreateSessionModal } from "./CreateSessionModal";
@@ -57,9 +68,8 @@ type SessionsSortMode = "recent" | "title" | "active-first";
 function formatDateLabel(timestamp: number) {
   const now = new Date();
   const date = new Date(timestamp);
-  const isToday = now.toDateString() === date.toDateString();
 
-  if (isToday) {
+  if (now.toDateString() === date.toDateString()) {
     return "Today";
   }
 
@@ -68,25 +78,6 @@ function formatDateLabel(timestamp: number) {
     day: "numeric",
     year: "numeric",
   }).format(date);
-}
-
-function formatElapsed(ms: number) {
-  const seconds = Math.max(0, Math.floor(ms / 1000));
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-
-  return `${minutes}m`;
-}
-
-function formatTimeLabel(timestamp: number) {
-  return new Intl.DateTimeFormat("en-US", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(timestamp));
 }
 
 function formatRelativeTimeLabel(timestamp: number, now: number) {
@@ -210,7 +201,15 @@ function ControlButton({ active, label, icon: Icon, onClick }: ControlButtonProp
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-function StatusBadge({ status, endedAt, now }: { status: SessionListItem["status"]; endedAt?: number; now: number }) {
+function StatusBadge({
+  status,
+  endedAt,
+  now,
+}: {
+  status: SessionListItem["status"];
+  endedAt?: number;
+  now: number;
+}) {
   const { orb } = useThemeGlow();
 
   if (status === "active") {
@@ -243,44 +242,202 @@ function StatusBadge({ status, endedAt, now }: { status: SessionListItem["status
     </div>
   );
 }
+function SessionCover({
+  session,
+  viewMode,
+}: {
+  session: SessionListItem;
+  viewMode: SessionsViewMode;
+}) {
+  const title = session.title ?? session.bookTitle;
+  const isCompact = viewMode === "compact";
+  const isGrid = viewMode === "grid";
+  const hasCover = Boolean(session.bookCoverUrl);
 
-type SessionStatProps = {
-  icon: LucideIcon;
-  label: string;
-  value: string;
-  hint: string;
-  compact?: boolean;
-};
+  if (isCompact) {
+    return (
+      <div className="flex gap-3">
+        <div
+          className={cn(
+            "relative w-[96px] shrink-0 overflow-hidden rounded-2xl border border-black/8 bg-linear-to-br from-white/70 via-white/20 to-black/10 dark:border-white/10 dark:from-white/12 dark:via-white/6 dark:to-black/30",
+            hasCover ? "bg-cover bg-center" : "",
+          )}
+          style={hasCover ? { backgroundImage: `url(${session.bookCoverUrl})` } : undefined}
+        >
+          <div className="aspect-[3/4]" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent" />
+        </div>
 
-function SessionStat({
-  icon: Icon,
-  label,
-  value,
-  hint,
-  compact = false,
-}: SessionStatProps) {
+        <div className="min-w-0 flex-1 self-end">
+          <p className="line-clamp-2 text-base font-semibold tracking-tight text-foreground">
+            {title}
+          </p>
+          <p className="mt-1 line-clamp-1 text-sm text-muted-foreground/85">
+            {session.authorName ? `by ${session.authorName}` : session.bookTitle}
+          </p>
+          <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
+            Tap cover to enter
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "rounded-xl border border-black/8 bg-white/28 px-3 py-2.5 dark:border-white/10 dark:bg-white/8",
-        compact ? "space-y-1.5" : "space-y-2",
+        "relative overflow-hidden rounded-[24px] border border-black/8 bg-linear-to-br from-white/75 via-white/20 to-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] dark:border-white/10 dark:from-white/12 dark:via-white/6 dark:to-black/30",
+        isGrid ? "aspect-[4/5] w-full" : "aspect-[8/4.6] w-full",
+        hasCover ? "bg-cover bg-center" : "",
       )}
+      style={hasCover ? { backgroundImage: `url(${session.bookCoverUrl})` } : undefined}
     >
-      <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/85">
-        <Icon className="size-3.5" />
-        {label}
+      <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/24 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 p-4">
+        <p className="line-clamp-2 text-lg font-semibold tracking-tight text-white">
+          {title}
+        </p>
+        <p className="mt-1 line-clamp-1 text-sm text-white/80">
+          {session.authorName ? `by ${session.authorName}` : session.bookTitle}
+        </p>
+        <p className="mt-3 text-[11px] font-medium uppercase tracking-[0.22em] text-white/62">
+          Open to see details
+        </p>
       </div>
-      <p
-        title={value}
-        className={cn(
-          "line-clamp-2 break-words font-semibold tracking-tight text-foreground",
-          compact ? "text-sm" : "text-[15px]",
-        )}
-      >
-        {value}
-      </p>
-      <p className="text-[11px] text-muted-foreground/75">{hint}</p>
     </div>
+  );
+}
+
+type EditSessionDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  session: SessionListItem;
+};
+
+function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogProps) {
+  const updateSession = useMutation(api.sessions.updateSessionServer);
+  const [bookTitle, setBookTitle] = useState(session.bookTitle);
+  const [authorName, setAuthorName] = useState(session.authorName ?? "");
+  const [title, setTitle] = useState(session.title ?? "");
+  const [bookCoverUrl, setBookCoverUrl] = useState(session.bookCoverUrl ?? "");
+  const [synopsis, setSynopsis] = useState(session.synopsis ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    setBookTitle(session.bookTitle);
+    setAuthorName(session.authorName ?? "");
+    setTitle(session.title ?? "");
+    setBookCoverUrl(session.bookCoverUrl ?? "");
+    setSynopsis(session.synopsis ?? "");
+  }, [open, session]);
+
+  const normalizedBookTitle = bookTitle.trim();
+  const normalizedAuthorName = authorName.trim();
+  const normalizedTitle = title.trim();
+  const normalizedBookCoverUrl = bookCoverUrl.trim();
+  const normalizedSynopsis = synopsis.trim();
+
+  const hasChanges =
+    normalizedBookTitle !== session.bookTitle.trim() ||
+    normalizedAuthorName !== (session.authorName ?? "").trim() ||
+    normalizedTitle !== (session.title ?? "").trim() ||
+    normalizedBookCoverUrl !== (session.bookCoverUrl ?? "").trim() ||
+    normalizedSynopsis !== (session.synopsis ?? "").trim();
+
+  async function handleSave() {
+    if (!normalizedBookTitle) {
+      toast.error("Book title cannot be empty.");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await updateSession({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        sessionId: session._id as any,
+        bookTitle: normalizedBookTitle,
+        authorName: normalizedAuthorName || undefined,
+        title: normalizedTitle || undefined,
+        bookCoverUrl: normalizedBookCoverUrl || undefined,
+        synopsis: normalizedSynopsis || undefined,
+      });
+      toast.success("Session updated");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update session.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit session</DialogTitle>
+          <DialogDescription>
+            Update the card-facing book identity. Room details still live inside the session.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-1 sm:grid-cols-2">
+          <div className="space-y-2 sm:col-span-2">
+            <label className="text-sm font-medium text-foreground">Book title</label>
+            <Input value={bookTitle} onChange={(event) => setBookTitle(event.target.value)} />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Session title</label>
+            <Input
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Optional display title"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-foreground">Author</label>
+            <Input
+              value={authorName}
+              onChange={(event) => setAuthorName(event.target.value)}
+              placeholder="Optional"
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <label className="text-sm font-medium text-foreground">Book cover URL</label>
+            <Input
+              value={bookCoverUrl}
+              onChange={(event) => setBookCoverUrl(event.target.value)}
+              placeholder="https://..."
+            />
+          </div>
+
+          <div className="space-y-2 sm:col-span-2">
+            <label className="text-sm font-medium text-foreground">Synopsis</label>
+            <Textarea
+              value={synopsis}
+              onChange={(event) => setSynopsis(event.target.value)}
+              placeholder="Optional session note"
+              rows={4}
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSaving}>
+            Cancel
+          </Button>
+          <Button type="button" onClick={() => { void handleSave(); }} disabled={isSaving || !hasChanges}>
+            {isSaving ? "Saving..." : "Save changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -299,21 +456,18 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
           )}
         >
           <CardContent className="space-y-3 p-0">
-            <Skeleton className="h-5 w-2/3" />
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-4 w-5/6" />
-            <div className="flex gap-2">
-              <Skeleton className="h-6 w-18 rounded-full" />
-              <Skeleton className="h-6 w-22 rounded-full" />
+            <div className="flex items-center justify-between gap-2">
+              <Skeleton className="h-6 w-28 rounded-full" />
+              <Skeleton className="size-8 rounded-full" />
             </div>
-            <Skeleton className="h-11 w-full rounded-xl" />
+            <Skeleton className="h-52 w-full rounded-[24px]" />
+            <Skeleton className="h-12 w-full rounded-xl" />
           </CardContent>
         </Card>
       ))}
     </div>
   );
 }
-
 type SessionCardProps = {
   session: SessionListItem;
   viewMode: SessionsViewMode;
@@ -325,6 +479,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
   const deleteSession = useMutation(api.sessions.deleteSessionServer);
   const { itemShadow, orb, isDark } = useThemeGlow();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   async function handleDelete() {
@@ -333,266 +488,159 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await deleteSession({ sessionId: session._id as any });
       setIsDeleteOpen(false);
+      toast.success("Session deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete session.");
     } finally {
       setIsDeleting(false);
     }
   }
 
-  const finishedAt = session.status === "ended" ? (session.endedAt ?? session.createdAt) : now;
-  const elapsed = formatElapsed(finishedAt - session.createdAt);
   const isCompactView = viewMode === "compact";
   const isGridView = viewMode === "grid";
-  const hasCover = Boolean(session.bookCoverUrl) && !isCompactView;
   const accessMeta = resolveAccessMeta(session.accessType);
   const AccessIcon = accessMeta.icon;
   const participantCount = session.participantCount ?? 0;
-  const activeQueueCount = session.activeQueueCount ?? 0;
-  const liveReaderLabel =
-    session.currentReaderName ??
-    (session.status === "active" ? "Waiting to start" : "No active reader");
-  const timelineLabel =
-    session.status === "ended" && session.endedAt
-      ? `Ended ${formatDateLabel(session.endedAt)} at ${formatTimeLabel(session.endedAt)}`
-      : `Created ${formatDateLabel(session.createdAt)} at ${formatTimeLabel(session.createdAt)}`;
 
   return (
     <div className="group relative">
-      <Link href={buildSessionInvitePathFromSessionId(session._id)} className="block">
-        <Card
-          className={cn(
-            "relative isolate gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
+      <Card
+        className={cn(
+          "relative isolate gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
+          session.status === "active"
+            ? "border-black/10 bg-white/26 hover:bg-white/34 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12"
+            : "border-black/8 bg-white/18 hover:bg-white/26 dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/10",
+          isCompactView ? "px-3 py-3" : "px-4 py-4",
+          isGridView ? "h-full" : "",
+        )}
+        style={{
+          animationDelay: `${Math.min(index * 45, 180)}ms`,
+          boxShadow: itemShadow,
+          backgroundColor:
             session.status === "active"
-              ? "border-black/10 bg-white/26 hover:bg-white/34 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12"
-              : "border-black/8 bg-white/18 hover:bg-white/26 dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/10",
-            isCompactView ? "px-3 py-3" : "px-4 py-4",
-            isGridView ? "h-full" : "",
-          )}
+              ? isDark
+                ? hexToRgba(orb, 0.14)
+                : hexToRgba(orb, 0.08)
+              : undefined,
+        }}
+      >
+        <span
+          className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
+            session.status === "active"
+              ? "opacity-90 group-hover:opacity-100"
+              : "opacity-70 group-hover:opacity-90"
+          }`}
           style={{
-            animationDelay: `${Math.min(index * 45, 180)}ms`,
-            boxShadow: itemShadow,
-            backgroundColor:
-              session.status === "active"
-                ? isDark
-                  ? hexToRgba(orb, 0.14)
-                  : hexToRgba(orb, 0.08)
-                : undefined,
-          } as React.CSSProperties}
-        >
-          {/* Status accent bar */}
-          <span
-            className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
-              session.status === "active"
-                ? "opacity-90 group-hover:opacity-100"
-                : "opacity-70 group-hover:opacity-90"
-            }`}
-            style={{
-              backgroundColor: hexToRgba(
-                orb,
-                session.status === "active" ? 0.58 : 0.36,
-              ),
-            }}
-          />
+            backgroundColor: hexToRgba(
+              orb,
+              session.status === "active" ? 0.58 : 0.36,
+            ),
+          }}
+        />
 
-          <CardContent className="relative z-10 p-0">
-            <div className={cn("space-y-3.5", isCompactView ? "space-y-2.5" : "")}>
-              {hasCover && isGridView ? (
-                <div
-                  aria-hidden="true"
-                  className="aspect-[5/3] w-full rounded-xl border border-black/8 bg-white/18 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] dark:border-white/10 dark:bg-white/8"
-                  style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
-                />
-              ) : null}
-
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div
-                  className={cn(
-                    "min-w-0",
-                    hasCover && !isGridView ? "flex items-start gap-3" : "space-y-2",
-                  )}
+        <CardContent className="relative z-10 p-0">
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
+                <Badge
+                  variant="secondary"
+                  className="rounded-full border border-black/8 bg-white/40 px-2.5 text-[11px] text-foreground dark:border-white/12 dark:bg-white/10"
                 >
-                  {hasCover && !isGridView ? (
-                    <div
-                      aria-hidden="true"
-                      className="h-[88px] w-[60px] shrink-0 rounded-lg border border-black/8 bg-white/18 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:border-white/10 dark:bg-white/8"
-                      style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
-                    />
+                  <AccessIcon className="size-3.5" />
+                  {accessMeta.label}
+                </Badge>
+              </div>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="shrink-0 rounded-full text-muted-foreground/55 hover:text-foreground"
+                  >
+                    <MoreVertical className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  {session.status === "active" ? (
+                    <>
+                      <DropdownMenuItem onSelect={() => setIsEditOpen(true)}>
+                        <Pencil className="size-4" />
+                        Edit details
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </>
                   ) : null}
-
-                  <div className={cn("min-w-0 space-y-2", hasCover && !isGridView ? "flex-1" : "")}>
-                    <div className="space-y-1">
-                      <p
-                        className={cn(
-                          "line-clamp-2 font-semibold tracking-tight text-foreground",
-                          isCompactView ? "text-[15px]" : "text-base md:text-[18px]",
-                        )}
-                      >
-                        {session.title ?? session.bookTitle}
-                      </p>
-                      <div className="space-y-0.5">
-                        <p className={cn("line-clamp-1 text-foreground/78", isCompactView ? "text-xs" : "text-sm")}>
-                          {session.title ? `Book: ${session.bookTitle}` : session.bookTitle}
-                        </p>
-                        <p className={cn("line-clamp-1 text-muted-foreground/85", isCompactView ? "text-xs" : "text-sm")}>
-                          {session.authorName ? `by ${session.authorName}` : "Author unknown"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        className="rounded-full border border-black/8 bg-white/44 px-2.5 text-[11px] text-foreground dark:border-white/12 dark:bg-white/10"
-                      >
-                        <AccessIcon className="size-3.5" />
-                        {accessMeta.label}
-                      </Badge>
-
-                      {session.isRepeatEnabled ? (
-                        <Badge
-                          variant="secondary"
-                          className="rounded-full border border-black/8 bg-white/38 px-2.5 text-[11px] text-foreground/85 dark:border-white/12 dark:bg-white/8"
-                        >
-                          <Repeat2 className="size-3.5" />
-                          Repeat queue
-                        </Badge>
-                      ) : null}
-
-                      {!isCompactView ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/30 px-2.5 py-1.5 text-[11px] text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                          <Clock3 className="size-3.5 shrink-0" />
-                          Started {formatRelativeTimeLabel(session.createdAt, now)}
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-start gap-2 sm:flex-col sm:items-end">
-                  <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
-                </div>
-              </div>
-
-              {!isCompactView && session.synopsis ? (
-                <div className="rounded-xl border border-black/8 bg-white/28 px-3 py-3 dark:border-white/10 dark:bg-white/8">
-                  <p className="mb-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
-                    Session note
-                  </p>
-                  <p className="line-clamp-3 text-sm leading-relaxed text-foreground/88 dark:text-foreground/84">
-                    {session.synopsis}
-                  </p>
-                </div>
-              ) : null}
-
-              <div className={cn("grid gap-2", isCompactView ? "grid-cols-2" : "sm:grid-cols-3")}>
-                <SessionStat
-                  icon={Users}
-                  label="Readers"
-                  value={String(participantCount)}
-                  hint={session.status === "active" ? "currently in room" : "joined this session"}
-                  compact={isCompactView}
-                />
-                <SessionStat
-                  icon={ListOrdered}
-                  label="Queue"
-                  value={String(activeQueueCount)}
-                  hint={session.status === "active" ? "still in rotation" : "queue entries kept"}
-                  compact={isCompactView}
-                />
-                <SessionStat
-                  icon={Radio}
-                  label="Live reader"
-                  value={liveReaderLabel}
-                  hint={
-                    session.status === "active"
-                      ? "who is reading right now"
-                      : "latest active reading state"
-                  }
-                  compact={isCompactView}
-                />
-              </div>
-
-              <div className={cn("grid gap-2", isCompactView ? "grid-cols-1" : "sm:grid-cols-2")}>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/30 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                  <Clock3 className="size-3.5 shrink-0" />
-                  Elapsed: {elapsed}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-black/8 bg-white/30 px-2.5 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-                  <CalendarDays className="size-3.5 shrink-0" />
-                  {timelineLabel}
-                </span>
-              </div>
-
-              <div
-                className={cn(
-                  "flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/26 dark:border-white/10 dark:bg-white/8",
-                  isCompactView ? "px-2 py-1.5" : "px-2.5 py-2",
-                )}
-              >
-                <div className="inline-flex min-w-0 items-center gap-2">
-                  <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
-                    <AvatarImage
-                      src={session.hostImage ?? undefined}
-                      alt={session.hostName ?? "Host"}
-                    />
-                    <AvatarFallback>{getInitials(session.hostName ?? "H")}</AvatarFallback>
-                  </Avatar>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Hosted by <span className="font-medium text-foreground">{session.hostName ?? "Unknown"}</span>
-                  </span>
-                </div>
-                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/70 transition-colors group-hover:text-muted-foreground">
-                  Open
-                  <ChevronRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
-                </span>
-              </div>
-
-              {!isCompactView ? (
-                <div className="border-t border-black/8 pt-2 text-[11px] text-muted-foreground/70 dark:border-white/10">
-                  Invite code: {buildSessionInviteCodeFromSessionId(session._id)}
-                </div>
-              ) : null}
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => setIsDeleteOpen(true)}
+                  >
+                    <Trash2 className="size-4" />
+                    Delete session
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
-          </CardContent>
-        </Card>
-      </Link>
 
-      {/* Delete button — outside Link to avoid navigation */}
-      <div className="absolute right-2.5 top-2.5 z-10">
-        <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-          <AlertDialogTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-7 rounded-lg text-muted-foreground/45 opacity-100 transition-opacity hover:bg-red-50 hover:text-red-500 sm:opacity-0 sm:group-hover:opacity-100 dark:hover:bg-red-950/50"
+            <Link href={buildSessionInvitePathFromSessionId(session._id)} className="block">
+              <SessionCover session={session} viewMode={viewMode} />
+            </Link>
+
+            <div
+              className={cn(
+                "flex items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/24 dark:border-white/10 dark:bg-white/8",
+                isCompactView ? "px-3 py-2.5" : "px-3.5 py-3",
+              )}
             >
-              <Trash2 className="size-3.5" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete this session?</AlertDialogTitle>
-              <AlertDialogDescription>
-                &quot;{session.title ?? session.bookTitle}&quot; and all its data (queue, words, participants) will be permanently deleted. This cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                disabled={isDeleting}
-                onClick={() => { void handleDelete(); }}
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground">
+                  {participantCount} reader{participantCount === 1 ? "" : "s"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Started {formatRelativeTimeLabel(session.createdAt, now)}
+                  {session.status === "ended" ? ` • ${formatDateLabel(session.endedAt ?? session.createdAt)} archive` : ""}
+                </p>
+              </div>
+
+              <Link
+                href={buildSessionInvitePathFromSessionId(session._id)}
+                className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground/72 transition-colors hover:text-foreground"
               >
-                {isDeleting ? "Deleting..." : "Delete session"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+                Open
+                <ChevronRight className="size-3.5" />
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <EditSessionDialog open={isEditOpen} onOpenChange={setIsEditOpen} session={session} />
+
+      <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &quot;{session.title ?? session.bookTitle}&quot; and all its data (queue, words, participants) will be permanently deleted. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={() => { void handleDelete(); }}
+            >
+              {isDeleting ? "Deleting..." : "Delete session"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
 export function MySessionsList() {
   const sessions = useQuery(api.sessions.listMySessionsServer);
 
@@ -669,6 +717,7 @@ export function MySessionsList() {
       queueTotal,
     };
   }, [normalizedSessions]);
+
   const filteredSessions = useMemo(() => {
     const filtered = normalizedSessions.filter((session) => {
       const matchesStatus =
@@ -686,10 +735,8 @@ export function MySessionsList() {
         session.title,
         session.bookTitle,
         session.authorName,
-        session.hostName,
         session._id,
         buildSessionInviteCodeFromSessionId(session._id),
-        session.currentReaderName,
       ];
 
       return searchFields.some(
@@ -714,6 +761,7 @@ export function MySessionsList() {
 
     return filtered;
   }, [normalizedSearch, normalizedSessions, sortMode, statusFilter]);
+
   const hasActiveControls =
     searchQuery.trim().length > 0 || statusFilter !== "all" || sortMode !== "recent";
 
@@ -786,33 +834,15 @@ export function MySessionsList() {
             <Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search by title, book, author, host, or invite code..."
+              placeholder="Search by title, book, author, or invite code..."
               className="h-9 border-black/10 bg-white/42 pl-9 text-sm dark:border-white/12 dark:bg-white/8"
             />
           </div>
 
           <div className="grid w-full grid-cols-3 items-center rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8 sm:inline-flex sm:w-auto">
-            <ViewToggleButton
-              mode="list"
-              activeMode={viewMode}
-              onSelect={handleViewModeChange}
-              icon={Rows3}
-              label="List"
-            />
-            <ViewToggleButton
-              mode="compact"
-              activeMode={viewMode}
-              onSelect={handleViewModeChange}
-              icon={StretchHorizontal}
-              label="Compact"
-            />
-            <ViewToggleButton
-              mode="grid"
-              activeMode={viewMode}
-              onSelect={handleViewModeChange}
-              icon={Grid3X3}
-              label="Grid"
-            />
+            <ViewToggleButton mode="list" activeMode={viewMode} onSelect={handleViewModeChange} icon={Rows3} label="List" />
+            <ViewToggleButton mode="compact" activeMode={viewMode} onSelect={handleViewModeChange} icon={StretchHorizontal} label="Compact" />
+            <ViewToggleButton mode="grid" activeMode={viewMode} onSelect={handleViewModeChange} icon={Grid3X3} label="Grid" />
           </div>
         </div>
 
@@ -822,21 +852,9 @@ export function MySessionsList() {
               Filter
             </span>
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8">
-              <ControlButton
-                active={statusFilter === "all"}
-                label={`All (${sessionSummary.total})`}
-                onClick={() => handleStatusFilterChange("all")}
-              />
-              <ControlButton
-                active={statusFilter === "active"}
-                label={`Active (${sessionSummary.active})`}
-                onClick={() => handleStatusFilterChange("active")}
-              />
-              <ControlButton
-                active={statusFilter === "ended"}
-                label={`Ended (${sessionSummary.ended})`}
-                onClick={() => handleStatusFilterChange("ended")}
-              />
+              <ControlButton active={statusFilter === "all"} label={`All (${sessionSummary.total})`} onClick={() => handleStatusFilterChange("all")} />
+              <ControlButton active={statusFilter === "active"} label={`Active (${sessionSummary.active})`} onClick={() => handleStatusFilterChange("active")} />
+              <ControlButton active={statusFilter === "ended"} label={`Ended (${sessionSummary.ended})`} onClick={() => handleStatusFilterChange("ended")} />
             </div>
           </div>
 
@@ -845,34 +863,13 @@ export function MySessionsList() {
               Sort
             </span>
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8">
-              <ControlButton
-                active={sortMode === "recent"}
-                label="Recent"
-                icon={ArrowUpDown}
-                onClick={() => handleSortModeChange("recent")}
-              />
-              <ControlButton
-                active={sortMode === "active-first"}
-                label="Active first"
-                icon={Radio}
-                onClick={() => handleSortModeChange("active-first")}
-              />
-              <ControlButton
-                active={sortMode === "title"}
-                label="A-Z"
-                icon={Rows3}
-                onClick={() => handleSortModeChange("title")}
-              />
+              <ControlButton active={sortMode === "recent"} label="Recent" icon={ArrowUpDown} onClick={() => handleSortModeChange("recent")} />
+              <ControlButton active={sortMode === "active-first"} label="Active first" icon={Radio} onClick={() => handleSortModeChange("active-first")} />
+              <ControlButton active={sortMode === "title"} label="A-Z" icon={Rows3} onClick={() => handleSortModeChange("title")} />
             </div>
 
             {hasActiveControls ? (
-              <Button
-                type="button"
-                size="xs"
-                variant="ghost"
-                className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-foreground"
-                onClick={resetListingControls}
-              >
+              <Button type="button" size="xs" variant="ghost" className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-foreground" onClick={resetListingControls}>
                 <X className="size-3.5" />
                 Reset
               </Button>
@@ -901,15 +898,10 @@ export function MySessionsList() {
 
       <div className={sessionsWrapperClass}>
         {filteredSessions.map((session, index) => (
-          <SessionCard
-            key={session._id}
-            session={session}
-            viewMode={viewMode}
-            now={now}
-            index={index}
-          />
+          <SessionCard key={session._id} session={session} viewMode={viewMode} now={now} index={index} />
         ))}
       </div>
     </div>
   );
 }
+

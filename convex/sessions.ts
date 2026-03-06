@@ -940,6 +940,7 @@ export const listPublicSessionsServer = query({
           id: session._id,
           bookTitle: session.bookTitle,
           authorName: session.authorName,
+          bookCoverUrl: session.bookCoverUrl,
           title: session.title,
           hostName: getProfileDisplayName(host) ?? "Unknown",
           hostImage: getProfileDisplayImage(host),
