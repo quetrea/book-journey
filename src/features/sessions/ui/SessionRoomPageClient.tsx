@@ -100,7 +100,6 @@ export function SessionRoomPageClient({
   const [entryErrorMessage, setEntryErrorMessage] = useState<string | null>(null);
   const [isEntrySubmitting, setIsEntrySubmitting] = useState(false);
 
-  const [guestName, setGuestName] = useState("");
   const [isJoiningAsGuest, setIsJoiningAsGuest] = useState(false);
   const [guestJoinError, setGuestJoinError] = useState<string | null>(null);
 
@@ -245,25 +244,15 @@ export function SessionRoomPageClient({
           {/* Guest join */}
           <div className="w-full rounded-2xl border border-white/15 bg-[#0d1222]/70 p-6 backdrop-blur-xl">
             <p className="mb-1 text-sm font-medium text-white/80">Join as Guest</p>
-            <p className="mb-4 text-xs text-white/40">Enter just your name — no account needed</p>
+            <p className="mb-4 text-xs text-white/40">We will generate a random name and avatar for you.</p>
             <div className="space-y-3">
-              <Input
-                placeholder="Your name"
-                value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void handleGuestJoin();
-                }}
-                maxLength={32}
-                className="border-white/15 bg-white/8 text-white placeholder:text-white/30"
-              />
               <Button
                 type="button"
                 className="w-full"
                 onClick={() => void handleGuestJoin()}
-                disabled={isJoiningAsGuest || guestName.trim().length < 2}
+                disabled={isJoiningAsGuest}
               >
-                {isJoiningAsGuest ? "Continuing..." : "Continue"}
+                {isJoiningAsGuest ? "Generating guest..." : "Continue"}
               </Button>
               {guestJoinError && (
                 <p className="text-xs text-red-400">{guestJoinError}</p>
@@ -329,15 +318,10 @@ export function SessionRoomPageClient({
   const details = sessionDetails;
 
   async function handleGuestJoin() {
-    const name = guestName.trim();
-    if (name.length < 2) {
-      setGuestJoinError("Name must be at least 2 characters.");
-      return;
-    }
     setIsJoiningAsGuest(true);
     setGuestJoinError(null);
     try {
-      await signIn("anonymous", { name });
+      await signIn("anonymous");
     } catch (error) {
       setGuestJoinError(
         error instanceof Error ? error.message : "Failed to sign in as guest."

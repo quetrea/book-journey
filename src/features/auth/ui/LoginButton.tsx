@@ -1,24 +1,24 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth } from "convex/react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { useSignOutAction } from "@/features/auth/hooks/useSignOutAction";
 
 export function LoginButton() {
-  const { signOut } = useAuthActions();
   const { isLoading, isAuthenticated } = useConvexAuth();
   const [isWorking, setIsWorking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { signOutCurrentUser } = useSignOutAction();
 
   async function handleSignOut() {
     setIsWorking(true);
     setErrorMessage(null);
 
     try {
-      await signOut();
+      await signOutCurrentUser();
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to sign out.";
       setErrorMessage(message);

@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -46,8 +45,6 @@ export default function AuthPageClient() {
 
   const [isWorking, setIsWorking] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showGuestForm, setShowGuestForm] = useState(false);
-  const [guestName, setGuestName] = useState("");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -70,15 +67,10 @@ export default function AuthPageClient() {
   }
 
   async function handleGuestSignIn() {
-    const name = guestName.trim();
-    if (name.length < 2) {
-      setErrorMessage("Name must be at least 2 characters.");
-      return;
-    }
     setIsWorking(true);
     setErrorMessage(null);
     try {
-      await signIn("anonymous", { name });
+      await signIn("anonymous");
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Failed to sign in as guest."
@@ -112,54 +104,21 @@ export default function AuthPageClient() {
               Sign in to BookJourney
             </h1>
             <p className="text-sm text-muted-foreground">
-              No account needed &mdash; join any session as a guest
+              No account needed &mdash; get a random guest identity instantly
             </p>
           </div>
 
-          {/* Guest login - promoted to top */}
-          {showGuestForm ? (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Your name"
-                  value={guestName}
-                  onChange={(e) => setGuestName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") void handleGuestSignIn();
-                  }}
-                  disabled={isWorking}
-                  className="h-9 border-black/15 bg-white/80 backdrop-blur-sm dark:border-white/15 dark:bg-white/10"
-                  autoFocus
-                />
-                <Button
-                  type="button"
-                  onClick={() => void handleGuestSignIn()}
-                  disabled={isWorking || guestName.trim().length < 2}
-                  className="shrink-0"
-                >
-                  {isWorking ? "Joining..." : "Join"}
-                </Button>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowGuestForm(false);
-                  setErrorMessage(null);
-                }}
-                className="text-xs text-slate-400 underline-offset-4 hover:text-slate-600 hover:underline dark:text-white/40 dark:hover:text-white/60"
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <Button
-              type="button"
-              onClick={() => setShowGuestForm(true)}
-              className="w-full"
-            >
-              Continue as Guest
-            </Button>
-          )}
+          <Button
+            type="button"
+            onClick={() => void handleGuestSignIn()}
+            disabled={isWorking}
+            className="w-full"
+          >
+            {isWorking ? "Generating guest..." : "Continue as Guest"}
+          </Button>
+          <p className="text-center text-[11px] text-muted-foreground/60">
+            We generate a random name and avatar for you automatically.
+          </p>
 
           {/* Divider */}
           <div className="flex items-center gap-3">
@@ -177,7 +136,7 @@ export default function AuthPageClient() {
               disabled={isWorking}
               className="w-full gap-2 border-[#5865F2]/30 bg-[#5865F2]/5 text-[#5865F2] hover:bg-[#5865F2]/10 hover:text-[#4752c4] dark:border-[#5865F2]/25 dark:bg-[#5865F2]/10 dark:text-[#8b9aff] dark:hover:bg-[#5865F2]/20"
             >
-              {isWorking && !showGuestForm ? (
+              {isWorking ? (
                 "Redirecting..."
               ) : (
                 <>

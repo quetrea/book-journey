@@ -136,6 +136,46 @@ async function transferHostIfNeeded(
   }
 }
 
+async function deleteAuthUserAndRelatedData(
+  ctx: MutationCtx,
+  authUserId: Id<"users">,
+) {
+  const authSessions = await ctx.db
+    .query("authSessions")
+    .withIndex("userId", (q) => q.eq("userId", authUserId))
+    .collect();
+
+  for (const session of authSessions) {
+    const refreshTokens = await ctx.db
+      .query("authRefreshTokens")
+      .withIndex("sessionId", (q) => q.eq("sessionId", session._id))
+      .collect();
+
+    await Promise.all(refreshTokens.map((token) => ctx.db.delete(token._id)));
+    await ctx.db.delete(session._id);
+  }
+
+  const authAccounts = await ctx.db
+    .query("authAccounts")
+    .withIndex("userIdAndProvider", (q) => q.eq("userId", authUserId))
+    .collect();
+
+  for (const account of authAccounts) {
+    const verificationCodes = await ctx.db
+      .query("authVerificationCodes")
+      .withIndex("accountId", (q) => q.eq("accountId", account._id))
+      .collect();
+
+    await Promise.all(verificationCodes.map((code) => ctx.db.delete(code._id)));
+    await ctx.db.delete(account._id);
+  }
+
+  const authUser = await ctx.db.get(authUserId);
+  if (authUser) {
+    await ctx.db.delete(authUserId);
+  }
+}
+
 async function deleteProfileAndRelatedData(ctx: MutationCtx, profile: Doc<"profiles">) {
   const profileId = profile._id;
 
@@ -192,11 +232,8 @@ async function deleteProfileAndRelatedData(ctx: MutationCtx, profile: Doc<"profi
   // 8. Delete profile
   await ctx.db.delete(profileId);
 
-  // 9. Delete auth user record
-  const authUser = await ctx.db.get(profile.authUserId);
-  if (authUser) {
-    await ctx.db.delete(profile.authUserId);
-  }
+  // 9. Delete auth records
+  await deleteAuthUserAndRelatedData(ctx, profile.authUserId);
 }
 
 /**
@@ -220,6 +257,29 @@ export const deleteMyAccountServer = mutation({
     await deleteProfileAndRelatedData(ctx, profile);
 
     return { ok: true };
+  },
+});
+
+export const deleteGuestAccountOnSignOutServer = mutation({
+  args: {},
+  handler: async (ctx): Promise<{ deletedGuest: boolean }> => {
+    const identity = await requireIdentity(ctx);
+    const authUserId = getAuthUserIdFromIdentity(identity);
+    const authUser = await ctx.db.get(authUserId);
+
+    if (!authUser || authUser.isAnonymous !== true) {
+      return { deletedGuest: false };
+    }
+
+    const profile = await getProfileByAuthUserId(ctx, authUserId);
+
+    if (profile) {
+      await deleteProfileAndRelatedData(ctx, profile);
+    } else {
+      await deleteAuthUserAndRelatedData(ctx, authUserId);
+    }
+
+    return { deletedGuest: true };
   },
 });
 

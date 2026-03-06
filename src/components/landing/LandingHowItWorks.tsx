@@ -22,7 +22,7 @@ const steps = [
     number: "02",
     title: "Share the link",
     description:
-      "Send the session URL to your group. Anyone can join as a guest with a name only - no account, no download, no friction.",
+      "Send the session URL to your group. Anyone can join as a guest instantly with a random identity - no account, no download, no friction.",
   },
   {
     number: "03",
@@ -43,7 +43,7 @@ const extras = [
   {
     icon: Users,
     title: "Guest join",
-    description: "No account needed. Anyone joins with only a name.",
+    description: "No account needed. Anyone joins instantly with a random name and avatar.",
   },
   {
     icon: BookOpen,
@@ -189,4 +189,3 @@ export function LandingHowItWorks() {
     </div>
   );
 }
-

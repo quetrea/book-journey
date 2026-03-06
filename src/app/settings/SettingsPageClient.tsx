@@ -46,7 +46,11 @@ export default function SettingsPageClient() {
     setDeleteError(null);
     try {
       await deleteAccount();
-      await signOut();
+      try {
+        await signOut();
+      } catch {
+        // Account cleanup may invalidate the session before the explicit sign-out completes.
+      }
       router.replace("/");
     } catch (error) {
       setDeleteError(error instanceof Error ? error.message : "Failed to delete account.");

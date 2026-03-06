@@ -5,7 +5,7 @@ import { buildDefaultOg, buildDefaultTwitter, toAbsoluteUrl } from "@/lib/seo";
 
 const authTitle = "Sign in";
 const authDescription =
-  "Sign in to BookJourney with Discord or continue as a guest to join live reading sessions.";
+  "Sign in to BookJourney with Discord or continue as a guest with a random identity to join live reading sessions.";
 
 export const metadata: Metadata = {
   title: authTitle,

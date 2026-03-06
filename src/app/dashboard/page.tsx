@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -20,12 +19,13 @@ import { LoginButton } from "@/features/auth/ui/LoginButton";
 import { ThemeToggle } from "@/features/dashboard/ui/ThemeToggle";
 import { SessionsDashboardSection } from "@/features/sessions/ui/SessionsDashboardSection";
 import { Separator } from "@/components/ui/separator";
+import { useSignOutAction } from "@/features/auth/hooks/useSignOutAction";
 import { api } from "../../../convex/_generated/api";
 
 export default function DashboardPage() {
   const { isLoading, isAuthenticated } = useConvexAuth();
-  const { signOut } = useAuthActions();
   const upsertCurrentUser = useMutation(api.users.upsertCurrentUser);
+  const { signOutCurrentUser } = useSignOutAction();
   const profile = useQuery(
     api.users.getCurrentUser,
     isAuthenticated ? {} : "skip"
@@ -64,7 +64,7 @@ export default function DashboardPage() {
     setIsSigningOut(true);
 
     try {
-      await signOut();
+      await signOutCurrentUser();
     } finally {
       setIsSigningOut(false);
     }
