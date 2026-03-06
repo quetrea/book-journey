@@ -17,8 +17,8 @@ BookJourney lets reading groups hold structured, live sessions together. Anyone 
 
 - **Live session rooms** — real-time updates via Convex (no polling, no refresh)
 - **Queue system** — join, skip, advance turns; host can manage the queue
-- **Guest join** — no account needed; join any session with just a name
-- **Discord login** — create sessions with a Discord account
+- **Guest join** — no account needed; join or host sessions with a random identity
+- **Discord login** — use a persistent profile with your Discord account
 - **Private sessions** — hide sessions from the public listing
 - **Word collection** — save interesting words/terms during a session; visible to the whole group
 - **Book import** — paste a Goodreads, OpenLibrary, or Google Books link to auto-fill book info

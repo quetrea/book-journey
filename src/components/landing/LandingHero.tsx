@@ -92,7 +92,7 @@ export function LandingHero({ loginButton }: LandingHeroProps) {
         className="animate-in fade-in animation-duration-[800ms] fill-mode-[both] text-xs text-slate-400 dark:text-white/30"
         style={{ animationDelay: "320ms" }}
       >
-        Create sessions with Discord, or join instantly as a guest with a random identity.
+        Create sessions with Discord or as a guest, then join instantly with a random identity.
       </p>
     </section>
   );

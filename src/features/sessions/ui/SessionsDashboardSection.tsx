@@ -29,22 +29,25 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
 
   return (
     <>
-      {isGuest === false && (
-        <Card
-          className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:100ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 shadow-sm backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/7"
-        >
-          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>My Sessions</CardTitle>
-              <CardDescription>Your hosted rooms in real time.</CardDescription>
-            </div>
-            <CreateSessionModal />
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <MySessionsList />
-          </CardContent>
-        </Card>
-      )}
+      <Card
+        className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:100ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 shadow-sm backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/7"
+      >
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>My Sessions</CardTitle>
+            <CardDescription>Your hosted rooms in real time.</CardDescription>
+          </div>
+          <CreateSessionModal />
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isGuest && (
+            <p className="text-xs text-muted-foreground">
+              Guest sessions are temporary and all of their data is deleted immediately when you sign out.
+            </p>
+          )}
+          <MySessionsList />
+        </CardContent>
+      </Card>
 
       <Card
         className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:160ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 shadow-sm backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/7"
@@ -69,7 +72,7 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
         <CardContent className="space-y-3">
           {isGuest && (
             <p className="text-xs text-muted-foreground">
-              Sign in with Discord to create and host your own sessions.
+              Sign in with Discord if you want a persistent profile across sessions.
             </p>
           )}
           <JoinedSessionsList />

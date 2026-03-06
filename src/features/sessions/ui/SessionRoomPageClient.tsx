@@ -230,7 +230,7 @@ export function SessionRoomPageClient({
           {/* Discord sign-in */}
           <div className="w-full rounded-2xl border border-white/15 bg-[#0d1222]/70 p-6 text-center backdrop-blur-xl">
             <p className="mb-1 text-sm font-medium text-white/80">Sign in with Discord</p>
-            <p className="mb-4 text-xs text-white/40">Full access — create and host sessions</p>
+            <p className="mb-4 text-xs text-white/40">Use a persistent Discord profile and identity</p>
             <LoginButton />
           </div>
 

@@ -138,7 +138,17 @@ export default function SettingsPageClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
-              <p>We only request Discord <strong className="text-foreground">identify</strong> scope &mdash; no email, no servers, no messages.</p>
+              {profile?.isGuest ? (
+                <p>
+                  Guest profiles are temporary. As soon as you sign out, all of your
+                  session data is deleted immediately.
+                </p>
+              ) : (
+                <p>
+                  We only request Discord <strong className="text-foreground">identify</strong>{" "}
+                  scope &mdash; no email, no servers, no messages.
+                </p>
+              )}
               <p>
                 Read our{" "}
                 <Link href="/privacy" className="font-medium text-foreground underline underline-offset-4 hover:text-indigo-600 dark:hover:text-indigo-400">
