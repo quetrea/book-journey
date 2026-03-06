@@ -129,21 +129,24 @@ export const QueueStatusBar = memo(function QueueStatusBar({
             <p className="truncate text-base font-semibold text-foreground">
               {currentReader.name}
             </p>
-            {isViewerReading ? (
+            {isViewerReading && (
               <p className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
                 It&apos;s your turn to read!
               </p>
-            ) : viewerQueueItem?.isSkipped ? (
-              <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                Skip tag active{viewerQueueItem.skipReason ? `: ${viewerQueueItem.skipReason}` : ""}
-              </p>
-            ) : viewerQueueItem?.status === "waiting" ? (
-              <p className="text-xs text-muted-foreground">
-                Your position: <span className="font-medium text-foreground">#{viewerQueueItem.position}</span>
-              </p>
-            ) : null}
+            )}
           </div>
         </div>
+
+        {!isViewerReading && viewerQueueItem?.isSkipped ? (
+          <div className="mb-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:border-amber-400/20 dark:bg-amber-400/10 dark:text-amber-300">
+            <span className="font-semibold">Your queue status:</span>{" "}
+            Skip tag active{viewerQueueItem.skipReason ? `: ${viewerQueueItem.skipReason}` : ""}
+          </div>
+        ) : !isViewerReading && viewerQueueItem?.status === "waiting" ? (
+          <div className="mb-3 rounded-xl border border-black/8 bg-black/3 px-3 py-2 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/5">
+            Your position: <span className="font-medium text-foreground">#{viewerQueueItem.position}</span>
+          </div>
+        ) : null}
 
         {/* Next up */}
         {nextReader && (
