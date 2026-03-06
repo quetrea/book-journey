@@ -15,6 +15,9 @@ export type SessionListItem = {
   isPrivate?: boolean;
   hostName?: string;
   hostImage?: string;
+  participantCount?: number;
+  activeQueueCount?: number;
+  currentReaderName?: string;
 };
 
 export type SessionDetailsPayload = {

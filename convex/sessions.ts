@@ -392,12 +392,26 @@ export const listMySessionsServer = query({
 
     return Promise.all(
       sessions.map(async (session) => {
-        const host = await ctx.db.get(session.createdBy);
+        const [host, participants, queue] = await Promise.all([
+          ctx.db.get(session.createdBy),
+          ctx.db
+            .query("participants")
+            .withIndex("by_sessionId", (q) => q.eq("sessionId", session._id))
+            .collect(),
+          getQueueItemsByPosition(ctx, session._id),
+        ]);
+        const currentReader = queue.find((item) => item.status === "reading");
+        const currentReaderProfile = currentReader
+          ? await ctx.db.get(currentReader.userId)
+          : null;
 
         return {
           ...sanitizeSession(session),
           hostName: getProfileDisplayName(host),
           hostImage: getProfileDisplayImage(host),
+          participantCount: participants.length,
+          activeQueueCount: queue.filter((item) => item.status !== "done").length,
+          currentReaderName: getProfileDisplayName(currentReaderProfile),
         };
       }),
     );
