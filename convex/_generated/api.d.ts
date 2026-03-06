@@ -17,6 +17,7 @@ import type * as http from "../http.js";
 import type * as lib_authProfile from "../lib/authProfile.js";
 import type * as lib_passcodeAccess from "../lib/passcodeAccess.js";
 import type * as lib_permissions from "../lib/permissions.js";
+import type * as lib_sessionInvite from "../lib/sessionInvite.js";
 import type * as pushNotificationsAction from "../pushNotificationsAction.js";
 import type * as pushSubscriptions from "../pushSubscriptions.js";
 import type * as queue from "../queue.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   "lib/authProfile": typeof lib_authProfile;
   "lib/passcodeAccess": typeof lib_passcodeAccess;
   "lib/permissions": typeof lib_permissions;
+  "lib/sessionInvite": typeof lib_sessionInvite;
   pushNotificationsAction: typeof pushNotificationsAction;
   pushSubscriptions: typeof pushSubscriptions;
   queue: typeof queue;

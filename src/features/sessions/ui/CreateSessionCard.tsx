@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "convex/react";
-import { Shuffle } from "lucide-react";
+import { Copy, Shuffle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
+import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../../convex/_generated/api";
 
 type CreateSessionCardProps = {
@@ -59,9 +60,14 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   const [title, setTitle] = useState("");
   const [synopsis, setSynopsis] = useState("");
   const [sessionAccessType, setSessionAccessType] =
-    useState<SessionAccessType>("public");
-  const [sessionPasscode, setSessionPasscode] = useState("");
+    useState<SessionAccessType>("passcode");
+  const [sessionPasscode, setSessionPasscode] = useState(() =>
+    buildRandomPasscode(),
+  );
   const [isGeneratingPasscode, setIsGeneratingPasscode] = useState(false);
+  const [passcodeCopyState, setPasscodeCopyState] = useState<
+    "idle" | "copied" | "error"
+  >("idle");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -79,8 +85,14 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
   useEffect(() => {
     if (sessionAccessType !== "passcode") {
       setSessionPasscode("");
+      setPasscodeCopyState("idle");
+      return;
     }
-  }, [sessionAccessType]);
+
+    if (!sessionPasscode) {
+      setSessionPasscode(buildRandomPasscode());
+    }
+  }, [sessionAccessType, sessionPasscode]);
 
   useEffect(() => {
     return () => {
@@ -115,6 +127,21 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
         setIsGeneratingPasscode(false);
       }
     }, 45);
+  }
+
+  async function handleCopyPasscode() {
+    if (!sessionPasscode) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(sessionPasscode);
+      setPasscodeCopyState("copied");
+    } catch {
+      setPasscodeCopyState("error");
+    } finally {
+      window.setTimeout(() => setPasscodeCopyState("idle"), 2_000);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -154,11 +181,12 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
       setAuthorName("");
       setTitle("");
       setSynopsis("");
-      setSessionAccessType("public");
-      setSessionPasscode("");
+      setSessionAccessType("passcode");
+      setSessionPasscode(buildRandomPasscode());
+      setPasscodeCopyState("idle");
       setSuccessMessage("Session created.");
       onCreated();
-      router.push(`/s/${createdSessionId}`);
+      router.push(buildSessionInvitePathFromSessionId(createdSessionId as string));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
       setErrorMessage(message);
@@ -214,8 +242,8 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="passcode">Passcode (default)</SelectItem>
                 <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="passcode">Passcode</SelectItem>
                 <SelectItem value="private">Private (host approval)</SelectItem>
               </SelectContent>
             </Select>
@@ -225,25 +253,45 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
             <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-medium text-foreground">Session passcode</p>
+              </div>
+              <Input
+                value={sessionPasscode}
+                readOnly
+                className="font-mono tracking-[0.28em]"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleGeneratePasscode}
                   disabled={isGeneratingPasscode || isSubmitting}
-                  className="h-7 gap-1.5 px-2.5 text-[11px]"
+                  className="gap-1.5"
                 >
                   <Shuffle
-                    className={`size-3 ${isGeneratingPasscode ? "animate-spin" : ""}`}
+                    className={`size-3.5 ${isGeneratingPasscode ? "animate-spin" : ""}`}
                   />
-                  {isGeneratingPasscode ? "Generating..." : "Random"}
+                  {isGeneratingPasscode ? "Generating..." : "Regenerate"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    void handleCopyPasscode();
+                  }}
+                  disabled={isSubmitting}
+                  className="gap-1.5"
+                >
+                  <Copy className="size-3.5" />
+                  Copy passcode
                 </Button>
               </div>
-              <Input
-                value={sessionPasscode}
-                onChange={(event) => setSessionPasscode(event.target.value)}
-                placeholder="Enter passcode"
-              />
+              <p className="text-[11px] text-muted-foreground">
+                Generated by default for safer invite sharing.
+                {passcodeCopyState === "copied" ? " Copied." : ""}
+                {passcodeCopyState === "error" ? " Copy failed." : ""}
+              </p>
             </div>
           ) : null}
 

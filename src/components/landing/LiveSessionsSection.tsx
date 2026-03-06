@@ -5,6 +5,7 @@ import { ArrowRight, BookOpen, Lock, Users } from "lucide-react";
 import Link from "next/link";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { getInitials } from "@/lib/formatters";
 import { api } from "../../../convex/_generated/api";
 
@@ -35,7 +36,7 @@ export function LiveSessionsSection() {
         {sessions.slice(0, 6).map((session, index) => (
           <Link
             key={session.id}
-            href={`/s/${session.id}`}
+            href={buildSessionInvitePathFromSessionId(session.id)}
             className="group animate-in fade-in slide-in-from-bottom-4 fill-mode-[both]"
             style={{
               animationDelay: `${480 + index * 70}ms`,

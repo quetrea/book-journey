@@ -16,7 +16,7 @@ const steps = [
     number: "01",
     title: "Create a session",
     description:
-      "Name your book and you are ready. Paste a Goodreads or OpenLibrary link to auto-fill title and author. Add a passcode or keep it private.",
+      "Name your book and you are ready. Paste a Goodreads or OpenLibrary link to auto-fill title and author. A random passcode protects the room by default, or you can switch to public/private access.",
   },
   {
     number: "02",

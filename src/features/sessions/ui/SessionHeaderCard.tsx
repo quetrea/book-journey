@@ -36,6 +36,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { getInitials } from "@/lib/formatters";
 import type { SessionListItem } from "@/features/sessions/types";
+import {
+  buildSessionInviteCodeFromSessionId,
+  buildSessionInviteUrl,
+} from "@/features/sessions/lib/inviteLinks";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
@@ -72,6 +76,10 @@ function buildRandomPasscode(length = 6) {
     result += PASSCODE_CHARS[randomIndex];
   }
   return result;
+}
+
+function getMaskedPasscode(length: number) {
+  return "•".repeat(Math.max(length, 8));
 }
 
 function formatElapsed(ms: number) {
@@ -135,6 +143,9 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
   );
   const [editSessionPasscode, setEditSessionPasscode] = useState("");
   const [isGeneratingPasscode, setIsGeneratingPasscode] = useState(false);
+  const [editPasscodeCopyState, setEditPasscodeCopyState] = useState<
+    "idle" | "copied" | "error"
+  >("idle");
   const passcodeAnimationTimerRef = useRef<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -153,8 +164,18 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
   useEffect(() => {
     if (editAccessType !== "passcode") {
       setEditSessionPasscode("");
+      setEditPasscodeCopyState("idle");
+      return;
     }
-  }, [editAccessType]);
+
+    if (
+      isEditOpen &&
+      resolveSessionAccessType(session) !== "passcode" &&
+      !editSessionPasscode
+    ) {
+      setEditSessionPasscode(buildRandomPasscode());
+    }
+  }, [editAccessType, editSessionPasscode, isEditOpen, session]);
 
   useEffect(() => {
     return () => {
@@ -189,6 +210,26 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
         setIsGeneratingPasscode(false);
       }
     }, 45);
+  }
+
+  async function handleCopyDraftPasscode() {
+    if (!editSessionPasscode) {
+      setEditPasscodeCopyState("error");
+      window.setTimeout(() => setEditPasscodeCopyState("idle"), 2_000);
+      toast.error("Generate a new passcode first.");
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(editSessionPasscode);
+      setEditPasscodeCopyState("copied");
+      toast.success("Passcode copied");
+    } catch {
+      setEditPasscodeCopyState("error");
+      toast.error("Failed to copy passcode");
+    } finally {
+      window.setTimeout(() => setEditPasscodeCopyState("idle"), 2_000);
+    }
   }
 
   async function handleSaveEdit() {
@@ -247,7 +288,7 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
   }, [now, session.createdAt, session.endedAt, session.status]);
 
   async function handleCopyInviteLink() {
-    const inviteLink = `${window.location.origin}/s/${session._id}`;
+    const inviteLink = buildSessionInviteUrl(window.location.origin, session._id);
 
     try {
       await navigator.clipboard.writeText(inviteLink);
@@ -369,29 +410,54 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
                       <div className="space-y-2 rounded-xl border border-white/40 bg-white/60 p-3 dark:border-white/[0.14] dark:bg-white/6">
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-xs font-medium text-foreground">
-                            New passcode
+                            Session passcode
                           </p>
+                        </div>
+                        <Input
+                          value={getMaskedPasscode(editSessionPasscode.length)}
+                          readOnly
+                          className="font-mono tracking-[0.28em]"
+                        />
+                        <div className="flex flex-col gap-2 sm:flex-row">
                           <Button
                             type="button"
                             variant="outline"
                             size="sm"
                             onClick={handleGeneratePasscode}
                             disabled={isGeneratingPasscode || isSaving}
-                            className="h-7 gap-1.5 px-2.5 text-[11px]"
+                            className="gap-1.5"
                           >
                             <Shuffle
-                              className={`size-3 ${isGeneratingPasscode ? "animate-spin" : ""}`}
+                              className={`size-3.5 ${isGeneratingPasscode ? "animate-spin" : ""}`}
                             />
-                            {isGeneratingPasscode ? "Generating..." : "Random"}
+                            {editSessionPasscode
+                              ? isGeneratingPasscode
+                                ? "Generating..."
+                                : "Regenerate"
+                              : isGeneratingPasscode
+                                ? "Generating..."
+                                : "Generate new"}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              void handleCopyDraftPasscode();
+                            }}
+                            disabled={!editSessionPasscode || isSaving}
+                            className="gap-1.5"
+                          >
+                            <Copy className="size-3.5" />
+                            Copy new code
                           </Button>
                         </div>
-                        <Input
-                          value={editSessionPasscode}
-                          onChange={(e) => setEditSessionPasscode(e.target.value)}
-                          placeholder="Leave empty to keep current passcode"
-                        />
                         <p className="text-[11px] text-muted-foreground">
-                          Fill this field only if you want to rotate the passcode.
+                          {editSessionPasscode
+                            ? "A new passcode draft is ready. Save changes to rotate it."
+                            : "Current passcode stays hidden. Generate a new one if you want to rotate or copy it."}
+                          {editPasscodeCopyState === "copied" ? " Copied." : ""}
+                          {editPasscodeCopyState === "error" ? " Copy failed." : ""}
                         </p>
                       </div>
                     ) : null}
@@ -497,10 +563,12 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
                     <p className="text-xs text-foreground/80">{memberCount} participant{memberCount !== 1 ? "s" : ""}</p>
                   </div>
 
-                  {/* Session ID + copy link */}
+                  {/* Invite details */}
                   <div className="space-y-2 border-t border-black/8 pt-3 dark:border-white/10">
-                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Session ID</p>
-                    <p className="break-all font-mono text-[11px] text-muted-foreground">{session._id}</p>
+                    <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/60">Invite code</p>
+                    <p className="break-all font-mono text-[11px] text-muted-foreground">
+                      {buildSessionInviteCodeFromSessionId(session._id)}
+                    </p>
                     <Button
                       type="button"
                       variant="secondary"

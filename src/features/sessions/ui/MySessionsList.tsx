@@ -33,6 +33,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { buildSessionInviteCodeFromSessionId, buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -213,7 +214,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
 
   return (
     <div className="group relative">
-      <Link href={`/s/${session._id}`} className="block">
+      <Link href={buildSessionInvitePathFromSessionId(session._id)} className="block">
         <Card
           className={cn(
             "relative isolate gap-0 overflow-hidden backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
@@ -359,7 +360,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
 
               {!isCompactView ? (
                 <div className="border-t border-black/8 pt-2 text-[11px] text-muted-foreground/70 dark:border-white/10">
-                  Session ID: {session._id}
+                  Invite code: {buildSessionInviteCodeFromSessionId(session._id)}
                 </div>
               ) : null}
             </div>
@@ -444,6 +445,7 @@ export function MySessionsList() {
         session.authorName,
         session.hostName,
         session._id,
+        buildSessionInviteCodeFromSessionId(session._id),
       ];
 
       return searchFields.some(
@@ -487,7 +489,7 @@ export function MySessionsList() {
             <Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search by title, book, author, host, or session ID..."
+              placeholder="Search by title, book, author, host, or invite code..."
               className="h-9 border-black/10 bg-white/42 pl-9 text-sm dark:border-white/12 dark:bg-white/8"
             />
           </div>

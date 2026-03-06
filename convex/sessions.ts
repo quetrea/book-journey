@@ -12,6 +12,10 @@ import {
 } from "./lib/authProfile";
 import { grantPasscodeAccess, hasActivePasscodeGrant } from "./lib/passcodeAccess";
 import { assertHost, assertHostOrModerator } from "./lib/permissions";
+import {
+  buildSessionInviteCodeFromSessionId,
+  normalizeSessionInviteCode,
+} from "./lib/sessionInvite";
 
 type SessionAccessType = "public" | "passcode" | "private";
 type JoinRequestStatus = "pending" | "approved" | "rejected";
@@ -66,6 +70,26 @@ async function getSessionById(
   sessionId: Id<"sessions">,
 ) {
   return ctx.db.get(sessionId);
+}
+
+async function getSessionByInviteCode(
+  ctx: QueryCtx,
+  inviteCode: string,
+) {
+  const normalizedInviteCode = normalizeSessionInviteCode(inviteCode);
+
+  if (!normalizedInviteCode) {
+    return null;
+  }
+
+  const sessions = await ctx.db.query("sessions").collect();
+
+  return (
+    sessions.find(
+      (session) =>
+        buildSessionInviteCodeFromSessionId(session._id) === normalizedInviteCode,
+    ) ?? null
+  );
 }
 
 async function getSessionByIdOrThrow(
@@ -836,6 +860,39 @@ export const getSessionMetadataPublic = query({
       title: session.title,
       status: session.status,
       hostName: host?.name,
+      memberCount: participants.length,
+      accessType,
+      isPasscodeProtected: accessType === "passcode" && Boolean(session.hostPasscode),
+    };
+  },
+});
+
+export const resolveSessionInvitePublic = query({
+  args: {
+    inviteCode: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const session = await getSessionByInviteCode(ctx, args.inviteCode);
+
+    if (!session) {
+      return null;
+    }
+
+    const accessType = resolveSessionAccessType(session);
+    const host = await ctx.db.get(session.createdBy);
+    const participants = await ctx.db
+      .query("participants")
+      .withIndex("by_sessionId", (q) => q.eq("sessionId", session._id))
+      .collect();
+
+    return {
+      sessionId: session._id,
+      inviteCode: buildSessionInviteCodeFromSessionId(session._id),
+      bookTitle: session.bookTitle,
+      authorName: session.authorName,
+      title: session.title,
+      status: session.status,
+      hostName: getProfileDisplayName(host),
       memberCount: participants.length,
       accessType,
       isPasscodeProtected: accessType === "passcode" && Boolean(session.hostPasscode),

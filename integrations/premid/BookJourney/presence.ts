@@ -78,7 +78,7 @@ interface PresenceConstructor {
 declare const Presence: PresenceConstructor;
 
 const SCRIPT_ID = "bookjourney-premid-state";
-const SESSION_PREFIX = "/s/";
+const SESSION_PREFIX = "/invite/";
 const LOGO_URL = "https://bookreading.space/logo.png";
 const CLIENT_ID = "1476980926025044010";
 const SITE_URL = "https://bookreading.space";
@@ -87,11 +87,41 @@ const ACTIVITY_TYPE_WATCHING = 3;
 
 const presence = new Presence({ clientId: CLIENT_ID });
 
+function buildInviteCodeFromSessionId(sessionId: string) {
+  const inviteAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+  function hashString(input: string, seed: number) {
+    let hash = seed >>> 0;
+
+    for (let index = 0; index < input.length; index += 1) {
+      hash ^= input.charCodeAt(index);
+      hash = Math.imul(hash, 16777619) >>> 0;
+    }
+
+    return hash >>> 0;
+  }
+
+  let left = hashString(sessionId, 2166136261) || 0x9e3779b9;
+  let right =
+    hashString(`${sessionId}:bookjourney`, 2166136261) || 0x85ebca6b;
+  let inviteCode = "";
+
+  for (let index = 0; index < 10; index += 1) {
+    left = Math.imul(left ^ (left >>> 15), 2246822519) >>> 0;
+    right = Math.imul(right ^ (right >>> 13), 3266489917) >>> 0;
+    inviteCode += inviteAlphabet[(left + right + index * 17) % inviteAlphabet.length];
+  }
+
+  return inviteCode;
+}
+
 function buildButtons(sessionId: string): PresenceButton[] {
+  const inviteCode = buildInviteCodeFromSessionId(sessionId);
+
   return [
     {
       label: "Join Session",
-      url: `${SITE_URL}/s/${sessionId}`,
+      url: `${SITE_URL}/invite/${inviteCode}`,
     },
     {
       label: "Open BookJourney",

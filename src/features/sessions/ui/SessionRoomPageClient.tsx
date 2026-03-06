@@ -23,6 +23,7 @@ import { QueueStatusBar } from "@/features/queue/ui/QueueStatusBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useSessionToasts } from "@/hooks/useSessionToasts";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
+import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { SessionControlsCard } from "./SessionControlsCard";
 import { SessionHeaderCard } from "./SessionHeaderCard";
 import { SessionTopBar } from "./SessionTopBar";
@@ -168,7 +169,7 @@ export function SessionRoomPageClient({
   const premidState = useMemo(
     () =>
       buildPremidSessionState({
-        routePath: pathname || `/s/${sessionId}`,
+        routePath: pathname || buildSessionInvitePathFromSessionId(sessionId),
         sessionId,
         isAuthLoading,
         isAuthenticated,

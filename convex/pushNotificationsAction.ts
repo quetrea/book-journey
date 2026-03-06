@@ -5,6 +5,7 @@ import { v } from "convex/values";
 
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { buildSessionInvitePathFromSessionId } from "./lib/sessionInvite";
 
 const vapidSubject = process.env.VAPID_SUBJECT;
 const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
@@ -47,7 +48,7 @@ export const sendTurnNotification = internalAction({
     const payload = JSON.stringify({
       title: "Your turn to read!",
       body: `It's your turn in "${args.bookTitle}"`,
-      url: `/s/${args.sessionId}`,
+      url: buildSessionInvitePathFromSessionId(args.sessionId),
     });
 
     await Promise.all(
@@ -103,7 +104,7 @@ export const sendSessionJoinRequestNotification = internalAction({
     const payload = JSON.stringify({
       title: "New private join request",
       body: `${args.requesterName} requested access to "${args.sessionTitle}"`,
-      url: `/s/${args.sessionId}`,
+      url: buildSessionInvitePathFromSessionId(args.sessionId),
     });
 
     await Promise.all(

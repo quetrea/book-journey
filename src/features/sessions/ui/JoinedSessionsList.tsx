@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { getInitials } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../../convex/_generated/api";
 
 function formatDateLabel(timestamp: number) {
@@ -75,7 +76,11 @@ export function JoinedSessionsList() {
   return (
     <div className="space-y-2.5">
       {sessions.map((session, index) => (
-        <Link key={session._id} href={`/s/${session._id}`} className="block">
+        <Link
+          key={session._id}
+          href={buildSessionInvitePathFromSessionId(session._id)}
+          className="block"
+        >
           <Card
             className={cn(
               "group relative isolate gap-0 overflow-hidden px-4 py-4 backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
