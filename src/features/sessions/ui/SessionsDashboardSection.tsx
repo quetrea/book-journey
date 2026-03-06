@@ -1,9 +1,5 @@
 "use client";
 
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useState } from "react";
-
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CreateSessionModal } from "./CreateSessionModal";
 import { JoinedSessionsList } from "./JoinedSessionsList";
@@ -15,22 +11,10 @@ type SessionsDashboardSectionProps = {
 };
 
 export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionProps) {
-  const { signIn } = useAuthActions();
-  const [isSigningIn, setIsSigningIn] = useState(false);
-
-  async function handleDiscordSignIn() {
-    setIsSigningIn(true);
-    try {
-      await signIn("discord");
-    } finally {
-      setIsSigningIn(false);
-    }
-  }
-
   return (
     <>
       <Card
-        className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:100ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 shadow-sm backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/7"
+        className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:100ms] animation-duration-[500ms] fill-mode-[both] border-cyan-200/40 bg-[rgba(237,255,253,0.42)] shadow-[0_14px_36px_rgba(6,182,212,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-2xl md:col-span-2 dark:border-cyan-300/14 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]"
       >
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -50,29 +34,18 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
       </Card>
 
       <Card
-        className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:160ms] animation-duration-[500ms] fill-mode-[both] border-black/8 bg-white/72 shadow-sm backdrop-blur-xl md:col-span-2 dark:border-white/15 dark:bg-white/7"
+        className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:160ms] animation-duration-[500ms] fill-mode-[both] border-emerald-200/40 bg-[rgba(235,255,249,0.40)] shadow-[0_14px_36px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-2xl md:col-span-2 dark:border-emerald-300/14 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]"
       >
-        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader>
           <div>
             <CardTitle>Joined Sessions</CardTitle>
             <CardDescription>Sessions you joined as a reader.</CardDescription>
           </div>
-          {isGuest && (
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => void handleDiscordSignIn()}
-              disabled={isSigningIn}
-              className="w-full gap-2 bg-[#5865F2] text-white hover:bg-[#4752c4] sm:w-auto"
-            >
-              {isSigningIn ? "Redirecting..." : "Sign in with Discord"}
-            </Button>
-          )}
         </CardHeader>
         <CardContent className="space-y-3">
           {isGuest && (
             <p className="text-xs text-muted-foreground">
-              Sign in with Discord if you want a persistent profile across sessions.
+              Joined sessions stay available during your guest session until you sign out.
             </p>
           )}
           <JoinedSessionsList />

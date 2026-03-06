@@ -6,6 +6,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
 function DiscordIcon({ className }: { className?: string }) {
@@ -21,30 +29,14 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-function ShieldIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  );
-}
-
 export default function AuthPageClient() {
   const { signIn } = useAuthActions();
   const { isLoading, isAuthenticated } = useConvexAuth();
   const router = useRouter();
 
-  const [isWorking, setIsWorking] = useState(false);
+  const [activeMethod, setActiveMethod] = useState<"guest" | "discord" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isDiscordModalOpen, setIsDiscordModalOpen] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -53,7 +45,7 @@ export default function AuthPageClient() {
   }, [isAuthenticated, router]);
 
   async function handleDiscordSignIn() {
-    setIsWorking(true);
+    setActiveMethod("discord");
     setErrorMessage(null);
     try {
       await signIn("discord");
@@ -62,12 +54,12 @@ export default function AuthPageClient() {
         error instanceof Error ? error.message : "Failed to sign in."
       );
     } finally {
-      setIsWorking(false);
+      setActiveMethod(null);
     }
   }
 
   async function handleGuestSignIn() {
-    setIsWorking(true);
+    setActiveMethod("guest");
     setErrorMessage(null);
     try {
       await signIn("anonymous");
@@ -76,7 +68,7 @@ export default function AuthPageClient() {
         error instanceof Error ? error.message : "Failed to sign in as guest."
       );
     } finally {
-      setIsWorking(false);
+      setActiveMethod(null);
     }
   }
 
@@ -104,17 +96,17 @@ export default function AuthPageClient() {
               Sign in to BookJourney
             </h1>
             <p className="text-sm text-muted-foreground">
-              No account needed &mdash; get a random guest identity instantly
+              Start instantly as a guest, or use Discord for a persistent profile.
             </p>
           </div>
 
           <Button
             type="button"
             onClick={() => void handleGuestSignIn()}
-            disabled={isWorking}
-            className="w-full"
+            disabled={activeMethod !== null}
+            className="h-11 w-full"
           >
-            {isWorking ? "Generating guest..." : "Continue as Guest"}
+            {activeMethod === "guest" ? "Generating guest..." : "Continue as Guest"}
           </Button>
           <p className="text-center text-[11px] text-muted-foreground/60">
             We generate a random name and avatar for you automatically.
@@ -132,59 +124,87 @@ export default function AuthPageClient() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => void handleDiscordSignIn()}
-              disabled={isWorking}
-              className="w-full gap-2 border-[#5865F2]/30 bg-[#5865F2]/5 text-[#5865F2] hover:bg-[#5865F2]/10 hover:text-[#4752c4] dark:border-[#5865F2]/25 dark:bg-[#5865F2]/10 dark:text-[#8b9aff] dark:hover:bg-[#5865F2]/20"
+              onClick={() => setIsDiscordModalOpen(true)}
+              disabled={activeMethod !== null}
+              className="w-full gap-2 border-black/10 bg-white/60 text-slate-700 hover:bg-white/80 hover:text-slate-900 dark:border-white/12 dark:bg-white/6 dark:text-white/80 dark:hover:bg-white/10 dark:hover:text-white"
             >
-              {isWorking ? (
-                "Redirecting..."
-              ) : (
-                <>
-                  <DiscordIcon className="size-4" />
-                  Continue with Discord
-                </>
-              )}
+              <DiscordIcon className="size-4" />
+              Continue with Discord
             </Button>
             <p className="text-center text-[11px] text-muted-foreground/60">
-              Use Discord for a persistent profile and identity
+              Optional: keep a persistent identity across sessions.
             </p>
           </div>
 
           {errorMessage && (
             <p className="text-center text-xs text-red-500">{errorMessage}</p>
           )}
+          <p className="text-center text-[11px] text-muted-foreground/60">
+            <Link
+              href="/privacy"
+              className="underline underline-offset-4 hover:text-foreground"
+            >
+              Read the privacy policy
+            </Link>
+          </p>
+        </div>
+      </main>
 
-          {/* Privacy & scope notice */}
-          <div className="space-y-2 rounded-xl border border-emerald-200/50 bg-emerald-50/40 px-3.5 py-3 dark:border-emerald-500/15 dark:bg-emerald-500/5">
-            <div className="flex items-center gap-1.5">
-              <ShieldIcon className="size-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
-                Privacy
-              </span>
+      <Dialog open={isDiscordModalOpen} onOpenChange={setIsDiscordModalOpen}>
+        <DialogContent className="border-white/35 bg-white/78 shadow-2xl backdrop-blur-2xl dark:border-white/12 dark:bg-[#0d1222]/86">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DiscordIcon className="size-5 text-[#5865F2]" />
+              Continue with Discord
+            </DialogTitle>
+            <DialogDescription>
+              Discord is optional. Use it if you want a persistent profile instead of a temporary guest identity.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-emerald-200/50 bg-emerald-50/50 px-4 py-3 dark:border-emerald-500/15 dark:bg-emerald-500/5">
+              <p className="font-medium text-foreground">Requested Discord scope</p>
+              <p className="mt-1">
+                We only request <strong className="text-foreground">identify</strong>.
+                No email, no servers, no messages.
+              </p>
             </div>
-            <ul className="space-y-1 text-[11px] text-emerald-700/80 dark:text-emerald-400/70">
+
+            <ul className="space-y-2 rounded-xl border border-black/8 bg-black/3 px-4 py-3 dark:border-white/10 dark:bg-white/5">
+              <li>Your Discord name and avatar become your persistent BookJourney identity.</li>
+              <li>Your guest data is temporary, but Discord sign-in keeps your identity across sessions.</li>
               <li>
-                We only request Discord <strong>identify</strong> &mdash; no
-                email, no servers, no messages.
-              </li>
-              <li>
-                OAuth redirects only to{" "}
-                <code className="rounded bg-emerald-100/60 px-1 py-0.5 font-mono text-[10px] dark:bg-emerald-500/15">
+                OAuth returns only through{" "}
+                <code className="rounded bg-black/5 px-1 py-0.5 font-mono text-[11px] dark:bg-white/10">
                   bookreading.space/api/auth/callback/discord
                 </code>
-              </li>
-              <li>
-                <Link
-                  href="/privacy"
-                  className="underline underline-offset-2 hover:text-emerald-800 dark:hover:text-emerald-300"
-                >
-                  Full privacy policy
-                </Link>
+                .
               </li>
             </ul>
           </div>
-        </div>
-      </main>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDiscordModalOpen(false)}
+              disabled={activeMethod === "discord"}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => void handleDiscordSignIn()}
+              disabled={activeMethod !== null}
+              className="gap-2 bg-[#5865F2] text-white hover:bg-[#4752c4]"
+            >
+              <DiscordIcon className="size-4" />
+              {activeMethod === "discord" ? "Redirecting..." : "Continue with Discord"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

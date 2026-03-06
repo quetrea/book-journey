@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           Privacy Policy
         </h1>
         <p className="mb-8 text-sm text-slate-500 dark:text-white/40">
-          Last updated: March 5, 2026
+          Last updated: March 6, 2026
         </p>
 
         <div className="space-y-8 text-sm leading-relaxed text-slate-700 dark:text-white/70">
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
                   <strong className="text-slate-700 dark:text-white/80">
                     Guest users:
                   </strong>{" "}
-                  only the name you enter (no account link, no tracking)
+                  a temporary guest name and avatar with no persistent account link
                 </li>
                 <li>
                   <strong className="text-slate-700 dark:text-white/80">
@@ -191,6 +191,10 @@ export default function PrivacyPage() {
               <li>
                 Your profile (name, avatar) persists as long as you have an
                 account. It is deleted when your account is removed.
+              </li>
+              <li>
+                Guest sessions are temporary and all of their data is deleted
+                immediately when you sign out.
               </li>
               <li>
                 Accounts that remain inactive for 14 consecutive days are

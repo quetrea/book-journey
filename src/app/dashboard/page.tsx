@@ -106,7 +106,7 @@ export default function DashboardPage() {
     <main className="relative min-h-screen overflow-hidden">
       <div className="relative z-10 mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 sm:py-12">
         <section
-          className="rounded-3xl border border-black/8 bg-white/52 p-5 shadow-sm backdrop-blur-2xl animate-in fade-in zoom-in-95 duration-500 sm:p-7 dark:border-white/15 dark:bg-black/35"
+          className="animate-in fade-in zoom-in-95 rounded-[2rem] border border-cyan-200/45 bg-[rgba(226,255,252,0.38)] p-5 shadow-[0_18px_45px_rgba(6,182,212,0.10),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-3xl duration-500 sm:p-7 dark:border-cyan-300/18 dark:bg-[rgba(8,32,40,0.50)] dark:shadow-[0_22px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.06)]"
         >
           <header className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-1 duration-500 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -133,7 +133,7 @@ export default function DashboardPage() {
               </Button>
               <Link
                 href="/settings"
-                className="inline-flex w-fit items-center gap-2 rounded-full border border-white/55 bg-white/70 px-2.5 py-1.5 shadow-sm backdrop-blur-md transition-colors hover:bg-white/90 dark:border-white/15 dark:bg-white/10 dark:hover:bg-white/15"
+                className="inline-flex w-fit items-center gap-2 rounded-full border border-cyan-200/55 bg-[rgba(236,255,252,0.54)] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl transition-colors hover:bg-[rgba(245,255,254,0.72)] dark:border-cyan-300/16 dark:bg-[rgba(255,255,255,0.08)] dark:hover:bg-[rgba(255,255,255,0.12)]"
               >
                 <Avatar
                   size="sm"
@@ -158,13 +158,13 @@ export default function DashboardPage() {
             </div>
           </header>
 
-          <Separator className="my-5 bg-white/55 dark:bg-white/10" />
+          <Separator className="my-5 bg-cyan-200/45 dark:bg-cyan-300/12" />
 
           <div className="grid gap-4 md:grid-cols-2">
             <SessionsDashboardSection isGuest={profile === undefined ? undefined : Boolean(profile?.isGuest)} />
 
             <Card
-              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-white/45 bg-white/66 shadow-sm backdrop-blur-md transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-white/15 dark:bg-white/7"
+              className="animate-in fade-in slide-in-from-bottom-3 [animation-delay:200ms] animation-duration-[500ms] fill-mode-[both] border-cyan-200/45 bg-[rgba(232,255,251,0.44)] shadow-[0_14px_35px_rgba(20,184,166,0.10),inset_0_1px_0_rgba(255,255,255,0.68)] backdrop-blur-2xl transition-transform duration-200 hover:-translate-y-0.5 md:col-span-2 dark:border-cyan-300/14 dark:bg-[rgba(255,255,255,0.06)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.05)]"
             >
               <CardHeader>
                 <CardTitle>Quick Tips</CardTitle>

@@ -37,7 +37,7 @@ export function JoinedSessionsList() {
         {Array.from({ length: 2 }).map((_, i) => (
           <Card
             key={`joined-skeleton-${i}`}
-            className="border-black/8 bg-white/65 px-4 py-4 shadow-sm backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] dark:border-white/12 dark:bg-white/7 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
+            className="border-cyan-200/35 bg-[rgba(239,255,253,0.40)] px-4 py-4 shadow-[0_12px_30px_rgba(14,165,233,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-xl dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_14px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]"
           >
             <CardContent className="space-y-2 p-0">
               <Skeleton className="h-5 w-2/3" />
@@ -52,11 +52,9 @@ export function JoinedSessionsList() {
 
   if (sessions.length === 0) {
     return (
-      <Card className="relative overflow-hidden border-white/45 bg-linear-to-br from-white/82 via-white/62 to-emerald-100/36 py-8 shadow-[0_20px_60px_rgba(16,185,129,0.13),inset_0_1px_0_rgba(255,255,255,0.85)] backdrop-blur-xl dark:border-white/15 dark:from-white/12 dark:via-white/7 dark:to-emerald-500/16 dark:shadow-[0_20px_60px_rgba(15,23,42,0.45),inset_0_1px_0_rgba(255,255,255,0.08)]">
+      <Card className="border-emerald-200/40 bg-[rgba(235,255,249,0.42)] py-8 shadow-[0_18px_40px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-2xl dark:border-emerald-300/14 dark:bg-[rgba(255,255,255,0.05)] dark:shadow-[0_18px_40px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.05)]">
         <CardContent className="relative flex min-h-44 flex-col items-center justify-center gap-2.5 px-4 text-center">
-          <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_85%_at_50%_-20%,rgba(16,185,129,0.18),transparent_60%)]" />
-          <span className="pointer-events-none absolute -top-20 left-1/2 size-56 -translate-x-1/2 rounded-full bg-emerald-200/30 blur-3xl dark:bg-emerald-400/20" />
-          <span className="inline-flex size-10 items-center justify-center rounded-full border border-emerald-200/70 bg-white/80 text-emerald-600 dark:border-emerald-300/25 dark:bg-white/10 dark:text-emerald-300">
+          <span className="inline-flex size-10 items-center justify-center rounded-full border border-emerald-200/55 bg-[rgba(255,255,255,0.58)] text-emerald-700 dark:border-emerald-300/22 dark:bg-[rgba(255,255,255,0.08)] dark:text-emerald-200">
             <DoorOpen className="size-5" />
           </span>
           <p className="text-base font-semibold text-foreground">No joined sessions yet</p>
@@ -79,9 +77,9 @@ export function JoinedSessionsList() {
             className={cn(
               "group relative isolate gap-0 overflow-hidden px-4 py-4 backdrop-blur-md transition-all duration-250 hover:-translate-y-0.5 animate-in fade-in slide-in-from-bottom-1",
               session.status === "active"
-                ? "border-emerald-200/60 bg-white/70 hover:bg-white/80 dark:border-emerald-400/20 dark:bg-white/9 dark:hover:bg-white/13"
-              : "border-black/8 bg-white/65 hover:bg-white/78 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12",
-              "shadow-sm",
+                ? "border-emerald-200/45 bg-[rgba(234,255,248,0.42)] hover:bg-[rgba(241,255,251,0.54)] dark:border-emerald-300/16 dark:bg-[rgba(255,255,255,0.06)] dark:hover:bg-[rgba(255,255,255,0.10)]"
+              : "border-cyan-200/35 bg-[rgba(238,255,252,0.36)] hover:bg-[rgba(245,255,254,0.48)] dark:border-cyan-300/12 dark:bg-[rgba(255,255,255,0.05)] dark:hover:bg-[rgba(255,255,255,0.09)]",
+              "shadow-[0_14px_34px_rgba(8,145,178,0.06),inset_0_1px_0_rgba(255,255,255,0.68)] dark:shadow-[0_16px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.04)]",
             )}
             style={{
               animationDelay: `${Math.min(index * 45, 180)}ms`,
@@ -90,17 +88,9 @@ export function JoinedSessionsList() {
             <span
               className={`pointer-events-none absolute left-0 top-0 h-full w-[2.5px] transition-opacity duration-300 ${
                 session.status === "active"
-                  ? "bg-linear-to-b from-emerald-400 via-emerald-300/70 to-transparent opacity-90 group-hover:opacity-100"
-                  : "bg-linear-to-b from-slate-300/70 to-transparent opacity-60 group-hover:opacity-80 dark:from-slate-400/40"
+                  ? "bg-emerald-300/70 opacity-90 group-hover:opacity-100 dark:bg-emerald-300/40"
+                : "bg-cyan-200/70 opacity-70 group-hover:opacity-90 dark:bg-cyan-300/22"
               }`}
-            />
-            <span
-              className={cn(
-                "pointer-events-none absolute inset-0 z-20 opacity-0 transition-opacity duration-300 group-hover:opacity-100",
-                session.status === "active"
-                  ? "bg-[radial-gradient(130%_80%_at_50%_0%,rgba(16,185,129,0.22),rgba(255,255,255,0.02)_60%)] dark:bg-[radial-gradient(130%_80%_at_50%_0%,rgba(16,185,129,0.2),rgba(255,255,255,0.02)_60%)]"
-                  : "bg-[radial-gradient(120%_75%_at_50%_0%,rgba(148,163,184,0.18),rgba(255,255,255,0.01)_62%)] dark:bg-[radial-gradient(120%_75%_at_50%_0%,rgba(148,163,184,0.15),rgba(255,255,255,0.01)_62%)]",
-              )}
             />
             <CardContent className="relative z-10 space-y-3 p-0">
               <div className="flex flex-wrap items-start justify-between gap-2">
@@ -113,7 +103,7 @@ export function JoinedSessionsList() {
                   {session.bookCoverUrl ? (
                     <div
                       aria-hidden="true"
-                      className="h-20 w-14 shrink-0 rounded-md border border-black/10 bg-black/5 bg-cover bg-center shadow-sm dark:border-white/12 dark:bg-white/10"
+                      className="h-20 w-14 shrink-0 rounded-md border border-cyan-200/35 bg-white/20 bg-cover bg-center shadow-[inset_0_1px_0_rgba(255,255,255,0.45)] dark:border-cyan-300/10 dark:bg-white/8"
                       style={{ backgroundImage: `url(${session.bookCoverUrl})` }}
                     />
                   ) : null}
@@ -134,7 +124,7 @@ export function JoinedSessionsList() {
                   </div>
                 </div>
                 {session.status === "active" ? (
-                  <Badge className="rounded-full bg-emerald-600/90 px-2.5 text-[11px] text-white hover:bg-emerald-600/90">
+                  <Badge className="rounded-full border border-emerald-300/45 bg-emerald-400/15 px-2.5 text-[11px] text-emerald-800 hover:bg-emerald-400/15 dark:border-emerald-300/20 dark:bg-emerald-400/12 dark:text-emerald-200">
                     Active
                   </Badge>
                 ) : (
@@ -144,7 +134,7 @@ export function JoinedSessionsList() {
                 )}
               </div>
 
-              <div className="flex items-center justify-between gap-2 rounded-xl border border-black/8 bg-white/55 px-2.5 py-2 dark:border-white/10 dark:bg-white/7">
+              <div className="flex items-center justify-between gap-2 rounded-xl border border-cyan-200/34 bg-[rgba(248,255,254,0.44)] px-2.5 py-2 dark:border-cyan-300/10 dark:bg-[rgba(255,255,255,0.05)]">
                 <div className="inline-flex min-w-0 items-center gap-2">
                   <Avatar size="sm" className="ring-1 ring-black/10 dark:ring-white/20">
                     <AvatarImage src={session.hostImage ?? undefined} alt={session.hostName ?? "Host"} />
