@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+.premid-activities/
 
 # debug
 npm-debug.log*
