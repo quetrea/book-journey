@@ -1,20 +1,17 @@
-import { ConvexHttpClient } from "convex/browser";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { SessionRoomPageClient } from "@/features/sessions/ui/SessionRoomPageClient";
+import { buildSessionPathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import { resolveSessionInvitePublic } from "@/features/sessions/server/publicSession";
 import {
   buildDefaultOg,
   buildDefaultTwitter,
   toAbsoluteUrl,
 } from "@/lib/seo";
-import { api } from "../../../../convex/_generated/api";
 
 type InvitePageProps = {
   params: Promise<{ code: string }>;
 };
-
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 function buildNoIndexMetadata(title: string, description: string, path: string): Metadata {
   return {
@@ -44,9 +41,7 @@ export async function generateMetadata({ params }: InvitePageProps): Promise<Met
   const invitePath = `/invite/${code}`;
 
   try {
-    const data = await convex.query(api.sessions.resolveSessionInvitePublic, {
-      inviteCode: code,
-    });
+    const data = await resolveSessionInvitePublic(code);
 
     if (!data) {
       return buildNoIndexMetadata(
@@ -122,13 +117,11 @@ export async function generateMetadata({ params }: InvitePageProps): Promise<Met
 
 export default async function InvitePage({ params }: InvitePageProps) {
   const { code } = await params;
-  const data = await convex.query(api.sessions.resolveSessionInvitePublic, {
-    inviteCode: code,
-  });
+  const data = await resolveSessionInvitePublic(code);
 
   if (!data) {
     notFound();
   }
 
-  return <SessionRoomPageClient sessionId={data.sessionId} />;
+  redirect(buildSessionPathFromSessionId(data.sessionId));
 }

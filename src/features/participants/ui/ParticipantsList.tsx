@@ -35,6 +35,8 @@ type ParticipantsListProps = {
   participants: ParticipantListItem[];
   isLoading: boolean;
   errorMessage: string | null;
+  isExpanded?: boolean;
+  onExpandedChange?: (isExpanded: boolean) => void;
   isHost?: boolean;
   isModerator?: boolean;
   viewerUserId?: string;
@@ -77,6 +79,8 @@ export const ParticipantsList = memo(function ParticipantsList({
   participants,
   isLoading,
   errorMessage,
+  isExpanded: controlledExpanded,
+  onExpandedChange,
   isHost,
   isModerator,
   viewerUserId,
@@ -85,8 +89,9 @@ export const ParticipantsList = memo(function ParticipantsList({
   onKick,
 }: ParticipantsListProps) {
   const { cardShadow } = useThemeGlow();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [uncontrolledExpanded, setUncontrolledExpanded] = useState(true);
   const [kickTarget, setKickTarget] = useState<{ userId: string; name: string } | null>(null);
+  const isExpanded = controlledExpanded ?? uncontrolledExpanded;
 
   const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
 
@@ -152,6 +157,13 @@ export const ParticipantsList = memo(function ParticipantsList({
     return false;
   }
 
+  function handleExpandedChange(nextExpanded: boolean) {
+    onExpandedChange?.(nextExpanded);
+    if (controlledExpanded === undefined) {
+      setUncontrolledExpanded(nextExpanded);
+    }
+  }
+
   return (
     <Card className={cardClass} style={{ boxShadow: cardShadow }}>
       <CardHeader className="pb-3">
@@ -165,7 +177,7 @@ export const ParticipantsList = memo(function ParticipantsList({
           </CardTitle>
           <button
             type="button"
-            onClick={() => setIsExpanded((v) => !v)}
+            onClick={() => handleExpandedChange(!isExpanded)}
             aria-label={isExpanded ? "Collapse participants" : "Expand participants"}
             className="rounded-full p-1 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
           >
@@ -182,7 +194,7 @@ export const ParticipantsList = memo(function ParticipantsList({
               {visibleAvatars.map((p) => (
                 <Avatar
                   key={p.userId}
-                  size="sm"
+                  size="default"
                   title={`${p.name}${p.role === "host" ? " (Host)" : p.role === "moderator" ? " (Mod)" : ""}`}
                   className={`ring-2 ${
                     p.role === "moderator"
@@ -191,11 +203,11 @@ export const ParticipantsList = memo(function ParticipantsList({
                   }`}
                 >
                   <AvatarImage src={p.image ?? undefined} alt={p.name} />
-                  <AvatarFallback className="text-[10px]">{getInitials(p.name)}</AvatarFallback>
+                  <AvatarFallback className="text-[11px]">{getInitials(p.name)}</AvatarFallback>
                 </Avatar>
               ))}
               {overflowCount > 0 && (
-                <div className="flex size-7 items-center justify-center rounded-full border border-black/10 bg-white/80 text-[10px] font-semibold text-muted-foreground ring-2 ring-white/90 dark:border-white/15 dark:bg-white/15 dark:ring-black/50">
+                <div className="flex size-8 items-center justify-center rounded-full border border-black/10 bg-white/80 text-[11px] font-semibold text-muted-foreground ring-2 ring-white/90 dark:border-white/15 dark:bg-white/15 dark:ring-black/50">
                   +{overflowCount}
                 </div>
               )}

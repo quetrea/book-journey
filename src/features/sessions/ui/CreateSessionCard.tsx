@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useThemeGlow } from "@/hooks/useThemeGlow";
-import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import { buildSessionPathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../../convex/_generated/api";
 
 type CreateSessionCardProps = {
@@ -186,7 +186,7 @@ export function CreateSessionCard({ isReady, onCreated }: CreateSessionCardProps
       setPasscodeCopyState("idle");
       setSuccessMessage("Session created.");
       onCreated();
-      router.push(buildSessionInvitePathFromSessionId(createdSessionId as string));
+      router.push(buildSessionPathFromSessionId(createdSessionId as string));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
       setErrorMessage(message);

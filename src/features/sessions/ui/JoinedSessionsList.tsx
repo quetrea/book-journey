@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { cn } from "@/lib/utils";
-import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import { buildSessionPathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../../convex/_generated/api";
 
 function formatDateLabel(timestamp: number) {
@@ -156,7 +156,7 @@ export function JoinedSessionsList() {
               </span>
             </div>
 
-            <Link href={buildSessionInvitePathFromSessionId(session._id)} className="block">
+            <Link href={buildSessionPathFromSessionId(session._id)} className="block">
               <CoverPreview
                 title={session.title ?? session.bookTitle}
                 authorName={session.authorName}
@@ -172,7 +172,7 @@ export function JoinedSessionsList() {
                 <p className="text-xs text-muted-foreground">Host and room details are inside</p>
               </div>
               <Link
-                href={buildSessionInvitePathFromSessionId(session._id)}
+                href={buildSessionPathFromSessionId(session._id)}
                 className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground/72 transition-colors hover:text-foreground"
               >
                 Open

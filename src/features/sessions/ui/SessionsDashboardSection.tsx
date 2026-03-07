@@ -1,6 +1,12 @@
 "use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { CreateSessionModal } from "./CreateSessionModal";
 import { JoinedSessionsList } from "./JoinedSessionsList";
@@ -11,7 +17,9 @@ type SessionsDashboardSectionProps = {
   isGuest: boolean | undefined;
 };
 
-export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionProps) {
+export function SessionsDashboardSection({
+  isGuest,
+}: SessionsDashboardSectionProps) {
   const { cardShadow, orb, isDark } = useThemeGlow();
 
   return (
@@ -35,7 +43,8 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
         <CardContent className="space-y-3">
           {isGuest && (
             <p className="text-xs text-muted-foreground">
-              Guest sessions are temporary and all of their data is deleted immediately when you sign out.
+              Guest sessions are temporary and all of their data is deleted
+              immediately when you sign out.
             </p>
           )}
           <MySessionsList />
@@ -60,7 +69,8 @@ export function SessionsDashboardSection({ isGuest }: SessionsDashboardSectionPr
         <CardContent className="space-y-3">
           {isGuest && (
             <p className="text-xs text-muted-foreground">
-              Joined guest sessions are temporary and all of their data is deleted immediately when you sign out.
+              Joined guest sessions are temporary and all of their data is
+              deleted immediately when you sign out.
             </p>
           )}
           <JoinedSessionsList />

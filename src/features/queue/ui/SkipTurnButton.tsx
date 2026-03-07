@@ -40,6 +40,7 @@ export function SkipTurnButton({ canSkip, onSkip }: SkipTurnButtonProps) {
           void handleSkip();
         }}
         disabled={isSubmitting}
+        className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-500/30 dark:text-red-400 dark:hover:bg-red-500/10 dark:hover:text-red-300"
       >
         {isSubmitting ? "Skipping..." : "Skip my turn"}
       </Button>

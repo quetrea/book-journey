@@ -24,7 +24,7 @@ export function ThemePicker() {
           variant="ghost"
           size="icon"
           aria-label="Choose background theme"
-          className="relative size-9 rounded-full border border-black/12 bg-black/6 backdrop-blur-md transition-all hover:bg-black/10 dark:border-white/10 dark:bg-white/8 dark:hover:bg-white/20"
+          className="relative size-9 rounded-full border border-white/40 bg-white/65 backdrop-blur-md transition-all hover:bg-black/10 dark:border-white/10 dark:bg-white/8 dark:hover:bg-white/20"
         >
           <Palette className="size-4 text-foreground/80" />
         </Button>
@@ -52,17 +52,22 @@ export function ThemePicker() {
               <span
                 className="relative size-9 overflow-hidden rounded-full border-2 transition-all duration-200"
                 style={{
-                  borderColor: active.id === t.id ? (isDark ? "white" : "#1e293b") : "transparent",
+                  borderColor:
+                    active.id === t.id
+                      ? isDark
+                        ? "white"
+                        : "#1e293b"
+                      : "transparent",
                   background: `conic-gradient(from 0deg, ${t.orb1} 0%, ${t.orb2} 50%, ${t.orb3} 100%)`,
                   boxShadow:
-                    active.id === t.id
-                      ? `0 0 12px 3px ${t.orb1}66`
-                      : "none",
+                    active.id === t.id ? `0 0 12px 3px ${t.orb1}66` : "none",
                 }}
               >
                 {active.id === t.id && (
                   <span className="absolute inset-0 flex items-center justify-center">
-                    <span className={`size-2 rounded-full shadow-sm ${isDark ? "bg-white" : "bg-slate-900"}`} />
+                    <span
+                      className={`size-2 rounded-full shadow-sm ${isDark ? "bg-white" : "bg-slate-900"}`}
+                    />
                   </span>
                 )}
               </span>

@@ -57,7 +57,7 @@ export function JoinQueueButton({
       {isInQueue ? (
         <Button
           type="button"
-          variant="secondary"
+          variant="destructive"
           disabled={isSubmitting}
           onClick={() => {
             void callQueueMutation("leave");

@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { ArrowRight, Lock, Users } from "lucide-react";
 import Link from "next/link";
 
-import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import { buildSessionPathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../convex/_generated/api";
 import { cn } from "@/lib/utils";
 
@@ -32,7 +32,7 @@ export function LiveSessionsSection() {
         {sessions.slice(0, 6).map((session, index) => (
           <Link
             key={session.id}
-            href={buildSessionInvitePathFromSessionId(session.id)}
+            href={buildSessionPathFromSessionId(session.id)}
             className="group animate-in fade-in slide-in-from-bottom-4 fill-mode-[both]"
             style={{
               animationDelay: `${480 + index * 70}ms`,

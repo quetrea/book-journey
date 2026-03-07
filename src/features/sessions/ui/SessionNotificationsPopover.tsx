@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { Bell, CheckCheck } from "lucide-react";
+import { Bell, BellRing, CheckCheck } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -14,12 +14,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { getInitials } from "@/lib/formatters";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { api } from "../../../../convex/_generated/api";
 import type { Id } from "../../../../convex/_generated/dataModel";
 
 type SessionNotificationsPopoverProps = {
   sessionId: Id<"sessions">;
   isHost: boolean;
+  isParticipant: boolean;
   sessionAccessType: "public" | "passcode" | "private";
   isSessionEnded: boolean;
 };
@@ -44,6 +46,7 @@ function formatNotificationTime(timestamp: number) {
 export function SessionNotificationsPopover({
   sessionId,
   isHost,
+  isParticipant,
   sessionAccessType,
   isSessionEnded,
 }: SessionNotificationsPopoverProps) {
@@ -65,6 +68,18 @@ export function SessionNotificationsPopover({
   >([]);
   const seenPendingRequestKeysRef = useRef<Set<string>>(new Set());
   const isPendingSnapshotInitializedRef = useRef(false);
+  const {
+    isSupported: isPushSupported,
+    permission: pushPermission,
+    isSubscribed: isPushSubscribed,
+    isLoading: isPushLoading,
+    subscribe: subscribeToPush,
+    unsubscribe: unsubscribeFromPush,
+  } = usePushNotifications();
+
+  const canManageAccessRequests =
+    isHost && sessionAccessType === "private" && !isSessionEnded;
+  const canManagePush = isPushSupported && isParticipant && !isSessionEnded;
 
   const unreadNotificationCount = useMemo(
     () => accessNotifications.filter((item) => !item.isRead).length,
@@ -180,7 +195,7 @@ export function SessionNotificationsPopover({
     }
   }
 
-  if (!isHost || sessionAccessType !== "private" || isSessionEnded) {
+  if (!canManageAccessRequests && !canManagePush) {
     return null;
   }
 
@@ -189,12 +204,20 @@ export function SessionNotificationsPopover({
       <PopoverTrigger asChild>
         <Button
           type="button"
-          variant="secondary"
-          size="sm"
-          className="relative shrink-0"
+          variant="ghost"
+          size="icon"
+          className={`relative shrink-0 rounded-full border ${
+            isPushSubscribed || badgeCount > 0
+              ? "border-indigo-400/50 bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/15 dark:border-indigo-400/35 dark:bg-indigo-400/15 dark:text-indigo-300"
+              : "border-black/8 bg-white/70 text-muted-foreground hover:bg-white dark:border-white/12 dark:bg-white/10 dark:text-muted-foreground"
+          }`}
+          aria-label="Notifications"
         >
-          <Bell className="size-4" />
-          <span className="hidden sm:inline">Notifications</span>
+          {isPushSubscribed ? (
+            <BellRing className="size-4" />
+          ) : (
+            <Bell className="size-4" />
+          )}
           {badgeCount > 0 ? (
             <Badge className="absolute -right-1.5 -top-1.5 flex size-4 items-center justify-center rounded-full bg-indigo-500 p-0 text-[10px] text-white hover:bg-indigo-500">
               {badgeCount > 9 ? "9+" : badgeCount}
@@ -239,70 +262,119 @@ export function SessionNotificationsPopover({
           </div>
         </div>
 
-        <div className="space-y-2 rounded-lg border border-white/30 bg-white/55 p-2.5 dark:border-white/10 dark:bg-white/4">
-          <p className="text-xs font-medium text-foreground">Access requests</p>
-          {pendingJoinRequests === undefined ? (
-            <p className="text-xs text-muted-foreground">Loading requests...</p>
-          ) : pendingJoinRequests.length === 0 ? (
-            <p className="text-xs text-muted-foreground">No pending requests.</p>
-          ) : (
-            <div className="max-h-40 space-y-2 overflow-y-auto pr-0.5">
-              {pendingJoinRequests.map((request) => {
-                const isResponding =
-                  respondingJoinRequestUserId === request.requesterUserId;
-                return (
-                  <div
-                    key={request.requesterUserId}
-                    className="flex flex-col gap-2 rounded-lg border border-white/30 bg-white/55 p-2 dark:border-white/10 dark:bg-white/4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="inline-flex items-center gap-2">
-                      <Avatar className="size-6">
-                        <AvatarImage src={request.requesterImage ?? undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {getInitials(request.requesterName)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <p className="truncate text-xs font-medium text-foreground">
-                        {request.requesterName}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={() => {
-                          void handleRespondToJoinRequest(
-                            request.requesterUserId,
-                            "approved"
-                          );
-                        }}
-                        disabled={isResponding}
-                        className="h-7 px-2.5 text-[11px]"
-                      >
-                        Approve
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          void handleRespondToJoinRequest(
-                            request.requesterUserId,
-                            "rejected"
-                          );
-                        }}
-                        disabled={isResponding}
-                        className="h-7 px-2.5 text-[11px]"
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
+        {canManagePush ? (
+          <div className="space-y-2 rounded-lg border border-white/30 bg-white/55 p-2.5 dark:border-white/10 dark:bg-white/4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-medium text-foreground">Turn alerts</p>
+              <Badge
+                variant="secondary"
+                className={`rounded-full px-2 text-[10px] ${
+                  isPushSubscribed
+                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                    : ""
+                }`}
+              >
+                {pushPermission === "denied"
+                  ? "Blocked"
+                  : isPushSubscribed
+                    ? "Active"
+                    : "Off"}
+              </Badge>
             </div>
-          )}
-        </div>
+            <p className="text-xs text-muted-foreground">
+              {pushPermission === "denied"
+                ? "Browser notifications are blocked. Enable them in browser settings."
+                : isPushSubscribed
+                  ? "You will get notified when it is your turn."
+                  : "Enable alerts to get a notification when your turn starts."}
+            </p>
+            {pushPermission !== "denied" ? (
+              <Button
+                type="button"
+                variant={isPushSubscribed ? "destructive" : "outline"}
+                size="sm"
+                onClick={() => {
+                  void (isPushSubscribed ? unsubscribeFromPush() : subscribeToPush());
+                }}
+                disabled={isPushLoading}
+                className="h-8 text-xs"
+              >
+                {isPushLoading
+                  ? "..."
+                  : isPushSubscribed
+                    ? "Disable notifications"
+                    : "Enable notifications"}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {canManageAccessRequests ? (
+          <div className="space-y-2 rounded-lg border border-white/30 bg-white/55 p-2.5 dark:border-white/10 dark:bg-white/4">
+            <p className="text-xs font-medium text-foreground">Access requests</p>
+            {pendingJoinRequests === undefined ? (
+              <p className="text-xs text-muted-foreground">Loading requests...</p>
+            ) : pendingJoinRequests.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No pending requests.</p>
+            ) : (
+              <div className="max-h-40 space-y-2 overflow-y-auto pr-0.5">
+                {pendingJoinRequests.map((request) => {
+                  const isResponding =
+                    respondingJoinRequestUserId === request.requesterUserId;
+                  return (
+                    <div
+                      key={request.requesterUserId}
+                      className="flex flex-col gap-2 rounded-lg border border-white/30 bg-white/55 p-2 dark:border-white/10 dark:bg-white/4 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="inline-flex items-center gap-2">
+                        <Avatar className="size-6">
+                          <AvatarImage src={request.requesterImage ?? undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {getInitials(request.requesterName)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {request.requesterName}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            void handleRespondToJoinRequest(
+                              request.requesterUserId,
+                              "approved"
+                            );
+                          }}
+                          disabled={isResponding}
+                          className="h-7 px-2.5 text-[11px]"
+                        >
+                          Approve
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            void handleRespondToJoinRequest(
+                              request.requesterUserId,
+                              "rejected"
+                            );
+                          }}
+                          disabled={isResponding}
+                          className="h-7 px-2.5 text-[11px]"
+                        >
+                          Reject
+                        </Button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : null}
 
         <div className="space-y-2 rounded-lg border border-white/30 bg-white/55 p-2.5 dark:border-white/10 dark:bg-white/4">
           <p className="text-xs font-medium text-foreground">Activity</p>

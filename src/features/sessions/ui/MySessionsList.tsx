@@ -54,14 +54,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { buildSessionInviteCodeFromSessionId, buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import {
+  buildSessionInviteCodeFromSessionId,
+  buildSessionPathFromSessionId,
+} from "@/features/sessions/lib/inviteLinks";
 import { hexToRgba, useThemeGlow } from "@/hooks/useThemeGlow";
 import { cn } from "@/lib/utils";
 import type { SessionListItem } from "../types";
 import { CreateSessionModal } from "./CreateSessionModal";
 import { api } from "../../../../convex/_generated/api";
 
-type SessionsViewMode = "list" | "compact" | "grid";
+type SessionsViewMode = "compact" | "grid";
 type SessionStatusFilter = "all" | "active" | "ended";
 type SessionsSortMode = "recent" | "title" | "active-first";
 
@@ -159,7 +162,7 @@ function ViewToggleButton({
         "h-8 flex-1 gap-1.5 rounded-lg px-2.5 text-xs sm:flex-none",
         isActive
           ? "border border-black/10 bg-white/48 text-foreground hover:bg-white/60 dark:border-white/12 dark:bg-white/10 dark:hover:bg-white/14"
-          : "text-muted-foreground hover:text-foreground",
+          : "text-muted-foreground hover:text-foreground"
       )}
       style={isActive ? { boxShadow: itemShadow } : undefined}
     >
@@ -176,7 +179,12 @@ type ControlButtonProps = {
   onClick: () => void;
 };
 
-function ControlButton({ active, label, icon: Icon, onClick }: ControlButtonProps) {
+function ControlButton({
+  active,
+  label,
+  icon: Icon,
+  onClick,
+}: ControlButtonProps) {
   const { itemShadow } = useThemeGlow();
 
   return (
@@ -189,7 +197,7 @@ function ControlButton({ active, label, icon: Icon, onClick }: ControlButtonProp
         "h-7 gap-1.5 rounded-lg px-2.5 text-[11px]",
         active
           ? "border border-black/10 bg-white/52 text-foreground hover:bg-white/60 dark:border-white/12 dark:bg-white/12 dark:hover:bg-white/16"
-          : "text-muted-foreground hover:text-foreground",
+          : "text-muted-foreground hover:text-foreground"
       )}
       style={active ? { boxShadow: itemShadow } : undefined}
     >
@@ -226,7 +234,10 @@ function StatusBadge({
 
   const daysLeft =
     endedAt !== undefined
-      ? Math.max(0, Math.ceil((endedAt + SEVEN_DAYS_MS - now) / (1000 * 60 * 60 * 24)))
+      ? Math.max(
+          0,
+          Math.ceil((endedAt + SEVEN_DAYS_MS - now) / (1000 * 60 * 60 * 24))
+        )
       : null;
 
   return (
@@ -260,9 +271,13 @@ function SessionCover({
         <div
           className={cn(
             "relative w-[96px] shrink-0 overflow-hidden rounded-2xl border border-black/8 bg-linear-to-br from-white/70 via-white/20 to-black/10 dark:border-white/10 dark:from-white/12 dark:via-white/6 dark:to-black/30",
-            hasCover ? "bg-cover bg-center" : "",
+            hasCover ? "bg-cover bg-center" : ""
           )}
-          style={hasCover ? { backgroundImage: `url(${session.bookCoverUrl})` } : undefined}
+          style={
+            hasCover
+              ? { backgroundImage: `url(${session.bookCoverUrl})` }
+              : undefined
+          }
         >
           <div className="aspect-[3/4]" />
           <div className="absolute inset-0 bg-linear-to-t from-black/55 via-black/10 to-transparent" />
@@ -273,7 +288,9 @@ function SessionCover({
             {title}
           </p>
           <p className="mt-1 line-clamp-1 text-sm text-muted-foreground/85">
-            {session.authorName ? `by ${session.authorName}` : session.bookTitle}
+            {session.authorName
+              ? `by ${session.authorName}`
+              : session.bookTitle}
           </p>
           <p className="mt-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground/72">
             Tap cover to enter
@@ -288,9 +305,13 @@ function SessionCover({
       className={cn(
         "relative overflow-hidden rounded-[24px] border border-black/8 bg-linear-to-br from-white/75 via-white/20 to-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] dark:border-white/10 dark:from-white/12 dark:via-white/6 dark:to-black/30",
         isGrid ? "aspect-[4/5] w-full" : "aspect-[8/4.6] w-full",
-        hasCover ? "bg-cover bg-center" : "",
+        hasCover ? "bg-cover bg-center" : ""
       )}
-      style={hasCover ? { backgroundImage: `url(${session.bookCoverUrl})` } : undefined}
+      style={
+        hasCover
+          ? { backgroundImage: `url(${session.bookCoverUrl})` }
+          : undefined
+      }
     >
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/24 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-4">
@@ -314,7 +335,11 @@ type EditSessionDialogProps = {
   session: SessionListItem;
 };
 
-function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogProps) {
+function EditSessionDialog({
+  open,
+  onOpenChange,
+  session,
+}: EditSessionDialogProps) {
   const updateSession = useMutation(api.sessions.updateSessionServer);
   const [bookTitle, setBookTitle] = useState(session.bookTitle);
   const [authorName, setAuthorName] = useState(session.authorName ?? "");
@@ -368,7 +393,9 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
       toast.success("Session updated");
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to update session.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to update session."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -380,18 +407,26 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
         <DialogHeader>
           <DialogTitle>Edit session</DialogTitle>
           <DialogDescription>
-            Update the card-facing book identity. Room details still live inside the session.
+            Update the card-facing book identity. Room details still live inside
+            the session.
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-1 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm font-medium text-foreground">Book title</label>
-            <Input value={bookTitle} onChange={(event) => setBookTitle(event.target.value)} />
+            <label className="text-sm font-medium text-foreground">
+              Book title
+            </label>
+            <Input
+              value={bookTitle}
+              onChange={(event) => setBookTitle(event.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Session title</label>
+            <label className="text-sm font-medium text-foreground">
+              Session title
+            </label>
             <Input
               value={title}
               onChange={(event) => setTitle(event.target.value)}
@@ -400,7 +435,9 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Author</label>
+            <label className="text-sm font-medium text-foreground">
+              Author
+            </label>
             <Input
               value={authorName}
               onChange={(event) => setAuthorName(event.target.value)}
@@ -409,7 +446,9 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
           </div>
 
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm font-medium text-foreground">Book cover URL</label>
+            <label className="text-sm font-medium text-foreground">
+              Book cover URL
+            </label>
             <Input
               value={bookCoverUrl}
               onChange={(event) => setBookCoverUrl(event.target.value)}
@@ -418,7 +457,9 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
           </div>
 
           <div className="space-y-2 sm:col-span-2">
-            <label className="text-sm font-medium text-foreground">Synopsis</label>
+            <label className="text-sm font-medium text-foreground">
+              Synopsis
+            </label>
             <Textarea
               value={synopsis}
               onChange={(event) => setSynopsis(event.target.value)}
@@ -429,10 +470,21 @@ function EditSessionDialog({ open, onOpenChange, session }: EditSessionDialogPro
         </div>
 
         <DialogFooter>
-          <Button type="button" variant="ghost" onClick={() => onOpenChange(false)} disabled={isSaving}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={() => onOpenChange(false)}
+            disabled={isSaving}
+          >
             Cancel
           </Button>
-          <Button type="button" onClick={() => { void handleSave(); }} disabled={isSaving || !hasChanges}>
+          <Button
+            type="button"
+            onClick={() => {
+              void handleSave();
+            }}
+            disabled={isSaving || !hasChanges}
+          >
             {isSaving ? "Saving..." : "Save changes"}
           </Button>
         </DialogFooter>
@@ -452,7 +504,7 @@ function renderLoadingSkeleton(viewMode: SessionsViewMode) {
           key={`sessions-skeleton-${index}`}
           className={cn(
             "border-black/8 bg-white/18 px-4 py-4 backdrop-blur-xl dark:border-white/12 dark:bg-white/6",
-            viewMode === "grid" ? "h-full" : "",
+            viewMode === "grid" ? "h-full" : ""
           )}
         >
           <CardContent className="space-y-3 p-0">
@@ -490,7 +542,9 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
       setIsDeleteOpen(false);
       toast.success("Session deleted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to delete session.");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete session."
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -511,7 +565,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
             ? "border-black/10 bg-white/26 hover:bg-white/34 dark:border-white/12 dark:bg-white/8 dark:hover:bg-white/12"
             : "border-black/8 bg-white/18 hover:bg-white/26 dark:border-white/10 dark:bg-white/6 dark:hover:bg-white/10",
           isCompactView ? "px-3 py-3" : "px-4 py-4",
-          isGridView ? "h-full" : "",
+          isGridView ? "h-full" : ""
         )}
         style={{
           animationDelay: `${Math.min(index * 45, 180)}ms`,
@@ -533,7 +587,7 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
           style={{
             backgroundColor: hexToRgba(
               orb,
-              session.status === "active" ? 0.58 : 0.36,
+              session.status === "active" ? 0.58 : 0.36
             ),
           }}
         />
@@ -542,7 +596,11 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <StatusBadge status={session.status} endedAt={session.endedAt} now={now} />
+                <StatusBadge
+                  status={session.status}
+                  endedAt={session.endedAt}
+                  now={now}
+                />
                 <Badge
                   variant="secondary"
                   className="rounded-full border border-black/8 bg-white/40 px-2.5 text-[11px] text-foreground dark:border-white/12 dark:bg-white/10"
@@ -584,14 +642,17 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
               </DropdownMenu>
             </div>
 
-            <Link href={buildSessionInvitePathFromSessionId(session._id)} className="block">
+            <Link
+              href={buildSessionPathFromSessionId(session._id)}
+              className="block"
+            >
               <SessionCover session={session} viewMode={viewMode} />
             </Link>
 
             <div
               className={cn(
                 "flex items-center justify-between gap-3 rounded-2xl border border-black/8 bg-white/24 dark:border-white/10 dark:bg-white/8",
-                isCompactView ? "px-3 py-2.5" : "px-3.5 py-3",
+                isCompactView ? "px-3 py-2.5" : "px-3.5 py-3"
               )}
             >
               <div className="min-w-0">
@@ -600,12 +661,14 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Started {formatRelativeTimeLabel(session.createdAt, now)}
-                  {session.status === "ended" ? ` • ${formatDateLabel(session.endedAt ?? session.createdAt)} archive` : ""}
+                  {session.status === "ended"
+                    ? ` • ${formatDateLabel(session.endedAt ?? session.createdAt)} archive`
+                    : ""}
                 </p>
               </div>
 
               <Link
-                href={buildSessionInvitePathFromSessionId(session._id)}
+                href={buildSessionPathFromSessionId(session._id)}
                 className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-foreground/72 transition-colors hover:text-foreground"
               >
                 Open
@@ -616,14 +679,20 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
         </CardContent>
       </Card>
 
-      <EditSessionDialog open={isEditOpen} onOpenChange={setIsEditOpen} session={session} />
+      <EditSessionDialog
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        session={session}
+      />
 
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this session?</AlertDialogTitle>
             <AlertDialogDescription>
-              &quot;{session.title ?? session.bookTitle}&quot; and all its data (queue, words, participants) will be permanently deleted. This cannot be undone.
+              &quot;{session.title ?? session.bookTitle}&quot; and all its data
+              (queue, words, participants) will be permanently deleted. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -631,7 +700,9 @@ function SessionCard({ session, viewMode, now, index }: SessionCardProps) {
             <AlertDialogAction
               variant="destructive"
               disabled={isDeleting}
-              onClick={() => { void handleDelete(); }}
+              onClick={() => {
+                void handleDelete();
+              }}
             >
               {isDeleting ? "Deleting..." : "Delete session"}
             </AlertDialogAction>
@@ -647,19 +718,23 @@ export function MySessionsList() {
   const [now, setNow] = useState(() => Date.now());
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<SessionsViewMode>(() => {
-    if (typeof window === "undefined") return "list";
+    if (typeof window === "undefined") return "grid";
     const stored = window.localStorage.getItem("sessions-view-mode");
-    return stored === "list" || stored === "compact" || stored === "grid" ? stored : "list";
+    return stored === "compact" ? "compact" : "grid";
   });
   const [statusFilter, setStatusFilter] = useState<SessionStatusFilter>(() => {
     if (typeof window === "undefined") return "all";
     const stored = window.localStorage.getItem("sessions-status-filter");
-    return stored === "all" || stored === "active" || stored === "ended" ? stored : "all";
+    return stored === "all" || stored === "active" || stored === "ended"
+      ? stored
+      : "all";
   });
   const [sortMode, setSortMode] = useState<SessionsSortMode>(() => {
     if (typeof window === "undefined") return "recent";
     const stored = window.localStorage.getItem("sessions-sort-mode");
-    return stored === "recent" || stored === "title" || stored === "active-first"
+    return stored === "recent" ||
+      stored === "title" ||
+      stored === "active-first"
       ? stored
       : "recent";
   });
@@ -698,15 +773,17 @@ export function MySessionsList() {
   const normalizedSessions = useMemo(() => sessions ?? [], [sessions]);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const sessionSummary = useMemo(() => {
-    const active = normalizedSessions.filter((session) => session.status === "active").length;
+    const active = normalizedSessions.filter(
+      (session) => session.status === "active"
+    ).length;
     const ended = normalizedSessions.length - active;
     const participantTotal = normalizedSessions.reduce(
       (total, session) => total + (session.participantCount ?? 0),
-      0,
+      0
     );
     const queueTotal = normalizedSessions.reduce(
       (total, session) => total + (session.activeQueueCount ?? 0),
-      0,
+      0
     );
 
     return {
@@ -740,14 +817,18 @@ export function MySessionsList() {
       ];
 
       return searchFields.some(
-        (value) => typeof value === "string" && value.toLowerCase().includes(normalizedSearch),
+        (value) =>
+          typeof value === "string" &&
+          value.toLowerCase().includes(normalizedSearch)
       );
     });
 
     filtered.sort((left, right) => {
       switch (sortMode) {
         case "title":
-          return (left.title ?? left.bookTitle).localeCompare(right.title ?? right.bookTitle);
+          return (left.title ?? left.bookTitle).localeCompare(
+            right.title ?? right.bookTitle
+          );
         case "active-first":
           if (left.status !== right.status) {
             return left.status === "active" ? -1 : 1;
@@ -763,7 +844,9 @@ export function MySessionsList() {
   }, [normalizedSearch, normalizedSessions, sortMode, statusFilter]);
 
   const hasActiveControls =
-    searchQuery.trim().length > 0 || statusFilter !== "all" || sortMode !== "recent";
+    searchQuery.trim().length > 0 ||
+    statusFilter !== "all" ||
+    sortMode !== "recent";
 
   if (sessions === undefined) {
     return renderLoadingSkeleton(viewMode);
@@ -776,7 +859,9 @@ export function MySessionsList() {
           <span className="inline-flex size-10 items-center justify-center rounded-full border border-black/10 bg-white/46 text-foreground dark:border-white/12 dark:bg-white/10 dark:text-white">
             <Sparkles className="size-5" />
           </span>
-          <p className="text-base font-semibold text-foreground">No sessions yet</p>
+          <p className="text-base font-semibold text-foreground">
+            No sessions yet
+          </p>
           <p className="max-w-sm text-sm text-muted-foreground">
             Create your first session and start reading live with your group.
           </p>
@@ -789,7 +874,9 @@ export function MySessionsList() {
   }
 
   const sessionsWrapperClass =
-    viewMode === "grid" ? "grid gap-2.5 md:grid-cols-2" : "space-y-2.5";
+    viewMode === "grid"
+      ? "grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4  "
+      : "space-y-2.5";
 
   return (
     <div className="space-y-3">
@@ -802,7 +889,9 @@ export function MySessionsList() {
             <p className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
               {sessionSummary.total}
             </p>
-            <p className="text-xs text-muted-foreground">Total rooms in your library</p>
+            <p className="text-xs text-muted-foreground">
+              Total rooms in your library
+            </p>
           </div>
           <div className="rounded-xl border border-black/8 bg-white/30 px-3 py-3 dark:border-white/10 dark:bg-white/8">
             <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/80">
@@ -812,7 +901,8 @@ export function MySessionsList() {
               {sessionSummary.active}
             </p>
             <p className="text-xs text-muted-foreground">
-              {sessionSummary.ended} ended session{sessionSummary.ended === 1 ? "" : "s"} archived
+              {sessionSummary.ended} ended session
+              {sessionSummary.ended === 1 ? "" : "s"} archived
             </p>
           </div>
           <div className="rounded-xl border border-black/8 bg-white/30 px-3 py-3 dark:border-white/10 dark:bg-white/8">
@@ -839,10 +929,21 @@ export function MySessionsList() {
             />
           </div>
 
-          <div className="grid w-full grid-cols-3 items-center rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8 sm:inline-flex sm:w-auto">
-            <ViewToggleButton mode="list" activeMode={viewMode} onSelect={handleViewModeChange} icon={Rows3} label="List" />
-            <ViewToggleButton mode="compact" activeMode={viewMode} onSelect={handleViewModeChange} icon={StretchHorizontal} label="Compact" />
-            <ViewToggleButton mode="grid" activeMode={viewMode} onSelect={handleViewModeChange} icon={Grid3X3} label="Grid" />
+          <div className="grid w-full grid-cols-2 items-center rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8 sm:inline-flex sm:w-auto">
+            <ViewToggleButton
+              mode="grid"
+              activeMode={viewMode}
+              onSelect={handleViewModeChange}
+              icon={Grid3X3}
+              label="Grid"
+            />
+            <ViewToggleButton
+              mode="compact"
+              activeMode={viewMode}
+              onSelect={handleViewModeChange}
+              icon={StretchHorizontal}
+              label="Compact"
+            />
           </div>
         </div>
 
@@ -852,9 +953,21 @@ export function MySessionsList() {
               Filter
             </span>
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8">
-              <ControlButton active={statusFilter === "all"} label={`All (${sessionSummary.total})`} onClick={() => handleStatusFilterChange("all")} />
-              <ControlButton active={statusFilter === "active"} label={`Active (${sessionSummary.active})`} onClick={() => handleStatusFilterChange("active")} />
-              <ControlButton active={statusFilter === "ended"} label={`Ended (${sessionSummary.ended})`} onClick={() => handleStatusFilterChange("ended")} />
+              <ControlButton
+                active={statusFilter === "all"}
+                label={`All (${sessionSummary.total})`}
+                onClick={() => handleStatusFilterChange("all")}
+              />
+              <ControlButton
+                active={statusFilter === "active"}
+                label={`Active (${sessionSummary.active})`}
+                onClick={() => handleStatusFilterChange("active")}
+              />
+              <ControlButton
+                active={statusFilter === "ended"}
+                label={`Ended (${sessionSummary.ended})`}
+                onClick={() => handleStatusFilterChange("ended")}
+              />
             </div>
           </div>
 
@@ -863,13 +976,34 @@ export function MySessionsList() {
               Sort
             </span>
             <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-black/10 bg-white/42 p-1 dark:border-white/12 dark:bg-white/8">
-              <ControlButton active={sortMode === "recent"} label="Recent" icon={ArrowUpDown} onClick={() => handleSortModeChange("recent")} />
-              <ControlButton active={sortMode === "active-first"} label="Active first" icon={Radio} onClick={() => handleSortModeChange("active-first")} />
-              <ControlButton active={sortMode === "title"} label="A-Z" icon={Rows3} onClick={() => handleSortModeChange("title")} />
+              <ControlButton
+                active={sortMode === "recent"}
+                label="Recent"
+                icon={ArrowUpDown}
+                onClick={() => handleSortModeChange("recent")}
+              />
+              <ControlButton
+                active={sortMode === "active-first"}
+                label="Active first"
+                icon={Radio}
+                onClick={() => handleSortModeChange("active-first")}
+              />
+              <ControlButton
+                active={sortMode === "title"}
+                label="A-Z"
+                icon={Rows3}
+                onClick={() => handleSortModeChange("title")}
+              />
             </div>
 
             {hasActiveControls ? (
-              <Button type="button" size="xs" variant="ghost" className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-foreground" onClick={resetListingControls}>
+              <Button
+                type="button"
+                size="xs"
+                variant="ghost"
+                className="h-7 rounded-lg px-2.5 text-[11px] text-muted-foreground hover:text-foreground"
+                onClick={resetListingControls}
+              >
                 <X className="size-3.5" />
                 Reset
               </Button>
@@ -878,7 +1012,8 @@ export function MySessionsList() {
         </div>
 
         <p className="px-1 text-xs text-muted-foreground">
-          Showing {filteredSessions.length} of {normalizedSessions.length} sessions
+          Showing {filteredSessions.length} of {normalizedSessions.length}{" "}
+          sessions
         </p>
       </div>
 
@@ -887,7 +1022,11 @@ export function MySessionsList() {
           <CardContent className="px-4 text-sm text-muted-foreground">
             {searchQuery.trim().length > 0 ? (
               <>
-                No sessions match <span className="font-medium text-foreground">&quot;{searchQuery}&quot;</span>.
+                No sessions match{" "}
+                <span className="font-medium text-foreground">
+                  &quot;{searchQuery}&quot;
+                </span>
+                .
               </>
             ) : (
               <>No sessions match the current filters.</>
@@ -898,10 +1037,15 @@ export function MySessionsList() {
 
       <div className={sessionsWrapperClass}>
         {filteredSessions.map((session, index) => (
-          <SessionCard key={session._id} session={session} viewMode={viewMode} now={now} index={index} />
+          <SessionCard
+            key={session._id}
+            session={session}
+            viewMode={viewMode}
+            now={now}
+            index={index}
+          />
         ))}
       </div>
     </div>
   );
 }
-

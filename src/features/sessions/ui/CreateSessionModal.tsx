@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { buildSessionInvitePathFromSessionId } from "@/features/sessions/lib/inviteLinks";
+import { buildSessionPathFromSessionId } from "@/features/sessions/lib/inviteLinks";
 import { api } from "../../../../convex/_generated/api";
 
 const NOISE_SVG = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E")`;
@@ -214,7 +214,7 @@ export function CreateSessionModal() {
       setImportError(null);
       setImportSuccess(null);
       setImportedCoverUrl(undefined);
-      router.push(buildSessionInvitePathFromSessionId(createdSessionId as string));
+      router.push(buildSessionPathFromSessionId(createdSessionId as string));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create session.";
       setErrorMessage(message);

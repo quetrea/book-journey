@@ -1,7 +1,17 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { BookMarked, Check, Copy, Download, LayoutGrid, LayoutList, Search, Trash2 } from "lucide-react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import {
+  BookMarked,
+  Check,
+  Copy,
+  Download,
+  LayoutGrid,
+  LayoutList,
+  Search,
+  Trash2,
+} from "lucide-react";
 import { useRef, useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -42,6 +52,7 @@ export function WordsList({
   bookTitle,
 }: WordsListProps) {
   const { cardShadow } = useThemeGlow();
+  const prefersReducedMotion = useReducedMotion();
   const words = useQuery(api.sessionWords.listWordsServer, { sessionId });
   const addWord = useMutation(api.sessionWords.addWordServer);
   const removeWord = useMutation(api.sessionWords.removeWordServer);
@@ -54,6 +65,9 @@ export function WordsList({
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>(readStoredViewMode);
   const wordInputRef = useRef<HTMLInputElement>(null);
+  const cardTransition = prefersReducedMotion
+    ? { duration: 0 }
+    : { duration: 0.34, ease: [0.22, 1, 0.36, 1] as const };
 
   function switchView(mode: ViewMode) {
     setViewMode(mode);
@@ -72,7 +86,9 @@ export function WordsList({
     if (!words || words.length === 0) return;
 
     const dateStr = new Intl.DateTimeFormat(undefined, {
-      year: "numeric", month: "long", day: "numeric",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     }).format(new Date());
 
     const lines: string[] = [
@@ -87,14 +103,21 @@ export function WordsList({
     words.forEach((entry, i) => {
       lines.push(`${i + 1}. ${entry.word}`);
       if (entry.context) lines.push(`   "${entry.context}"`);
-      lines.push(`   — ${entry.userName} · ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(entry.createdAt))}`);
+      lines.push(
+        `   — ${entry.userName} · ${new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" }).format(new Date(entry.createdAt))}`,
+      );
       lines.push("");
     });
 
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const blob = new Blob([lines.join("\n")], {
+      type: "text/plain;charset=utf-8",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const slug = (bookTitle ?? "session").toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40);
+    const slug = (bookTitle ?? "session")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .slice(0, 40);
     a.href = url;
     a.download = `bookjourney-vocab-${slug}.txt`;
     a.click();
@@ -109,7 +132,11 @@ export function WordsList({
     if (!trimmed) return;
     setIsAdding(true);
     try {
-      await addWord({ sessionId, word: trimmed, context: contextInput.trim() || undefined });
+      await addWord({
+        sessionId,
+        word: trimmed,
+        context: contextInput.trim() || undefined,
+      });
       setWordInput("");
       setContextInput("");
       setShowContextInput(false);
@@ -119,23 +146,30 @@ export function WordsList({
     }
   }
 
-  const cardClass = "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
+  const cardClass =
+    "border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8";
 
   if (words === undefined) {
     return (
-      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
-        <CardHeader className="pb-3">
-          <CardTitle className="inline-flex items-center gap-2 text-base">
-            <BookMarked className="size-4 text-indigo-500" />
-            Words
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2.5">
-          <Skeleton className="h-10 rounded-xl" />
-          <Skeleton className="h-10 rounded-xl" />
-          <Skeleton className="h-10 rounded-xl" />
-        </CardContent>
-      </Card>
+      <motion.div
+        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+        animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+        transition={cardTransition}
+      >
+        <Card className={cardClass} style={{ boxShadow: cardShadow }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="inline-flex items-center gap-2 text-base">
+              <BookMarked className="size-4 text-indigo-500" />
+              Words
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2.5">
+            <Skeleton className="h-10 rounded-xl" />
+            <Skeleton className="h-10 rounded-xl" />
+            <Skeleton className="h-10 rounded-xl" />
+          </CardContent>
+        </Card>
+      </motion.div>
     );
   }
 
@@ -148,221 +182,280 @@ export function WordsList({
     : words;
 
   return (
-    <Card className={cardClass} style={{ boxShadow: cardShadow }}>
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between gap-2">
-          <CardTitle className="inline-flex items-center gap-2 text-base">
-            <BookMarked className="size-4 text-indigo-500" />
-            Words
-            {words.length > 0 && (
-              <span className="text-sm font-normal text-muted-foreground">({words.length})</span>
-            )}
-          </CardTitle>
-          <div className="flex items-center gap-1">
-            {words.length > 0 && (
-              <>
-                {/* View toggle */}
-                <button
-                  type="button"
-                  onClick={() => switchView("list")}
-                  title="List view"
-                  className={`rounded-full p-1.5 transition-colors ${viewMode === "list" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
-                >
-                  <LayoutList className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => switchView("grid")}
-                  title="Flashcard view"
-                  className={`rounded-full p-1.5 transition-colors ${viewMode === "grid" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
-                >
-                  <LayoutGrid className="size-3.5" />
-                </button>
-                <div className="mx-1 h-3.5 w-px bg-black/12 dark:bg-white/12" />
-                <button
-                  type="button"
-                  onClick={handleDownload}
-                  title="Download vocabulary list"
-                  className="rounded-full p-1.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                >
-                  <Download className="size-3.5" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-        <p className="text-xs text-muted-foreground">
-          Save words or phrases from the reading.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {words.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No words saved yet. Add the first one below.
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {words.length > 3 && (
-              <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search words..."
-                  className="h-8 pl-7 text-xs"
-                />
-              </div>
-            )}
-
-            <div className="max-h-104 overflow-y-auto pr-0.5">
-              {filtered.length === 0 && search ? (
-                <p className="py-2 text-xs text-muted-foreground">
-                  No words match &ldquo;{search}&rdquo;
-                </p>
-              ) : viewMode === "list" ? (
-                <div className="space-y-2">
-                  {filtered.map((entry) => {
-                    const canDelete = isHost || entry.userId === viewerUserId;
-                    return (
-                      <div
-                        key={entry._id}
-                        className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
-                      >
-                        <Avatar size="sm" className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15">
-                          <AvatarImage src={entry.userImage ?? undefined} alt={entry.userName} />
-                          <AvatarFallback>{getInitials(entry.userName)}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-foreground">{entry.word}</p>
-                          {entry.context ? (
-                            <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
-                              &ldquo;{entry.context}&rdquo;
-                            </p>
-                          ) : null}
-                          <p className="mt-0.5 text-[11px] text-muted-foreground/60">
-                            {entry.userName} · {formatTimeAgo(entry.createdAt)}
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => handleCopy(entry._id, entry.word, entry.context)}
-                          className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
-                        >
-                          {copiedId === entry._id
-                            ? <Check className="size-3.5 text-emerald-500" />
-                            : <Copy className="size-3.5" />}
-                        </button>
-                        {canDelete ? (
-                          <button
-                            type="button"
-                            onClick={() => { void removeWord({ wordId: entry._id }); }}
-                            className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                          >
-                            <Trash2 className="size-3.5" />
-                          </button>
-                        ) : null}
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* Grid / flashcard view */
-                <div className="grid grid-cols-2 gap-2">
-                  {filtered.map((entry) => {
-                    const canDelete = isHost || entry.userId === viewerUserId;
-                    return (
-                      <div
-                        key={entry._id}
-                        className="group relative flex min-h-20 flex-col justify-between rounded-xl border border-white/35 bg-white/55 p-3 dark:border-white/12 dark:bg-white/6"
-                      >
-                        <p className="line-clamp-2 break-all text-sm font-semibold leading-snug text-foreground">
-                          {entry.word}
-                        </p>
-                        {entry.context ? (
-                          <p className="mt-1 line-clamp-2 text-[11px] italic text-muted-foreground/70">
-                            &ldquo;{entry.context}&rdquo;
-                          </p>
-                        ) : null}
-                        <div className="mt-2 flex items-center justify-between gap-1">
-                          <p className="truncate text-[10px] text-muted-foreground/50">
-                            {entry.userName}
-                          </p>
-                          <div className="flex shrink-0 items-center gap-0.5">
-                            <button
-                              type="button"
-                              onClick={() => handleCopy(entry._id, entry.word, entry.context)}
-                              className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/8 hover:text-foreground dark:hover:bg-white/12"
-                            >
-                              {copiedId === entry._id
-                                ? <Check className="size-3 text-emerald-500" />
-                                : <Copy className="size-3" />}
-                            </button>
-                            {canDelete ? (
-                              <button
-                                type="button"
-                                onClick={() => { void removeWord({ wordId: entry._id }); }}
-                                className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
-                              >
-                                <Trash2 className="size-3" />
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+    <motion.div
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+      animate={prefersReducedMotion ? {} : { opacity: 1, y: 0 }}
+      transition={cardTransition}
+    >
+      <Card className={cardClass} style={{ boxShadow: cardShadow }}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="inline-flex items-center gap-2 text-base">
+              <BookMarked className="size-4 text-indigo-500" />
+              Words
+              {words.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({words.length})
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              {words.length > 0 && (
+                <>
+                  {/* View toggle */}
+                  <button
+                    type="button"
+                    onClick={() => switchView("list")}
+                    title="List view"
+                    className={`rounded-full p-1.5 transition-colors ${viewMode === "list" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
+                  >
+                    <LayoutList className="size-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchView("grid")}
+                    title="Flashcard view"
+                    className={`rounded-full p-1.5 transition-colors ${viewMode === "grid" ? "bg-black/8 text-foreground dark:bg-white/12" : "text-muted-foreground/50 hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"}`}
+                  >
+                    <LayoutGrid className="size-3.5" />
+                  </button>
+                  <div className="mx-1 h-3.5 w-px bg-black/12 dark:bg-white/12" />
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    title="Download vocabulary list"
+                    className="rounded-full p-1.5 text-muted-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                  >
+                    <Download className="size-3.5" />
+                  </button>
+                </>
               )}
             </div>
           </div>
-        )}
-
-        {canAdd ? (
-          <form onSubmit={handleAdd} className="space-y-2 border-t border-black/8 pt-3 dark:border-white/10">
-            <div className="flex gap-2">
-              <Input
-                ref={wordInputRef}
-                value={wordInput}
-                onChange={(e) => setWordInput(e.target.value)}
-                placeholder="Add a word or phrase..."
-                className="h-9 text-sm"
-                disabled={isAdding}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isAdding || !wordInput.trim()}
-                className="shrink-0"
-              >
-                {isAdding ? "..." : "Add"}
-              </Button>
-            </div>
-            {showContextInput ? (
-              <Input
-                value={contextInput}
-                onChange={(e) => setContextInput(e.target.value)}
-                placeholder="Optional context (sentence where it appeared)"
-                className="h-9 text-xs"
-                disabled={isAdding}
-              />
-            ) : (
-              <button
-                type="button"
-                className="text-xs text-muted-foreground/60 underline-offset-2 hover:text-muted-foreground hover:underline"
-                onClick={() => setShowContextInput(true)}
-              >
-                + Add context
-              </button>
-            )}
-          </form>
-        ) : null}
-
-        {!canAdd && !isSessionEnded ? (
-          <p className="border-t border-black/8 pt-3 text-xs text-muted-foreground dark:border-white/10">
-            Join the session to add words.
+          <p className="text-xs text-muted-foreground">
+            Save words or phrases from the reading.
           </p>
-        ) : null}
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {words.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No words saved yet. Add the first one below.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              <AnimatePresence initial={false}>
+                {words.length > 3 ? (
+                  <motion.div
+                    key="words-search"
+                    className="relative"
+                    initial={
+                      prefersReducedMotion
+                        ? false
+                        : { opacity: 0, height: 0, y: -8 }
+                    }
+                    animate={
+                      prefersReducedMotion
+                        ? {}
+                        : { opacity: 1, height: "auto", y: 0 }
+                    }
+                    exit={
+                      prefersReducedMotion
+                        ? {}
+                        : { opacity: 0, height: 0, y: -8 }
+                    }
+                    transition={cardTransition}
+                  >
+                    <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/50" />
+                    <Input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search words..."
+                      className="h-8 pl-7 text-xs"
+                    />
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+
+              <div className="max-h-72 overflow-y-auto pr-0.5">
+                {filtered.length === 0 && search ? (
+                  <p className="py-2 text-xs text-muted-foreground">
+                    No words match &ldquo;{search}&rdquo;
+                  </p>
+                ) : viewMode === "list" ? (
+                  <div className="space-y-2">
+                    {filtered.map((entry) => {
+                      const canDelete = isHost || entry.userId === viewerUserId;
+                      return (
+                        <div
+                          key={entry._id}
+                          className="flex items-start gap-2.5 rounded-xl border border-white/35 bg-white/55 px-3 py-2.5 dark:border-white/12 dark:bg-white/6"
+                        >
+                          <Avatar
+                            size="sm"
+                            className="mt-0.5 shrink-0 ring-1 ring-white/60 dark:ring-white/15"
+                          >
+                            <AvatarImage
+                              src={entry.userImage ?? undefined}
+                              alt={entry.userName}
+                            />
+                            <AvatarFallback>
+                              {getInitials(entry.userName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-foreground">
+                              {entry.word}
+                            </p>
+                            {entry.context ? (
+                              <p className="mt-0.5 line-clamp-2 text-xs italic text-muted-foreground/80">
+                                &ldquo;{entry.context}&rdquo;
+                              </p>
+                            ) : null}
+                            <p className="mt-0.5 text-[11px] text-muted-foreground/60">
+                              {entry.userName} ·{" "}
+                              {formatTimeAgo(entry.createdAt)}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCopy(entry._id, entry.word, entry.context)
+                            }
+                            className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                          >
+                            {copiedId === entry._id ? (
+                              <Check className="size-3.5 text-emerald-500" />
+                            ) : (
+                              <Copy className="size-3.5" />
+                            )}
+                          </button>
+                          {canDelete ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void removeWord({ wordId: entry._id });
+                              }}
+                              className="mt-0.5 shrink-0 rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* Grid / flashcard view */
+                  <div className="grid grid-cols-3 gap-2">
+                    {filtered.map((entry) => {
+                      const canDelete = isHost || entry.userId === viewerUserId;
+                      return (
+                        <div
+                          key={entry._id}
+                          className="group relative flex min-h-20 flex-col justify-between rounded-xl border border-white/35 bg-white/55 p-3 dark:border-white/12 dark:bg-white/6"
+                        >
+                          <p className="line-clamp-2 break-all text-sm font-semibold leading-snug text-foreground">
+                            {entry.word}
+                          </p>
+                          {entry.context ? (
+                            <p className="mt-1 line-clamp-2 text-[11px] italic text-muted-foreground/70">
+                              &ldquo;{entry.context}&rdquo;
+                            </p>
+                          ) : null}
+                          <div className="mt-2 flex items-center justify-between gap-1">
+                            <p className="truncate text-[10px] text-muted-foreground/50">
+                              {entry.userName}
+                            </p>
+                            <div className="flex shrink-0 items-center gap-0.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleCopy(
+                                    entry._id,
+                                    entry.word,
+                                    entry.context,
+                                  )
+                                }
+                                className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-black/8 hover:text-foreground dark:hover:bg-white/12"
+                              >
+                                {copiedId === entry._id ? (
+                                  <Check className="size-3 text-emerald-500" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </button>
+                              {canDelete ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    void removeWord({ wordId: entry._id });
+                                  }}
+                                  className="rounded-full p-1 text-muted-foreground/40 transition-colors hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-500/10"
+                                >
+                                  <Trash2 className="size-3" />
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {canAdd ? (
+            <form
+              onSubmit={handleAdd}
+              className="space-y-2 border-t border-black/8 pt-3 dark:border-white/10"
+            >
+              <div className="flex gap-2">
+                <Input
+                  ref={wordInputRef}
+                  value={wordInput}
+                  onChange={(e) => setWordInput(e.target.value)}
+                  placeholder="Add a word or phrase..."
+                  className="h-9 text-sm"
+                  disabled={isAdding}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isAdding || !wordInput.trim()}
+                  className="shrink-0"
+                >
+                  {isAdding ? "..." : "Add"}
+                </Button>
+              </div>
+              {showContextInput ? (
+                <Input
+                  value={contextInput}
+                  onChange={(e) => setContextInput(e.target.value)}
+                  placeholder="Optional context (sentence where it appeared)"
+                  className="h-9 text-xs"
+                  disabled={isAdding}
+                />
+              ) : (
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground/60 underline-offset-2 hover:text-muted-foreground hover:underline"
+                  onClick={() => setShowContextInput(true)}
+                >
+                  + Add context
+                </button>
+              )}
+            </form>
+          ) : null}
+
+          {!canAdd && !isSessionEnded ? (
+            <p className="border-t border-black/8 pt-3 text-xs text-muted-foreground dark:border-white/10">
+              Join the session to add words.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

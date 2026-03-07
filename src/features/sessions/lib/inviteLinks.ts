@@ -35,6 +35,14 @@ export function buildSessionInvitePathFromSessionId(sessionId: string) {
   return `/invite/${buildSessionInviteCodeFromSessionId(sessionId)}`;
 }
 
+export function buildSessionPathFromSessionId(sessionId: string) {
+  return `/s/${sessionId.trim()}`;
+}
+
 export function buildSessionInviteUrl(origin: string, sessionId: string) {
   return `${origin}${buildSessionInvitePathFromSessionId(sessionId)}`;
+}
+
+export function buildSessionUrl(origin: string, sessionId: string) {
+  return `${origin}${buildSessionPathFromSessionId(sessionId)}`;
 }

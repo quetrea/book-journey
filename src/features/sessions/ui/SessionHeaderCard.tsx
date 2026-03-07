@@ -5,13 +5,11 @@ import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import {
   BookOpenText,
-  Clock3,
   Copy,
   Info,
   Pencil,
   Shuffle,
   Sparkles,
-  Users,
 } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -104,12 +102,17 @@ function formatElapsed(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
   if (hours > 0) {
-    return `${hours}h ${minutes}m`;
+    return `${hours}h ${minutes}m ${seconds}s`;
   }
 
-  return `${minutes}m`;
+  if (minutes > 0) {
+    return `${minutes}m ${seconds}s`;
+  }
+
+  return `${seconds}s`;
 }
 
 function formatShortDate(timestamp: number) {
@@ -330,7 +333,7 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
 
     const timer = window.setInterval(() => {
       setNow(Date.now());
-    }, 60_000);
+    }, 1_000);
 
     return () => {
       window.clearInterval(timer);
@@ -401,9 +404,9 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
       className="relative overflow-hidden border-white/45 bg-white/68 backdrop-blur-md dark:border-white/15 dark:bg-white/8"
       style={{ boxShadow: cardShadow }}
     >
-      <CardHeader className="relative gap-4 pb-3">
+      <CardHeader className="relative gap-2.5 pb-1.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/70 px-3 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/45 bg-white/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground shadow-sm backdrop-blur-md dark:border-white/12 dark:bg-white/8">
             <Sparkles className="size-3.5 text-indigo-500" />
             Session room
           </div>
@@ -480,7 +483,7 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
                     </div>
                   </DialogHeader>
 
-                  <div className="grid max-h-[calc(85vh-228px)] gap-6 overflow-y-auto px-6 py-5 lg:grid-cols-[minmax(0,1fr)_280px]">
+                  <div className="grid max-h-[calc(85vh-160px)] gap-6 overflow-y-auto px-6 py-5 pb-24 lg:grid-cols-[minmax(0,1fr)_280px]">
                     <div className="space-y-6">
                       <section className="space-y-4">
                         <div>
@@ -786,7 +789,7 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
                     </aside>
                   </div>
 
-                  <DialogFooter className="border-t border-black/8 px-6 py-4 dark:border-white/10">
+                  <DialogFooter className="sticky bottom-0 z-10 border-t border-black/8 bg-white/92 px-6 py-4 backdrop-blur-xl dark:border-white/10 dark:bg-[#0d1222]/92">
                     <Button
                       type="button"
                       variant="outline"
@@ -995,22 +998,7 @@ export const SessionHeaderCard = memo(function SessionHeaderCard({
         </div>
       </CardHeader>
 
-      <CardContent className="relative space-y-4">
-        <div className="grid gap-2 sm:grid-cols-3">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-3 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-            <Clock3 className="size-3.5" />
-            Elapsed: {elapsedLabel}
-          </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-3 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-            <Users className="size-3.5" />
-            Members: {memberCount}
-          </div>
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-white/55 bg-white/60 px-3 py-1.5 text-xs text-muted-foreground dark:border-white/10 dark:bg-white/8">
-            <Clock3 className="size-3.5" />
-            Started: {formatShortDate(session.createdAt)}
-          </div>
-        </div>
-
+      <CardContent className="relative space-y-2.5 pt-0">
         <div className="flex flex-wrap items-center justify-between gap-2">
           {hostName ? (
             <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/55 bg-white/70 px-2.5 py-1.5 shadow-sm backdrop-blur-md dark:border-white/15 dark:bg-white/10">
